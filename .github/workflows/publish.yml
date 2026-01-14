@@ -71,9 +71,10 @@ jobs:
           # Ensure OWNER is lowercase for tarball matching
           OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
           TEMP_DIR=$(mktemp -d)
-          echo "🧪 Performing smoke test for owner: $OWNER in $TEMP_DIR"
+          echo "🧪 Performing smoke test in $TEMP_DIR"
           
           # Pack scoped packages
+          echo "📦 Packing packages..."
           (cd packages/swarm-mail && npm pack --pack-destination "$TEMP_DIR")
           (cd packages/opencode-swarm-plugin && npm pack --pack-destination "$TEMP_DIR")
           
@@ -81,40 +82,36 @@ jobs:
           cd "$TEMP_DIR"
           bun init -y
           
-          echo "Contents of $TEMP_DIR:"
+          echo "📂 Contents of $TEMP_DIR:"
           ls -la
           
-          # Find the tarballs using a more robust loop instead of 'ls' subshell
-          SWARM_MAIL_TGZ=""
-          for f in ${OWNER}-swarm-mail-*.tgz; do
-            if [ -f "$f" ]; then SWARM_MAIL_TGZ="$f"; break; fi
-          done
-
-          PLUGIN_TGZ=""
-          for f in ${OWNER}-swarm-*.tgz; do
-            if [ -f "$f" ] && [[ "$f" != *"swarm-mail"* ]]; then
-              PLUGIN_TGZ="$f"
-              break
-            fi
-          done
+          # Find the tarballs using a robust method
+          # We search for any tarball containing 'swarm-mail' and 'swarm' respectively
+          SWARM_MAIL_TGZ=$(ls *.tgz | grep "swarm-mail" | head -n 1 || true)
+          PLUGIN_TGZ=$(ls *.tgz | grep "swarm" | grep -v "swarm-mail" | head -n 1 || true)
           
           if [ -z "$SWARM_MAIL_TGZ" ]; then
-            echo "❌ Failed to find swarm-mail tarball matching ${OWNER}-swarm-mail-*.tgz"
+            echo "❌ Failed to find swarm-mail tarball"
             ls -la
             exit 1
           fi
           if [ -z "$PLUGIN_TGZ" ]; then
-            echo "❌ Failed to find plugin tarball matching ${OWNER}-swarm-*.tgz"
+            echo "❌ Failed to find plugin tarball"
             ls -la
             exit 1
           fi
           
-          echo "Installing $SWARM_MAIL_TGZ and $PLUGIN_TGZ"
+          echo "🚀 Installing $SWARM_MAIL_TGZ and $PLUGIN_TGZ"
           bun add "./$SWARM_MAIL_TGZ" "./$PLUGIN_TGZ"
           
           # Verify we can import them without "swarm-mail" missing error
-          echo "import { getSwarmMailLibSQL } from '@${OWNER}/swarm-mail'; console.log('Successfully imported swarm-mail');" > test.ts
-          echo "import { swarm_init } from '@${OWNER}/swarm'; console.log('Successfully imported swarm plugin');" >> test.ts
+          # Use the actual scoped names assigned by scope-packages.ts
+          # We extract the owner from the tarball name just to be safe
+          ACTUAL_OWNER=$(echo "$SWARM_MAIL_TGZ" | cut -d'-' -f1)
+          echo "Using owner: $ACTUAL_OWNER for imports"
+          
+          echo "import { getSwarmMailLibSQL } from '@${ACTUAL_OWNER}/swarm-mail'; console.log('Successfully imported swarm-mail');" > test.ts
+          echo "import { swarm_init } from '@${ACTUAL_OWNER}/swarm'; console.log('Successfully imported swarm plugin');" >> test.ts
           
           bun test.ts
           echo "✅ Smoke test passed!"
