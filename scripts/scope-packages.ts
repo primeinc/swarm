@@ -181,4 +181,47 @@ try {
   console.warn(`\n⚠ Could not update changeset files: ${e}`);
 }
 
+// Fourth pass: update all import statements in .ts files
+console.log("\n🔍 Updating import statements in source code...\n");
+try {
+  const allTsFiles: string[] = [];
+  const walk = (dir: string) => {
+    const files = readdirSync(dir);
+    for (const file of files) {
+      const path = join(dir, file);
+      if (statSync(path).isDirectory()) {
+        if (file !== "node_modules" && file !== "dist") walk(path);
+      } else if (file.endsWith(".ts") || file.endsWith(".tsx")) {
+        allTsFiles.push(path);
+      }
+    }
+  };
+  walk(PACKAGES_DIR);
+
+  let updatedCount = 0;
+  for (const file of allTsFiles) {
+    let content = readFileSync(file, "utf-8");
+    let modified = false;
+
+    for (const [original, scoped] of Object.entries(nameMapping)) {
+      // Replace imports from the original package name
+      // Handles: import ... from "swarm-mail"; and import ... from 'swarm-mail';
+      // Use word boundaries or regex that matches the whole string
+      const regex = new RegExp(`from ["']${original}["']`, "g");
+      if (regex.test(content)) {
+        content = content.replace(regex, `from "${scoped}"`);
+        modified = true;
+      }
+    }
+
+    if (modified) {
+      writeFileSync(file, content);
+      updatedCount++;
+    }
+  }
+  console.log(`  ✓ Updated imports in ${updatedCount} files`);
+} catch (e) {
+  console.warn(`\n⚠ Could not update import statements: ${e}`);
+}
+
 console.log("\n✅ Done! Packages are now scoped to @" + owner + "\n");
