@@ -87,7 +87,11 @@ jobs:
           PLUGIN_TGZ=$(ls opencode-swarm-plugin-*.tgz 2>/dev/null || ls swarm-*.tgz)
           
           echo "Installing $SWARM_MAIL_TGZ and $PLUGIN_TGZ"
-          bun add "./$SWARM_MAIL_TGZ" "./$PLUGIN_TGZ"
+          # Rename tarballs to include scope for 'bun add' to register them correctly under scoped names
+          mv "$SWARM_MAIL_TGZ" "${OWNER}-swarm-mail.tgz"
+          mv "$PLUGIN_TGZ" "${OWNER}-swarm.tgz"
+
+          bun add "./${OWNER}-swarm-mail.tgz" "./${OWNER}-swarm.tgz"
           
           # Verify we can import them without "swarm-mail" missing error
           echo "import { getSwarmMailLibSQL } from '@${OWNER}/swarm-mail'; console.log('Successfully imported swarm-mail');" > test.ts
