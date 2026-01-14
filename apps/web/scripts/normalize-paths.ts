@@ -26,7 +26,6 @@ try {
     /create\.docs\("([^"]+)",\s*"([^"]+)"/g,
     (match, name, path) => {
       const normalizedPath = path.replace(/\\/g, '/');
-      console.log(`Normalizing path for ${name}: ${path} -> ${normalizedPath}`);
       return `create.docs("${name}", "${normalizedPath}"`;
     }
   );

@@ -9,7 +9,7 @@ import { defineConfig, defineDocs } from 'fumadocs-mdx/config';
 const generator = createGenerator();
 
 export const docs = defineDocs({
-  dir: 'content/docs',
+  dir: 'content-docs',
 });
 
 export default defineConfig({
