@@ -128,10 +128,18 @@ try {
 
   // Get repo from GITHUB_REPOSITORY env var if available
   const repo = process.env.GITHUB_REPOSITORY || `${owner}/swarm-tools`;
-  changesetConfig.changelog[1].repo = repo;
+  
+  // For forks, we switch to a simpler changelog generator to avoid GitHub API issues
+  // with untracked commits or missing permissions.
+  if (owner !== "joelhooks") {
+    changesetConfig.changelog = "@changesets/cli/changelog";
+    console.log(`\n✓ Switched to simple changelog generator for fork`);
+  } else {
+    changesetConfig.changelog[1].repo = repo;
+    console.log(`\n✓ Updated .changeset/config.json repo to ${repo}`);
+  }
 
   writeFileSync(changesetConfigPath, JSON.stringify(changesetConfig, null, 2) + "\n");
-  console.log(`\n✓ Updated .changeset/config.json repo to ${repo}`);
 } catch (e) {
   console.warn(`\n⚠ Could not update changeset config: ${e}`);
 }
