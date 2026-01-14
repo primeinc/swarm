@@ -88,10 +88,12 @@ jobs:
           
           echo "Installing $SWARM_MAIL_TGZ and $PLUGIN_TGZ"
           # Rename tarballs to include scope for 'bun add' to register them correctly under scoped names
+          # Use OWNER-NAME.tgz format which bun resolves to @OWNER/NAME
           mv "$SWARM_MAIL_TGZ" "${OWNER}-swarm-mail.tgz"
           mv "$PLUGIN_TGZ" "${OWNER}-swarm.tgz"
 
-          bun add "./${OWNER}-swarm-mail.tgz" "./${OWNER}-swarm.tgz"
+          # Use absolute paths and force installation of local files
+          bun add "file:./${OWNER}-swarm-mail.tgz" "file:./${OWNER}-swarm.tgz"
           
           # Verify we can import them without "swarm-mail" missing error
           echo "import { getSwarmMailLibSQL } from '@${OWNER}/swarm-mail'; console.log('Successfully imported swarm-mail');" > test.ts
