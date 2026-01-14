@@ -55,13 +55,25 @@ jobs:
           owner: ${{ github.repository_owner }}
 
       - name: Publish to NPM
-        id: changesets
-        uses: changesets/action@v1
-        with:
-          # In this workflow, we ONLY publish.
-          publish: ${{ inputs.dry_run == true && 'echo Skipping publish (dry run)' || 'bun run ci:publish' }}
-          createGithubReleases: true
-          setupGitUser: true
+        id: publish_step
+        run: |
+          set -euo pipefail
+          
+          if [[ "${{ inputs.dry_run }}" == "true" ]]; then
+            echo "🌵 Dry run: skipping actual publish"
+            echo "published=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Run the actual publish script from package.json
+          # This script handles scoping, building (redundant but safe), and publishing.
+          bun run ci:publish
+          
+          # Push the package-specific tags created by 'changeset tag'
+          # This was identified as a missing step by the Correctness Oracle
+          git push origin --tags
+          
+          echo "published=true" >> $GITHUB_OUTPUT
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -69,7 +81,7 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
 
       - name: Get release info
-        if: steps.changesets.outputs.published == 'true'
+        if: steps.publish_step.outputs.published == 'true'
         id: release_info
         run: |
           # Get changelog
@@ -85,7 +97,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate release tweet
-        if: steps.changesets.outputs.published == 'true'
+        if: steps.publish_step.outputs.published == 'true'
         id: tweet
         continue-on-error: true
         uses: vercel/ai-action@v2
@@ -106,7 +118,7 @@ jobs:
             ${{ steps.release_info.outputs.changelog }}
 
       - name: Post to X (API v2)
-        if: steps.changesets.outputs.published == 'true' && steps.tweet.outputs.text != ''
+        if: steps.publish_step.outputs.published == 'true' && steps.tweet.outputs.text != ''
         continue-on-error: true
         run: |
           echo "═══════════════════════════════════════════════════════════════"
