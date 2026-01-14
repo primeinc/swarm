@@ -1,9 +1,9 @@
-name: Release
+name: Publish to NPM
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
       dry_run:
@@ -16,17 +16,16 @@ concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 permissions:
   contents: write
-  pull-requests: write
   id-token: write # For npm provenance
 
 jobs:
-  release:
-    # Runs on any repo with NPM_TOKEN configured - fork-friendly!
-    # Forks can set their own NPM_TOKEN secret to publish to their scope
+  publish:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Tags need history
 
       - uses: oven-sh/setup-bun@v2
 
@@ -38,11 +37,6 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Scope packages for repository owner
-        run: bun scripts/scope-packages.ts ${{ github.repository_owner }}
-        env:
-          GITHUB_REPOSITORY: ${{ github.repository }}
-
       - name: Build
         run: |
           set -euo pipefail
@@ -51,145 +45,18 @@ jobs:
           bun turbo build --filter="@${OWNER}/swarm" --filter="@${OWNER}/swarm-mail"
 
       - name: Verify build artifacts
-        run: |
-          set -euo pipefail
-
-          echo "🔍 Verifying opencode-swarm-plugin build..."
-          test -f packages/opencode-swarm-plugin/dist/index.js || { echo "Missing dist/index.js"; exit 1; }
-          test -f packages/opencode-swarm-plugin/dist/index.d.ts || { echo "Missing dist/index.d.ts"; exit 1; }
-          test -d packages/opencode-swarm-plugin/claude-plugin/dist || { echo "Missing claude-plugin/dist"; exit 1; }
-
-          echo "🔍 Verifying swarm-mail build..."
-          test -f packages/swarm-mail/dist/index.js || { echo "Missing dist/index.js"; exit 1; }
-          test -f packages/swarm-mail/dist/index.d.ts || { echo "Missing dist/index.d.ts"; exit 1; }
-
-          echo "✅ All build artifacts verified"
-
-      - name: Verify scoped package installation (Smoke Test)
-        run: |
-          set -euo pipefail
-          OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-          TEMP_DIR=$(mktemp -d)
-          echo "🧪 Performing smoke test in $TEMP_DIR"
-          
-          # Pack scoped packages manually and move them to temp dir
-          # This is more reliable than --pack-destination in some npm versions
-          echo "📦 Packing swarm-mail..."
-          cd packages/swarm-mail
-          npm pack
-          mv *.tgz "$TEMP_DIR/"
-          cd -
-          
-          echo "📦 Packing opencode-swarm-plugin..."
-          cd packages/opencode-swarm-plugin
-          npm pack
-          mv *.tgz "$TEMP_DIR/"
-          cd -
-          
-          # Try installing them in a clean project
-          cd "$TEMP_DIR"
-          echo "📍 Current directory: $(pwd)"
-          bun init -y
-          
-          echo "📂 Contents of $TEMP_DIR:"
-          ls -F
-          
-          # Find the tarballs using a robust method
-          SWARM_MAIL_TGZ=$(ls *swarm-mail*.tgz | head -n 1 || true)
-          PLUGIN_TGZ=$(ls *swarm*.tgz | grep -v "swarm-mail" | head -n 1 || true)
-          
-          echo "🔍 Found SWARM_MAIL_TGZ: '$SWARM_MAIL_TGZ'"
-          echo "🔍 Found PLUGIN_TGZ: '$PLUGIN_TGZ'"
-
-          if [ -z "$SWARM_MAIL_TGZ" ] || [ -z "$PLUGIN_TGZ" ]; then
-            echo "❌ Failed to find packed tarballs"
-            ls -la
-            exit 1
-          fi
-          
-          echo "🚀 Installing packages..."
-          bun add "./$SWARM_MAIL_TGZ" "./$PLUGIN_TGZ"
-          
-          # Use the OWNER we derived earlier
-          echo "👤 Using owner for imports: $OWNER"
-          
-          echo "📝 Creating test script..."
-          # Use a more robust way to create the test script with proper indentation for YAML
-          cat << 'EOF' > test.ts
-          import { getSwarmMailLibSQL } from '@OWNER/swarm-mail';
-          import { swarm_init } from '@OWNER/swarm';
-          console.log('✅ Successfully imported both packages!');
-          EOF
-          # Replace OWNER placeholder with actual variable
-          sed -i "s/OWNER/$OWNER/g" test.ts
-          # Remove leading spaces from test.ts
-          sed -i 's/^[ ]*//' test.ts
-          
-          echo "🏃 Running test script..."
-          bun test.ts
-          echo "✨ Smoke test passed!"
-
-      - name: Read changesets
-        id: changesets_content
-        run: |
-          set -euo pipefail
-          # Concatenate all changeset content (excluding README)
-          CONTENT=""
-          for f in .changeset/*.md; do
-            [ -f "$f" ] || continue
-            [ "$(basename "$f")" = "README.md" ] && continue
-            CONTENT="$CONTENT$(cat "$f")"$'\n\n'
-          done
-          
-          if [ -z "$CONTENT" ]; then
-            echo "has_changesets=false" >> $GITHUB_OUTPUT
-          else
-            echo "has_changesets=true" >> $GITHUB_OUTPUT
-            {
-              echo "content<<EOF"
-              echo "$CONTENT"
-              echo "EOF"
-            } >> $GITHUB_OUTPUT
-          fi
-
-      - name: Generate PR title with AI
-        if: steps.changesets_content.outputs.has_changesets == 'true'
-        id: pr_title
-        continue-on-error: true
-        uses: vercel/ai-action@v2
+        uses: ./.github/actions/verify-build
         with:
-          model: "anthropic/claude-haiku-4-5"
-          api-key: ${{ secrets.AI_GATEWAY_API_KEY }}
-          prompt: |
-            Generate a concise PR title (max 60 chars) for this release. Rules:
-            - Start with "release: " prefix
-            - Then lowercase verb (add, fix, improve, etc)
-            - Be specific about what changed
-            - No version numbers
-            - Output ONLY the title, nothing else
-            
-            Example: "release: add swarm analytics and query tools"
-            
-            Changesets:
-            ${{ steps.changesets_content.outputs.content }}
+          owner: ${{ github.repository_owner }}
 
-      - name: Set PR title
-        id: final_title
-        run: |
-          TITLE="${{ steps.pr_title.outputs.text }}"
-          if [ -z "$TITLE" ]; then
-            TITLE="release: update versions"
-          fi
-          echo "title=$TITLE" >> $GITHUB_OUTPUT
-
-      - name: Create and publish versions
+      - name: Publish to NPM
         id: changesets
         uses: changesets/action@v1
         with:
-          version: bun run ci:version
-          commit: ${{ steps.final_title.outputs.title }}
-          title: ${{ steps.final_title.outputs.title }}
+          # In this workflow, we ONLY publish.
           publish: ${{ inputs.dry_run == true && 'echo Skipping publish (dry run)' || 'bun run ci:publish' }}
+          createGithubReleases: true
+          setupGitUser: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -206,16 +73,9 @@ jobs:
           echo "$CHANGELOG" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
           
-          # Get the PR that was merged to trigger this workflow (by commit SHA)
-          RELEASE_PR=$(gh pr list --state merged --search "${{ github.sha }}" --json url --jq '.[0].url')
-          
-          if [ -n "$RELEASE_PR" ]; then
-            echo "release_url=$RELEASE_PR" >> $GITHUB_OUTPUT
-          else
-            # Fallback to commit link from changelog
-            COMMIT_URL=$(echo "$CHANGELOG" | grep -oE 'https://github.com/[^)]+/commit/[a-f0-9]+' | head -1)
-            echo "release_url=$COMMIT_URL" >> $GITHUB_OUTPUT
-          fi
+          # Get the PR that was merged to trigger this release
+          RELEASE_PR=$(gh pr list --state merged --limit 1 --json url --jq '.[0].url')
+          echo "release_url=$RELEASE_PR" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -234,21 +94,6 @@ jobs:
             - No hashtags
             - Include version number
             - Terse, technical, slightly cheeky tone
-            - Focus on what devs can DO now, not what we did
-            
-            Examples of good tweets:
-            
-            INPUT: Added swarm observability with stats and history commands
-            OUTPUT: 🐝 v0.42.0 - swarm stats and swarm history commands. See what your bees are doing, which strategies work, where they're failing. Feedback loops that actually close.
-            
-            INPUT: Compaction prompt now includes swarm protocol context
-            OUTPUT: 🐝 v0.41.0 - coordinators no longer wake up confused after context compaction. Protocol guidance survives the squeeze.
-            
-            INPUT: Automated release tweets from @swarmtoolsai
-            OUTPUT: 🐝 v0.42.1 - releases now tweet themselves. One less thing to remember.
-            
-            INPUT: Fixed parallel swarm spawning and eval scoring
-            OUTPUT: 🐝 v0.40.0 - parallel workers actually spawn in parallel now. Evals score what matters.
             
             Now write ONE tweet for this changelog. Output ONLY the tweet, nothing else.
             IMPORTANT: End the tweet with a space and this exact link: ${{ steps.release_info.outputs.release_url }}
@@ -260,22 +105,17 @@ jobs:
         continue-on-error: true
         run: |
           echo "═══════════════════════════════════════════════════════════════"
-          echo "📋 TWEET TEXT (copy if auto-post fails):"
-          echo "═══════════════════════════════════════════════════════════════"
+          echo "📋 TWEET TEXT:"
           echo "$TWEET_TEXT"
           echo "═══════════════════════════════════════════════════════════════"
-          echo ""
           
-          # X API v2 requires OAuth 1.0a signature - use python for reliable signing
           pip install requests requests-oauthlib -q
-          
           python3 << 'PYEOF'
           import os
           import time
           from requests_oauthlib import OAuth1Session
           
           tweet_text = os.environ['TWEET_TEXT']
-          
           client = OAuth1Session(
               os.environ['X_API_KEY'],
               client_secret=os.environ['X_API_SECRET'],
@@ -283,61 +123,22 @@ jobs:
               resource_owner_secret=os.environ['X_ACCESS_TOKEN_SECRET'],
           )
           
-          # Headers that X API expects (and Cloudflare checks)
           headers = {
               "Content-Type": "application/json",
-              "User-Agent": "SwarmToolsBot/1.0 (https://github.com/joelhooks/swarm-tools)",
+              "User-Agent": "SwarmToolsBot/1.0",
           }
           
-          # Retry logic - Cloudflare sometimes blocks GitHub Actions IPs
-          max_attempts = 3
-          for attempt in range(1, max_attempts + 1):
-              print(f"\n🐝 Attempt {attempt}/{max_attempts}...")
-              
-              response = client.post(
-                  "https://api.twitter.com/2/tweets",
-                  json={"text": tweet_text},
-                  headers=headers,
-              )
-              
-              # Log response headers for debugging
-              print(f"   Status: {response.status_code}")
-              print(f"   Headers: {dict(response.headers)}")
-              
-              if response.status_code == 201:
-                  print(f"✅ Tweet posted: {response.json()}")
-                  exit(0)
-              elif response.status_code == 403 and "Just a moment" in response.text:
-                  print(f"⚠️  Cloudflare challenge detected (attempt {attempt})")
-                  if attempt < max_attempts:
-                      print(f"   Waiting 30s before retry...")
-                      time.sleep(30)
-              elif response.status_code == 429:
-                  reset_time = response.headers.get('x-rate-limit-reset', 'unknown')
-                  remaining = response.headers.get('x-rate-limit-remaining', 'unknown')
-                  print(f"⚠️  Rate limited!")
-                  print(f"   Remaining: {remaining}, Reset: {reset_time}")
-                  print(f"   Response: {response.text[:500]}")
-                  break
-              elif response.status_code == 401:
-                  print(f"❌ Auth failed (401) - check X API credentials")
-                  print(f"   Response: {response.text[:500]}")
-                  break
-              elif response.status_code == 403:
-                  # Check if it's a real 403 or Cloudflare
-                  if "cf-ray" in response.headers or "cloudflare" in response.headers.get("server", "").lower():
-                      print(f"⚠️  Cloudflare blocking (non-challenge 403)")
-                  else:
-                      print(f"❌ Forbidden (403) - may be app permissions or suspended")
-                  print(f"   Response: {response.text[:500]}")
-                  break
-              else:
-                  print(f"❌ Unexpected error: {response.status_code}")
-                  print(f"   Response: {response.text[:500]}")
-                  break
+          response = client.post(
+              "https://api.twitter.com/2/tweets",
+              json={"text": tweet_text},
+              headers=headers,
+          )
           
-          print("\n❌ All attempts failed - tweet text printed above for manual posting")
-          exit(1)
+          if response.status_code == 201:
+              print(f"✅ Tweet posted!")
+          else:
+              print(f"❌ Failed: {response.status_code} {response.text}")
+              exit(1)
           PYEOF
         env:
           TWEET_TEXT: ${{ steps.tweet.outputs.text }}

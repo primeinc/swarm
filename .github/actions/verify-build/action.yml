@@ -1,0 +1,75 @@
+name: Verify Build and Smoke Test
+description: Packs packages and performs a clean-room installation smoke test.
+
+inputs:
+  owner:
+    description: 'The repository owner (scope)'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Verify build artifacts
+      shell: bash
+      run: |
+        set -euo pipefail
+        echo "🔍 Verifying opencode-swarm-plugin build..."
+        test -f packages/opencode-swarm-plugin/dist/index.js || { echo "Missing dist/index.js"; exit 1; }
+        test -f packages/opencode-swarm-plugin/dist/index.d.ts || { echo "Missing dist/index.d.ts"; exit 1; }
+        test -d packages/opencode-swarm-plugin/claude-plugin/dist || { echo "Missing claude-plugin/dist"; exit 1; }
+
+        echo "🔍 Verifying swarm-mail build..."
+        test -f packages/swarm-mail/dist/index.js || { echo "Missing dist/index.js"; exit 1; }
+        test -f packages/swarm-mail/dist/index.d.ts || { echo "Missing dist/index.d.ts"; exit 1; }
+        echo "✅ All build artifacts verified"
+
+    - name: Verify scoped package installation (Smoke Test)
+      shell: bash
+      run: |
+        set -euo pipefail
+        OWNER=$(echo "${{ inputs.owner }}" | tr '[:upper:]' '[:lower:]')
+        TEMP_DIR=$(mktemp -d)
+        echo "🧪 Performing smoke test in $TEMP_DIR"
+        
+        # Pack scoped packages manually and move them to temp dir
+        echo "📦 Packing swarm-mail..."
+        cd packages/swarm-mail
+        npm pack
+        mv *.tgz "$TEMP_DIR/"
+        cd -
+        
+        echo "📦 Packing opencode-swarm-plugin..."
+        cd packages/opencode-swarm-plugin
+        npm pack
+        mv *.tgz "$TEMP_DIR/"
+        cd -
+        
+        # Try installing them in a clean project
+        cd "$TEMP_DIR"
+        echo "📍 Current directory: $(pwd)"
+        bun init -y
+        
+        echo "📂 Contents of $TEMP_DIR:"
+        ls -F
+        
+        # Find the tarballs using a robust method
+        SWARM_MAIL_TGZ=$(ls *swarm-mail*.tgz | head -n 1 || true)
+        PLUGIN_TGZ=$(ls *swarm*.tgz | grep -v "swarm-mail" | head -n 1 || true)
+        
+        if [ -z "$SWARM_MAIL_TGZ" ] || [ -z "$PLUGIN_TGZ" ]; then
+          echo "❌ Failed to find packed tarballs"
+          ls -la
+          exit 1
+        fi
+        
+        echo "🚀 Installing packages..."
+        bun add "./$SWARM_MAIL_TGZ" "./$PLUGIN_TGZ"
+        
+        echo "👤 Using owner for imports: $OWNER"
+        
+        echo "📝 Creating test script..."
+        printf "import { getSwarmMailLibSQL } from '@%s/swarm-mail';\nimport { swarm_init } from '@%s/swarm';\nconsole.log('✅ Successfully imported both packages!');\n" "$OWNER" "$OWNER" > test.ts
+        
+        echo "🏃 Running test script..."
+        bun test.ts
+        echo "✨ Smoke test passed!"
