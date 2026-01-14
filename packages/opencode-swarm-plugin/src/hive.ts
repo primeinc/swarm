@@ -543,48 +543,50 @@ export function clearHiveAdapterCache(): void {
 }
 
 /**
- * Auto-migrate cells from .hive/issues.jsonl if:
- * 1. The JSONL file exists
- * 2. The database has no cells for this project
- * 
- * This enables seamless migration from the old bd CLI to the new PGLite-based system.
+ * Auto-migrate cells from .hive/issues.jsonl if it exists.
+ *
+ * - Always attempts import (skipExisting handles duplicates)
+ * - Only renames to .old after successful migration with NO errors
+ * - Keeps file for retry if any errors occurred
+ *
+ * This enables seamless migration from the old bd CLI to the new libSQL-based system.
  */
 async function autoMigrateFromJSONL(adapter: HiveAdapter, projectKey: string): Promise<void> {
   const jsonlPath = join(projectKey, ".hive", "issues.jsonl");
-  
+  const oldPath = join(projectKey, ".hive", "issues.jsonl.old");
+
   // Check if JSONL file exists
   if (!existsSync(jsonlPath)) {
     return;
-  }
-
-  // Check if database already has cells
-  const existingCells = await adapter.queryCells(projectKey, { limit: 1 });
-  if (existingCells.length > 0) {
-    return; // Already have cells, skip migration
   }
 
   // Read and import JSONL
   try {
     const jsonlContent = readFileSync(jsonlPath, "utf-8");
     const result = await importFromJSONL(adapter, projectKey, jsonlContent, {
-      skipExisting: true, // Safety: don't overwrite if somehow cells exist
+      skipExisting: true, // Safety: don't overwrite existing cells
     });
 
-    if (result.created > 0 || result.updated > 0) {
-      // Use stderr to avoid polluting JSON output on stdout
+    if (result.created > 0 || result.updated > 0 || result.skipped > 0) {
       console.error(
         `[hive] Auto-migrated ${result.created} cells from ${jsonlPath} (${result.skipped} skipped, ${result.errors.length} errors)`
       );
     }
 
     if (result.errors.length > 0) {
+      // Keep file for retry - don't rename
       console.error(
-        `[hive] Migration errors:`,
+        `[hive] Migration errors (keeping ${jsonlPath} for retry):`,
         result.errors.slice(0, 5).map((e) => `${e.cellId}: ${e.error}`)
       );
+    } else if (result.created > 0) {
+      // Success with no errors - rename to .old so we don't reimport
+      const { renameSync } = await import("node:fs");
+      renameSync(jsonlPath, oldPath);
+      console.error(`[hive] Migration complete, renamed to ${oldPath}`);
     }
   } catch (error) {
-    // Non-fatal - log and continue
+    // Non-fatal - log and continue (keep file for retry)
     console.error(
       `[hive] Failed to auto-migrate from ${jsonlPath}:`,
       error instanceof Error ? error.message : String(error)

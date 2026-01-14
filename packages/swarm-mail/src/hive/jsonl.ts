@@ -277,15 +277,25 @@ export async function importFromJSONL(
     errors: [],
   };
 
-  for (const cellExport of cells) {
-    try {
-      await importSingleCell(adapter, projectKey, cellExport, options, result);
-    } catch (err) {
-      result.errors.push({
-        cellId: cellExport.id,
-        error: err instanceof Error ? err.message : String(err),
-      });
+  // Temporarily disable FK constraints during import to allow parent_id
+  // references to cells that haven't been imported yet
+  const db = await adapter.getDatabase();
+  await db.query("PRAGMA foreign_keys = OFF");
+
+  try {
+    for (const cellExport of cells) {
+      try {
+        await importSingleCell(adapter, projectKey, cellExport, options, result);
+      } catch (err) {
+        result.errors.push({
+          cellId: cellExport.id,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
     }
+  } finally {
+    // Re-enable FK constraints
+    await db.query("PRAGMA foreign_keys = ON");
   }
 
   return result;

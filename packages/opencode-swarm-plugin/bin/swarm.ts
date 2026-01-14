@@ -581,6 +581,10 @@ async function safeConfirm(message: string, initialValue: boolean = true): Promi
     return initialValue;
   }
 
+  // Windows workaround: yield to event loop to ensure terminal state is reset
+  // after any prior spinner/animation. Without this, prompts can freeze.
+  await new Promise(r => setImmediate(r));
+
   try {
     // For interactive terminals, we wait for the user without a timeout
     // to avoid "ghost prompts" where clack continues to hijack the TTY
@@ -609,6 +613,9 @@ async function safeText(message: string, options?: { placeholder?: string; valid
     return options?.placeholder || "";
   }
 
+  // Windows workaround: yield to event loop to ensure terminal state is reset
+  await new Promise(r => setImmediate(r));
+
   try {
     const result = await p.text({ message, ...options });
 
@@ -634,6 +641,9 @@ async function safeSelect<T>(message: string, options: Array<{ value: T; label: 
     return initialValue || options[0].value;
   }
 
+  // Windows workaround: yield to event loop to ensure terminal state is reset
+  await new Promise(r => setImmediate(r));
+
   try {
     const result = await p.select({ message, options, initialValue });
 
@@ -649,6 +659,33 @@ async function safeSelect<T>(message: string, options: Array<{ value: T; label: 
   }
 }
 
+/**
+ * Wrapper around p.multiselect() that handles non-interactive terminals
+ * On non-interactive terminals, returns empty array
+ */
+async function safeMultiselect<T>(message: string, options: Array<{ value: T; label: string; hint?: string }>, required: boolean = false): Promise<T[]> {
+  // If not interactive or skip-prompts, return empty array
+  if (!IS_INTERACTIVE || SKIP_PROMPTS) {
+    return [];
+  }
+
+  // Windows workaround: yield to event loop to ensure terminal state is reset
+  await new Promise(r => setImmediate(r));
+
+  try {
+    const result = await p.multiselect({ message, options, required });
+
+    // If it's a cancel, return empty
+    if (p.isCancel(result)) {
+      return [];
+    }
+
+    return result as T[];
+  } catch (error) {
+    // On any error, return empty
+    return [];
+  }
+}
 
 async function checkCommand(
   cmd: string,
@@ -2167,55 +2204,42 @@ async function setup(forceReinstall = false, nonInteractive = false) {
     p.log.success("Swarm is already configured!");
     p.log.message(dim("  Found " + existingFiles.length + "/5 config files"));
 
-    const action = await p.select({
-      message: "What would you like to do?",
-      options: [
-        {
-          value: "skip",
-          label: "Keep existing config",
-          hint: "Exit without changes",
-        },
-        {
-          value: "models",
-          label: "Update agent models",
-          hint: "Keep customizations, just change models",
-        },
-        {
-          value: "reinstall",
-          label: "Reinstall everything",
-          hint: "Check deps, sync bundled skills, regenerate config files",
-        },
-      ],
-    });
+    const action = await safeSelect("What would you like to do?", [
+      {
+        value: "skip",
+        label: "Keep existing config",
+        hint: "Exit without changes",
+      },
+      {
+        value: "models",
+        label: "Update agent models",
+        hint: "Keep customizations, just change models",
+      },
+      {
+        value: "reinstall",
+        label: "Reinstall everything",
+        hint: "Check deps, sync bundled skills, regenerate config files",
+      },
+    ], "skip");
 
-    if (p.isCancel(action) || action === "skip") {
+    if (action === "skip") {
       p.outro("Config unchanged. Run 'swarm config' to see file locations.");
       return;
     }
 
     if (action === "models") {
       // Quick model update flow
-      const coordinatorModel = await p.select({
-        message: "Select coordinator model:",
-        options: COORDINATOR_MODELS,
-        initialValue: "anthropic/claude-sonnet-4-5",
-      });
+      const coordinatorModel = await safeSelect(
+        "Select coordinator model:",
+        COORDINATOR_MODELS,
+        "anthropic/claude-sonnet-4-5"
+      );
 
-      if (p.isCancel(coordinatorModel)) {
-        p.cancel("Setup cancelled");
-        process.exit(0);
-      }
-
-      const workerModel = await p.select({
-        message: "Select worker model:",
-        options: WORKER_MODELS,
-        initialValue: "anthropic/claude-haiku-4-5",
-      });
-
-      if (p.isCancel(workerModel)) {
-        p.cancel("Setup cancelled");
-        process.exit(0);
-      }
+      const workerModel = await safeSelect(
+        "Select worker model:",
+        WORKER_MODELS,
+        "anthropic/claude-haiku-4-5"
+      );
 
       // Update model lines in agent files (check both nested and legacy paths)
       const plannerPaths = [plannerAgentPath, legacyPlannerPath].filter(existsSync);
@@ -2314,22 +2338,17 @@ async function setup(forceReinstall = false, nonInteractive = false) {
     );
 
     if (installable.length > 0) {
-      const toInstall = await p.multiselect({
-        message: "Install optional dependencies?",
-        options: installable.map(({ dep }) => ({
+      const toInstall = await safeMultiselect(
+        "Install optional dependencies?",
+        installable.map(({ dep }) => ({
           value: dep.name,
           label: dep.name,
           hint: dep.description,
         })),
-        required: false,
-      });
+        false
+      );
 
-      if (p.isCancel(toInstall)) {
-        p.cancel("Setup cancelled");
-        process.exit(0);
-      }
-
-      if (Array.isArray(toInstall) && toInstall.length > 0) {
+      if (toInstall.length > 0) {
         for (const name of toInstall) {
           const { dep } = installable.find((r) => r.dep.name === name)!;
 
@@ -2442,15 +2461,7 @@ async function setup(forceReinstall = false, nonInteractive = false) {
         p.log.warn('Found legacy semantic-memory MCP server');
         p.log.message(dim('  Semantic memory is now embedded in the plugin'));
         
-        const removeMcp = await p.confirm({
-          message: 'Remove from MCP servers config?',
-          initialValue: true,
-        });
-
-        if (p.isCancel(removeMcp)) {
-          p.cancel('Setup cancelled');
-          process.exit(0);
-        }
+        const removeMcp = await safeConfirm('Remove from MCP servers config?', true);
 
         if (removeMcp) {
           delete opencodeConfig.mcpServers['semantic-memory'];
@@ -2571,9 +2582,9 @@ async function setup(forceReinstall = false, nonInteractive = false) {
     p.log.step("Configuring swarm agents...");
     p.log.message(dim("  Coordinator handles orchestration, worker executes tasks"));
 
-    const selectedCoordinator = await p.select({
-      message: "Select coordinator model (for orchestration/planning):",
-      options: [
+    const selectedCoordinator = await safeSelect(
+      "Select coordinator model (for orchestration/planning):",
+      [
         {
           value: "anthropic/claude-opus-4-5",
           label: "Claude Opus 4.5",
@@ -2610,18 +2621,13 @@ async function setup(forceReinstall = false, nonInteractive = false) {
           hint: "More capable",
         },
       ],
-      initialValue: DEFAULT_COORDINATOR,
-    });
-
-    if (p.isCancel(selectedCoordinator)) {
-      p.cancel("Setup cancelled");
-      process.exit(0);
-    }
+      DEFAULT_COORDINATOR
+    );
     coordinatorModel = selectedCoordinator;
 
-    const selectedWorker = await p.select({
-      message: "Select worker model (for task execution):",
-      options: [
+    const selectedWorker = await safeSelect(
+      "Select worker model (for task execution):",
+      [
         {
           value: "anthropic/claude-sonnet-4-5",
           label: "Claude Sonnet 4.5",
@@ -2658,19 +2664,14 @@ async function setup(forceReinstall = false, nonInteractive = false) {
           hint: "More capable",
         },
       ],
-      initialValue: DEFAULT_WORKER,
-    });
-
-    if (p.isCancel(selectedWorker)) {
-      p.cancel("Setup cancelled");
-      process.exit(0);
-    }
+      DEFAULT_WORKER
+    );
     workerModel = selectedWorker;
 
     // Lite model selection for simple tasks (docs, tests)
-    const selectedLite = await p.select({
-      message: "Select lite model (for docs, tests, simple edits):",
-      options: [
+    const selectedLite = await safeSelect(
+      "Select lite model (for docs, tests, simple edits):",
+      [
         {
           value: "anthropic/claude-haiku-4-5",
           label: "Claude Haiku 4.5",
@@ -2692,13 +2693,8 @@ async function setup(forceReinstall = false, nonInteractive = false) {
           hint: "Fast and capable",
         },
       ],
-      initialValue: DEFAULT_LITE,
-    });
-
-    if (p.isCancel(selectedLite)) {
-      p.cancel("Setup cancelled");
-      process.exit(0);
-    }
+      DEFAULT_LITE
+    );
     liteModel = selectedLite;
   }
 
@@ -3658,12 +3654,9 @@ async function update() {
 
   s.stop("Update available: " + VERSION + " → " + updateInfo.latest);
 
-  const confirmUpdate = await p.confirm({
-    message: "Update to v" + updateInfo.latest + "?",
-    initialValue: true,
-  });
+  const confirmUpdate = await safeConfirm("Update to v" + updateInfo.latest + "?", true);
 
-  if (p.isCancel(confirmUpdate) || !confirmUpdate) {
+  if (!confirmUpdate) {
     p.outro("Update cancelled");
     return;
   }
@@ -4510,12 +4503,9 @@ async function agents(nonInteractive = false) {
   }
 
   if (!nonInteractive) {
-    const result = await p.confirm({
-      message: "Update AGENTS.md with Hivemind unification?",
-      initialValue: true,
-    });
+    const result = await safeConfirm("Update AGENTS.md with Hivemind unification?", true);
 
-    if (p.isCancel(result) || !result) {
+    if (!result) {
       p.outro("Aborted");
       return;
     }
@@ -4945,12 +4935,9 @@ async function migrate() {
     }
 
     // Confirm
-    const confirm = await p.confirm({
-      message: "Migrate this data to libSQL?",
-      initialValue: true,
-    });
+    const confirmMigrate = await safeConfirm("Migrate this data to libSQL?", true);
 
-    if (p.isCancel(confirm) || !confirm) {
+    if (!confirmMigrate) {
       p.outro("Migration cancelled");
       return;
     }
@@ -5983,12 +5970,9 @@ async function dbRepair() {
     }
 
     // Confirm before actual deletion
-    const confirmed = await p.confirm({
-      message: `Delete ${result.totalCleaned} records?`,
-      initialValue: false,
-    });
+    const confirmed = await safeConfirm(`Delete ${result.totalCleaned} records?`, false);
 
-    if (p.isCancel(confirmed) || !confirmed) {
+    if (!confirmed) {
       p.cancel("Cleanup cancelled");
       return;
     }
