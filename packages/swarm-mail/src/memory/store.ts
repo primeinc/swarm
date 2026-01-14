@@ -329,11 +329,11 @@ export function createMemoryStore(db: SwarmDb) {
      */
     async getStats(): Promise<{ memories: number; embeddings: number }> {
       const memoryCount = await db
-        .select({ count: sql<number>`COUNT(*)` })
+        .select({ count: sql<number>`COUNT(id)` })
         .from(memories);
 
       const embeddingCount = await db
-        .select({ count: sql<number>`COUNT(*)` })
+        .select({ count: sql<number>`COUNT(id)` })
         .from(memories)
         .where(sql`embedding IS NOT NULL`);
 
