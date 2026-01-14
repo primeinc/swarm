@@ -25,8 +25,17 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Scope packages for repository owner
+        run: bun scripts/scope-packages.ts ${{ github.repository_owner }}
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+
       - name: Build
-        run: bun turbo build --filter='!@swarmtools/web' --filter='!swarm-dashboard'
+        run: |
+          set -euo pipefail
+          OWNER="${{ github.repository_owner }}"
+          # Turbo filters need the ACTUAL package names after scoping
+          bun turbo build --filter="@${OWNER}/swarm" --filter="@${OWNER}/swarm-mail"
 
       - name: Verify build artifacts
         uses: ./.github/actions/verify-build

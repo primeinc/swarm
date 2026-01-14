@@ -37,6 +37,11 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Scope packages for repository owner
+        run: bun scripts/scope-packages.ts ${{ github.repository_owner }}
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+
       - name: Build
         run: |
           set -euo pipefail
