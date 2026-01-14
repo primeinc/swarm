@@ -147,7 +147,7 @@ describe("Memory Auto-Migration Integration", () => {
 
 		// Verify target has memories (marker inserted)
 		const countBefore = await targetDb.query<{ count: string }>(
-			"SELECT COUNT(*) as count FROM memories",
+			"SELECT COUNT(id) as count FROM memories",
 		);
 		expect(parseInt(countBefore.rows[0].count)).toBeGreaterThanOrEqual(1);
 
@@ -175,7 +175,7 @@ describe("Memory Auto-Migration Integration", () => {
 
 		// Verify target has memories (marker + existing = 2)
 		const countBefore = await targetDb.query<{ count: string }>(
-			"SELECT COUNT(*) as count FROM memories",
+			"SELECT COUNT(id) as count FROM memories",
 		);
 		expect(parseInt(countBefore.rows[0].count)).toBe(2);
 
@@ -185,7 +185,7 @@ describe("Memory Auto-Migration Integration", () => {
 
 		// Verify no migration occurred (count unchanged)
 		const countAfter = await targetDb.query<{ count: string }>(
-			"SELECT COUNT(*) as count FROM memories",
+			"SELECT COUNT(id) as count FROM memories",
 		);
 		expect(parseInt(countAfter.rows[0].count)).toBe(2);
 
@@ -205,7 +205,7 @@ describe("Memory Auto-Migration Integration", () => {
 
 		// Verify target has marker memory
 		const countBefore = await targetDb.query<{ count: string }>(
-			"SELECT COUNT(*) as count FROM memories",
+			"SELECT COUNT(id) as count FROM memories",
 		);
 		const beforeCount = parseInt(countBefore.rows[0].count);
 		expect(beforeCount).toBeGreaterThanOrEqual(1);

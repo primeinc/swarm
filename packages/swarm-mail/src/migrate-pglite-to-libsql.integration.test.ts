@@ -223,7 +223,7 @@ describe("migratePGliteToLibSQL", () => {
       
       // Table might not even exist in dry run
       try {
-        const memories = await client.execute("SELECT COUNT(*) as count FROM memories");
+        const memories = await client.execute("SELECT COUNT(id) as count FROM memories");
         expect(Number(memories.rows[0].count)).toBe(0);
       } catch {
         // Table doesn't exist, which is fine for dry run

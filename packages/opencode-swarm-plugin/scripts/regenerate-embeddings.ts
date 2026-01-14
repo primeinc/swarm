@@ -71,7 +71,7 @@ async function main() {
 
   // Count memories without embeddings
   const countResult = await db.query(
-    "SELECT COUNT(*) as count FROM memories WHERE embedding IS NULL"
+    "SELECT COUNT(id) as count FROM memories WHERE embedding IS NULL"
   );
   const totalWithout = (countResult.rows[0] as any)?.count || 0;
   console.log(`Memories without embeddings: ${totalWithout}`);

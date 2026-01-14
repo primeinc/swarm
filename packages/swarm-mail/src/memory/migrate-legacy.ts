@@ -321,7 +321,7 @@ export async function getMigrationStatus(
 
   try {
     const memoriesCount = await db.query(`
-      SELECT COUNT(*) as count FROM memories
+      SELECT COUNT(id) as count FROM memories
     `) as { rows: Array<{ count: string }> };
 
     const embeddingsCount = await db.query(`
@@ -346,7 +346,7 @@ export async function getMigrationStatus(
  */
 export async function targetHasMemories(targetDb: DatabaseAdapter): Promise<boolean> {
   const result = await targetDb.query<{ count: string }>(`
-    SELECT COUNT(*) as count FROM memories
+    SELECT COUNT(id) as count FROM memories
   `);
   return parseInt(result.rows[0]?.count || "0") > 0;
 }

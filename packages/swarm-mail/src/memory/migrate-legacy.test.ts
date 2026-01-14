@@ -350,7 +350,7 @@ describeIf("Legacy Memory Migration", () => {
 
     test("returns false when table exists but is empty", async () => {
       // Just ensure table is empty (it already is from setup)
-      const count = await targetDb.query<{ count: string }>(`SELECT COUNT(*) as count FROM memories`);
+      const count = await targetDb.query<{ count: string }>(`SELECT COUNT(id) as count FROM memories`);
       expect(parseInt(count.rows[0]?.count || "0")).toBe(0);
 
       const hasMemories = await targetHasMemories(wrapPGlite(targetDb));

@@ -190,11 +190,11 @@ async function maybeAutoMigrate(db: DatabaseAdapter): Promise<void> {
 			return;
 		}
 
-		// Check if target database is empty using the legacy adapter
-		const countResult = await db.query<{ count: string }>(
-			"SELECT COUNT(*) as count FROM memories",
-		);
-		const memoryCount = parseInt(countResult.rows[0]?.count || "0");
+	// Check if target database is empty using the legacy adapter
+	const countResult = await db.query<{ count: string }>(
+		"SELECT COUNT(id) as count FROM memories",
+	);
+	const memoryCount = parseInt(countResult.rows[0]?.count || "0");
 
 		if (memoryCount > 0) {
 			// Target already has memories, skip migration

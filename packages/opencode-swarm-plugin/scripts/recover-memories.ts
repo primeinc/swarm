@@ -91,7 +91,7 @@ async function main() {
 
   // Check for existing memories
   const existingResult = await db.query("SELECT id FROM memories LIMIT 1");
-  const existingCount = await db.query("SELECT COUNT(*) as count FROM memories");
+  const existingCount = await db.query("SELECT COUNT(id) as count FROM memories");
   console.log(`Existing memories in database: ${(existingCount.rows[0] as any)?.count || 0}`);
 
   // Insert memories

@@ -6081,7 +6081,7 @@ async function db() {
       }
       
       try {
-        const memoryCount = execSync(`sqlite3 "${dbFile}" "SELECT COUNT(*) FROM memories"`, { encoding: "utf-8" }).trim();
+        const memoryCount = execSync(`sqlite3 "${dbFile}" "SELECT COUNT(id) FROM memories"`, { encoding: "utf-8" }).trim();
         console.log(`  ${dim("○")} Memories: ${memoryCount}`);
       } catch {
         // Table doesn't exist yet
