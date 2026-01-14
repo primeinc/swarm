@@ -114,12 +114,16 @@ jobs:
           echo "👤 Using owner for imports: $OWNER"
           
           echo "📝 Creating test script..."
-          # Use a more robust way to create the test script without indentation issues
-          cat << EOF > test.ts
-import { getSwarmMailLibSQL } from '@${OWNER}/swarm-mail';
-import { swarm_init } from '@${OWNER}/swarm';
-console.log('✅ Successfully imported both packages!');
-EOF
+          # Use a more robust way to create the test script with proper indentation for YAML
+          cat << 'EOF' > test.ts
+          import { getSwarmMailLibSQL } from '@OWNER/swarm-mail';
+          import { swarm_init } from '@OWNER/swarm';
+          console.log('✅ Successfully imported both packages!');
+          EOF
+          # Replace OWNER placeholder with actual variable
+          sed -i "s/OWNER/$OWNER/g" test.ts
+          # Remove leading spaces from test.ts
+          sed -i 's/^[ ]*//' test.ts
           
           echo "🏃 Running test script..."
           bun test.ts
@@ -128,21 +132,24 @@ EOF
       - name: Read changesets
         id: changesets_content
         run: |
+          set -euo pipefail
           # Concatenate all changeset content (excluding README)
           CONTENT=""
           for f in .changeset/*.md; do
             [ -f "$f" ] || continue
             [ "$(basename "$f")" = "README.md" ] && continue
-            CONTENT="$CONTENT$(cat "$f")\n\n"
+            CONTENT="$CONTENT$(cat "$f")"$'\n\n'
           done
           
           if [ -z "$CONTENT" ]; then
             echo "has_changesets=false" >> $GITHUB_OUTPUT
           else
             echo "has_changesets=true" >> $GITHUB_OUTPUT
-            echo "content<<EOF" >> $GITHUB_OUTPUT
-            echo -e "$CONTENT" >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
+            {
+              echo "content<<EOF"
+              echo "$CONTENT"
+              echo "EOF"
+            } >> $GITHUB_OUTPUT
           fi
 
       - name: Generate PR title with AI
