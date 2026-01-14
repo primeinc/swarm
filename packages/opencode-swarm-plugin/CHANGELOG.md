@@ -1,5 +1,13 @@
 # opencode-swarm-plugin
 
+## 0.57.8
+
+### Patch Changes
+
+- fb67099: Add fork-friendly npm publishing workflow with dynamic package scoping
+- Updated dependencies [fb67099]
+  - @primeinc/swarm-mail@1.10.3
+
 ## 0.57.6
 
 ### Patch Changes

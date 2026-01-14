@@ -1,5 +1,13 @@
 # @swarmtools/evals
 
+## 0.2.30
+
+### Patch Changes
+
+- Updated dependencies [fb67099]
+  - @primeinc/swarm@0.57.8
+  - @primeinc/swarm-mail@1.10.3
+
 ## 0.2.29
 
 ### Patch Changes
