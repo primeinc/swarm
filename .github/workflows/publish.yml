@@ -44,7 +44,11 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
 
       - name: Build
-        run: bun turbo build --filter='!@swarmtools/web' --filter='!swarm-dashboard'
+        run: |
+          set -euo pipefail
+          OWNER="${{ github.repository_owner }}"
+          # Turbo filters need the ACTUAL package names after scoping
+          bun turbo build --filter="@${OWNER}/swarm" --filter="@${OWNER}/swarm-mail"
 
       - name: Verify build artifacts
         run: |
