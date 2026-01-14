@@ -670,7 +670,7 @@ export {
  * Note: hiveTools includes both hive_* and beads_* (legacy aliases)
  * Note: hivemindTools includes both hivemind_* and deprecated semantic-memory_* + cass_* aliases
  */
-export const allTools = {
+export const allTools: Record<string, ReturnType<typeof import("@opencode-ai/plugin").tool>> = {
   ...hiveTools,
   ...swarmMailTools,
   ...structuredTools,

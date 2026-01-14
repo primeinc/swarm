@@ -31,7 +31,7 @@ import { adversarialReviewTools } from "./swarm-adversarial-review";
  * Combined swarm tools for plugin registration.
  * Includes all tools from strategy, decompose, prompt, orchestrate, research, and adversarial-review modules.
  */
-export const swarmTools = {
+export const swarmTools: Record<string, ReturnType<typeof import("@opencode-ai/plugin").tool>> = {
   ...strategyTools,
   ...decomposeTools,
   ...promptTools,

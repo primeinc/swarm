@@ -26,8 +26,10 @@ import {
   resolvePartialId,
   findCellsByPartialId,
 } from "swarm-mail";
+import { normalizePath } from "./utils/normalize-path";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+
 
 // ============================================================================
 // Working Directory Configuration
@@ -168,8 +170,8 @@ export interface MigrationResult {
  * @returns MigrationCheckResult indicating if migration is needed
  */
 export function checkBeadsMigrationNeeded(projectPath: string): MigrationCheckResult {
-  const beadsDir = join(projectPath, ".beads");
-  const hiveDir = join(projectPath, ".hive");
+  const beadsDir = normalizePath(join(projectPath, ".beads"));
+  const hiveDir = normalizePath(join(projectPath, ".hive"));
   
   // If .hive already exists, no migration needed
   if (existsSync(hiveDir)) {
@@ -187,6 +189,7 @@ export function checkBeadsMigrationNeeded(projectPath: string): MigrationCheckRe
 
 /**
  * Migrate .beads directory to .hive
+
  * 
  * This function renames .beads to .hive. It should only be called
  * after user confirmation via CLI prompt.
@@ -195,8 +198,9 @@ export function checkBeadsMigrationNeeded(projectPath: string): MigrationCheckRe
  * @returns MigrationResult indicating success or skip reason
  */
 export async function migrateBeadsToHive(projectPath: string): Promise<MigrationResult> {
-  const beadsDir = join(projectPath, ".beads");
-  const hiveDir = join(projectPath, ".hive");
+  const beadsDir = normalizePath(join(projectPath, ".beads"));
+  const hiveDir = normalizePath(join(projectPath, ".hive"));
+
   
   // Check if .hive already exists - skip migration
   if (existsSync(hiveDir)) {
@@ -230,7 +234,8 @@ export async function migrateBeadsToHive(projectPath: string): Promise<Migration
  * @param projectPath - Absolute path to the project root
  */
 export function ensureHiveDirectory(projectPath: string): void {
-  const hiveDir = join(projectPath, ".hive");
+  const hiveDir = normalizePath(join(projectPath, ".hive"));
+
   
   if (!existsSync(hiveDir)) {
     const { mkdirSync } = require("node:fs");
@@ -253,9 +258,10 @@ export function ensureHiveDirectory(projectPath: string): void {
  */
 export async function mergeHistoricBeads(projectPath: string): Promise<{merged: number, skipped: number}> {
   const { readFileSync, writeFileSync, existsSync } = await import("node:fs");
-  const hiveDir = join(projectPath, ".hive");
-  const basePath = join(hiveDir, "beads.base.jsonl");
-  const issuesPath = join(hiveDir, "issues.jsonl");
+  const hiveDir = normalizePath(join(projectPath, ".hive"));
+  const basePath = normalizePath(join(hiveDir, "beads.base.jsonl"));
+  const issuesPath = normalizePath(join(hiveDir, "issues.jsonl"));
+
   
   // If base file doesn't exist, nothing to merge
   if (!existsSync(basePath)) {

@@ -83,14 +83,20 @@ async function buildEntry(entry: BuildEntry, externalsType: ExternalsType = "lib
     : externalsType === "marketplace"
       ? MARKETPLACE_EXTERNALS
       : EXTERNALS;
-  const externals = externalsList.map(e => `--external ${e}`).join(" ");
-  const output = entry.outdir
-    ? `--outdir ${entry.outdir}`
-    : `--outfile ${entry.outfile}`;
-  const format = entry.format ? `--format ${entry.format}` : "";
+  
+  // Build args array instead of shell command string (cross-platform)
+  const args = [
+    "build",
+    entry.input,
+    entry.outdir ? "--outdir" : "--outfile",
+    entry.outdir || entry.outfile!,
+    ...(entry.format ? ["--format", entry.format] : []),
+    "--target",
+    "node",
+    ...externalsList.flatMap(e => ["--external", e]),
+  ];
 
-  const cmd = `bun build ${entry.input} ${output} ${format} --target node ${externals}`;
-  const proc = Bun.spawn(["sh", "-c", cmd], {
+  const proc = Bun.spawn(["bun", ...args], {
     stdout: "inherit",
     stderr: "inherit",
   });

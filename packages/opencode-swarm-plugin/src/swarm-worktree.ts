@@ -16,8 +16,10 @@
 
 import { tool } from "@opencode-ai/plugin";
 import { z } from "zod";
-import { join } from "node:path";
+import { join, sep } from "node:path";
 import { existsSync } from "node:fs";
+import { normalizePath } from "./utils/normalize-path";
+
 
 // ============================================================================
 // Types
@@ -65,20 +67,23 @@ const WORKTREE_DIR = ".swarm/worktrees";
 function getWorktreePath(projectPath: string, taskId: string): string {
   // Sanitize task ID for filesystem
   const safeTaskId = taskId.replace(/[^a-zA-Z0-9.-]/g, "_");
-  return join(projectPath, WORKTREE_DIR, safeTaskId);
+  return normalizePath(join(projectPath, WORKTREE_DIR, safeTaskId));
 }
+
 
 /**
  * Parse task ID from worktree path
  */
 function parseTaskIdFromPath(worktreePath: string): string | null {
-  const parts = worktreePath.split("/");
+  const normalized = normalizePath(worktreePath);
+  const parts = normalized.split("/");
   const worktreesIdx = parts.indexOf("worktrees");
   if (worktreesIdx >= 0 && worktreesIdx < parts.length - 1) {
     return parts[worktreesIdx + 1];
   }
   return null;
 }
+
 
 // ============================================================================
 // Helper Functions
@@ -135,9 +140,10 @@ async function getWorktreeCommits(
  * Ensure worktree directory exists
  */
 async function ensureWorktreeDir(projectPath: string): Promise<void> {
-  const worktreeDir = join(projectPath, WORKTREE_DIR);
+  const worktreeDir = normalizePath(join(projectPath, WORKTREE_DIR));
   await Bun.$`mkdir -p ${worktreeDir}`.quiet().nothrow();
 }
+
 
 // ============================================================================
 // Tool Definitions

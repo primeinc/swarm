@@ -1742,7 +1742,7 @@ export const swarm_subtask_prompt = tool({
  * Generates a streamlined prompt that tells agents to USE Agent Mail and hive tracking.
  * Returns JSON that can be directly used with Task tool.
  */
-export const swarm_spawn_subtask = tool({
+export const swarm_spawn_subtask: ReturnType<typeof tool> = tool({
   description:
     "Prepare a subtask for spawning. Returns prompt with Agent Mail/hive tracking instructions. IMPORTANT: Pass project_path for swarmmail_init. Automatically selects appropriate model based on file types.",
   args: {
@@ -2299,7 +2299,7 @@ export const swarm_plan_prompt = tool({
   },
 });
 
-export const promptTools = {
+export const promptTools: Record<string, ReturnType<typeof tool>> = {
   swarm_subtask_prompt,
   swarm_spawn_subtask,
   swarm_spawn_researcher,

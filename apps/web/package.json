@@ -2,9 +2,9 @@
   "name": "@swarmtools/web",
   "private": true,
   "scripts": {
-    "postinstall": "fumadocs-mdx",
+    "postinstall": "fumadocs-mdx && bun run scripts/normalize-paths.ts",
     "dev": "next dev --turbopack --port 7976",
-    "build": "next build",
+    "build": "fumadocs-mdx && bun run scripts/normalize-paths.ts && next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint && biome check .",

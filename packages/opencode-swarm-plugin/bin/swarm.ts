@@ -535,6 +535,121 @@ const DEPENDENCIES: Dependency[] = [
 // Utilities
 // ============================================================================
 
+/**
+ * Check if the current terminal is interactive (has TTY)
+ * Returns false for:
+ * - Non-TTY environments (piped input)
+ * - CI environments (GITHUB_ACTIONS, GITLAB_CI, CI, etc)
+ * - When explicitly disabled via --yes/--no flags
+ */
+function isInteractiveTerminal(): boolean {
+  // Check if stdin is a TTY
+  if (!process.stdin || !process.stdin.isTTY) {
+    return false;
+  }
+
+  // Check for CI environment variables
+  if (process.env.CI || process.env.GITHUB_ACTIONS || process.env.GITLAB_CI || 
+      process.env.CIRCLECI || process.env.TRAVIS || process.env.APPVEYOR ||
+      process.env.JENKINS_URL || process.env.BUILDKITE) {
+    return false;
+  }
+
+  // Check for piped/redirected streams
+  if (!process.stdout.isTTY) {
+    return false;
+  }
+
+  return true;
+}
+
+// Cache interactive status and skip-prompts flag to avoid redundant checks
+const IS_INTERACTIVE = isInteractiveTerminal();
+const SKIP_PROMPTS = process.argv.includes("--skip-prompts") || 
+                     process.argv.includes("--yes") || 
+                     process.argv.includes("-y");
+
+/**
+ * Wrapper around p.confirm() that handles non-interactive terminals gracefully
+ * On non-interactive terminals or timeout, returns the default value instead of hanging
+ * @param message The prompt message
+ * @param initialValue The default value to use on non-interactive or timeout
+ */
+async function safeConfirm(message: string, initialValue: boolean = true): Promise<boolean> {
+  // If not interactive or skip-prompts, return default immediately
+  if (!IS_INTERACTIVE || SKIP_PROMPTS) {
+    return initialValue;
+  }
+
+  try {
+    // For interactive terminals, we wait for the user without a timeout
+    // to avoid "ghost prompts" where clack continues to hijack the TTY
+    // after the timeout has passed.
+    const result = await p.confirm({ message, initialValue });
+
+    // If it's a cancel (from clack), fall back to default
+    if (p.isCancel(result)) {
+      return initialValue;
+    }
+
+    return result as boolean;
+  } catch (error) {
+    // On any error, return default
+    return initialValue;
+  }
+}
+
+/**
+ * Wrapper around p.text() that handles non-interactive terminals
+ * On non-interactive terminals, returns empty string or default
+ */
+async function safeText(message: string, options?: { placeholder?: string; validate?: (v: string) => string | undefined }): Promise<string> {
+  // If not interactive or skip-prompts, return placeholder or empty
+  if (!IS_INTERACTIVE || SKIP_PROMPTS) {
+    return options?.placeholder || "";
+  }
+
+  try {
+    const result = await p.text({ message, ...options });
+
+    // If it's a cancel, return default
+    if (p.isCancel(result)) {
+      return options?.placeholder || "";
+    }
+
+    return result as string;
+  } catch (error) {
+    // On any error, return default
+    return options?.placeholder || "";
+  }
+}
+
+/**
+ * Wrapper around p.select() that handles non-interactive terminals
+ * On non-interactive terminals, returns first option
+ */
+async function safeSelect<T>(message: string, options: Array<{ value: T; label: string; hint?: string }>, initialValue?: T): Promise<T> {
+  // If not interactive or skip-prompts, return first option or initial value
+  if (!IS_INTERACTIVE || SKIP_PROMPTS) {
+    return initialValue || options[0].value;
+  }
+
+  try {
+    const result = await p.select({ message, options, initialValue });
+
+    // If it's a cancel, return default
+    if (p.isCancel(result)) {
+      return initialValue || options[0].value;
+    }
+
+    return result as T;
+  } catch (error) {
+    // On any error, return default
+    return initialValue || options[0].value;
+  }
+}
+
+
 async function checkCommand(
   cmd: string,
   args: string[],
@@ -2169,15 +2284,10 @@ async function setup(forceReinstall = false, nonInteractive = false) {
 
     for (const { dep } of requiredMissing) {
       // In non-interactive mode, auto-install required deps
-      const shouldInstall = nonInteractive ? true : await p.confirm({
-        message: "Install " + dep.name + "? (" + dep.description + ")",
-        initialValue: true,
-      });
-
-      if (p.isCancel(shouldInstall)) {
-        p.cancel("Setup cancelled");
-        process.exit(0);
-      }
+      const shouldInstall = nonInteractive ? true : await safeConfirm(
+        "Install " + dep.name + "? (" + dep.description + ")",
+        true
+      );
 
       if (shouldInstall) {
         const installSpinner = p.spinner();
@@ -2275,15 +2385,10 @@ async function setup(forceReinstall = false, nonInteractive = false) {
     p.log.message(dim("  Path: " + migrationCheck.beadsPath));
     p.log.message(dim("  Will rename to .hive/ and merge history"));
     
-    const shouldMigrate = await p.confirm({
-      message: "Migrate .beads to .hive? (recommended)",
-      initialValue: true,
-    });
-
-    if (p.isCancel(shouldMigrate)) {
-      p.cancel("Setup cancelled");
-      process.exit(0);
-    }
+    const shouldMigrate = await safeConfirm(
+      "Migrate .beads to .hive? (recommended)",
+      true
+    );
 
     if (shouldMigrate) {
       const migrateSpinner = p.spinner();
@@ -3306,12 +3411,9 @@ async function init() {
   if (hiveDir) {
     p.log.warn("Hive already initialized in this project (.hive/ exists)");
 
-    const reinit = await p.confirm({
-      message: "Continue anyway?",
-      initialValue: false,
-    });
+    const reinit = await safeConfirm("Continue anyway?", false);
 
-    if (p.isCancel(reinit) || !reinit) {
+    if (!reinit) {
       p.outro("Aborted");
       process.exit(0);
     }
@@ -3319,12 +3421,9 @@ async function init() {
     // Offer migration from .beads to .hive
     p.log.warn("Found legacy .beads/ directory");
     
-    const migrate = await p.confirm({
-      message: "Migrate .beads/ to .hive/?",
-      initialValue: true,
-    });
+    const migrate = await safeConfirm("Migrate .beads/ to .hive/?", true);
 
-    if (!p.isCancel(migrate) && migrate) {
+    if (migrate) {
       const s = p.spinner();
       s.start("Migrating .beads/ to .hive/...");
       
@@ -3355,58 +3454,54 @@ async function init() {
     s.stop("Hive initialized");
     p.log.success("Created .hive/ directory");
 
-    const createCell = await p.confirm({
-      message: "Create your first cell?",
-      initialValue: true,
-    });
+    const createCell = await safeConfirm("Create your first cell?", true);
 
-    if (!p.isCancel(createCell) && createCell) {
-      const title = await p.text({
-        message: "Cell title:",
+    if (createCell) {
+      const title = await safeText("Cell title:", {
         placeholder: "Implement user authentication",
-        validate: (v) => (v.length === 0 ? "Title required" : undefined),
+        validate: (v) => (v.trim().length === 0 ? "Title required" : undefined),
       });
 
-      if (!p.isCancel(title)) {
-        const typeResult = await p.select({
-          message: "Type:",
-          options: [
+      if (title && title.trim().length > 0) {
+        const typeResult = await safeSelect<"feature" | "bug" | "task" | "chore">(
+
+          "Type:",
+          [
             { value: "feature", label: "Feature", hint: "New functionality" },
             { value: "bug", label: "Bug", hint: "Something broken" },
             { value: "task", label: "Task", hint: "General work item" },
             { value: "chore", label: "Chore", hint: "Maintenance" },
           ],
-        });
+          "task"
+        );
 
-        if (!p.isCancel(typeResult)) {
-          const cellSpinner = p.spinner();
-          cellSpinner.start("Creating cell...");
+        const cellSpinner = p.spinner();
+        cellSpinner.start("Creating cell...");
 
-          try {
-            // Use HiveAdapter to create the cell (no bd CLI needed)
-            const adapter = await getHiveAdapter(projectPath);
-            const cell = await adapter.createCell(projectPath, {
-              title: title as string,
-              type: typeResult as "feature" | "bug" | "task" | "chore",
-              priority: 2,
-            });
-            
-            cellSpinner.stop("Cell created: " + cell.id);
-          } catch (error) {
-            cellSpinner.stop("Failed to create cell");
-            p.log.error(error instanceof Error ? error.message : String(error));
-          }
+        try {
+          // Use HiveAdapter to create the cell (no bd CLI needed)
+          const adapter = await getHiveAdapter(projectPath);
+          const cell = await adapter.createCell(projectPath, {
+            title: title,
+            type: typeResult,
+            priority: 2,
+          });
+          
+          cellSpinner.stop("Cell created: " + cell.id);
+        } catch (error) {
+          cellSpinner.stop("Failed to create cell");
+          p.log.error(error instanceof Error ? error.message : String(error));
         }
       }
     }
 
     // Offer to create project skills directory
-    const createSkillsDir = await p.confirm({
-      message: "Create project skills directory (.opencode/skill/)?",
-      initialValue: false,
-    });
+    const createSkillsDir = await safeConfirm(
+      "Create project skills directory (.opencode/skill/)?",
+      false
+    );
 
-    if (!p.isCancel(createSkillsDir) && createSkillsDir) {
+    if (createSkillsDir) {
       const skillsPath = ".opencode/skill";
       if (!existsSync(skillsPath)) {
         mkdirSync(skillsPath, { recursive: true });

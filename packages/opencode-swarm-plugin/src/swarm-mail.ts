@@ -31,9 +31,11 @@ import {
   getActiveReservations,
   type MailSessionState,
 } from "swarm-mail";
-import { isInCoordinatorContext } from "./planning-guardrails";
+import { isInCoordinatorContext } from "./planning-guardrails.js";
+import { normalizePath, normalizePaths } from "./utils/normalize-path.js";
 import {
   existsSync,
+
   mkdirSync,
   readFileSync,
   writeFileSync,
@@ -537,11 +539,12 @@ export const swarmmail_reserve = tool({
       const result = await reserveSwarmFiles({
         projectPath: state.projectKey,
         agentName: state.agentName,
-        paths: args.paths,
+        paths: normalizePaths(args.paths),
         reason: args.reason,
         exclusive: args.exclusive ?? true,
         ttlSeconds: args.ttl_seconds,
       });
+
 
       // Track reservations in session state
       if (result.granted.length > 0) {
@@ -616,10 +619,12 @@ export const swarmmail_release = tool({
         state.agentName,
       );
 
+      const normalizedPaths = args.paths ? normalizePaths(args.paths) : undefined;
+
       const result = await releaseSwarmFiles({
         projectPath: state.projectKey,
         agentName: state.agentName,
-        paths: args.paths,
+        paths: normalizedPaths,
         reservationIds: args.reservation_ids,
       });
 
@@ -630,11 +635,11 @@ export const swarmmail_release = tool({
         state.reservations = state.reservations.filter(
           (id) => !args.reservation_ids!.includes(id),
         );
-      } else if (args.paths) {
+      } else if (normalizedPaths) {
         // When releasing by paths, find the reservation IDs that match those paths
         const releasedIds = currentReservations
           .filter((r: { path_pattern: string }) =>
-            args.paths!.includes(r.path_pattern),
+            normalizedPaths.includes(r.path_pattern),
           )
           .map((r: { id: number }) => r.id);
         state.reservations = state.reservations.filter(
@@ -642,6 +647,7 @@ export const swarmmail_release = tool({
         );
       }
       saveSessionState(sessionID, state);
+
 
       return JSON.stringify(
         {
