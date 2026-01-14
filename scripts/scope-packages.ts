@@ -97,9 +97,19 @@ for (const dir of packages) {
 
     for (const [depName, depVersion] of Object.entries(pkg[depType] as Record<string, string>)) {
       if (nameMapping[depName]) {
-        // Replace workspace:* with the scoped name
+        // Replace workspace:* with the actual version of the package in the workspace
+        // This is necessary because 'bun pm pack' (and npm pack) cannot resolve 'workspace:*'
+        // once the package name has been changed and we are outside a workspace context.
+        let depDirName = depName;
+        if (depName === "opencode-swarm-plugin") depDirName = "opencode-swarm-plugin";
+        else if (depName === "swarm-mail") depDirName = "swarm-mail";
+        else if (depName === "swarm-dashboard") depDirName = "swarm-dashboard";
+        else if (depName === "@swarmtools/evals") depDirName = "swarm-evals";
+
+        const depPkg = readPackageJson(join(PACKAGES_DIR, depDirName));
+        
         delete pkg[depType][depName];
-        pkg[depType][nameMapping[depName]] = depVersion;
+        pkg[depType][nameMapping[depName]] = depPkg.version;
         modified = true;
       }
     }
