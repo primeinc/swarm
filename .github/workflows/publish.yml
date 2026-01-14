@@ -72,11 +72,19 @@ jobs:
           TEMP_DIR=$(mktemp -d)
           echo "🧪 Performing smoke test in $TEMP_DIR"
           
-          # Pack scoped packages
+          # Pack scoped packages manually and move them to temp dir
+          # This is more reliable than --pack-destination in some npm versions
           echo "📦 Packing swarm-mail..."
-          (cd packages/swarm-mail && npm pack --pack-destination "$TEMP_DIR")
+          cd packages/swarm-mail
+          npm pack
+          mv *.tgz "$TEMP_DIR/"
+          cd -
+          
           echo "📦 Packing opencode-swarm-plugin..."
-          (cd packages/opencode-swarm-plugin && npm pack --pack-destination "$TEMP_DIR")
+          cd packages/opencode-swarm-plugin
+          npm pack
+          mv *.tgz "$TEMP_DIR/"
+          cd -
           
           # Try installing them in a clean project
           cd "$TEMP_DIR"
@@ -86,9 +94,9 @@ jobs:
           echo "📂 Contents of $TEMP_DIR:"
           ls -F
           
-          # Find the tarballs using find which is more reliable than ls globbing in subshells
-          SWARM_MAIL_TGZ=$(find . -maxdepth 1 -name "*swarm-mail*.tgz" -print -quit | sed 's|^\./||')
-          PLUGIN_TGZ=$(find . -maxdepth 1 -name "*swarm*.tgz" ! -name "*swarm-mail*" -print -quit | sed 's|^\./||')
+          # Find the tarballs using a robust method
+          SWARM_MAIL_TGZ=$(ls *swarm-mail*.tgz | head -n 1 || true)
+          PLUGIN_TGZ=$(ls *swarm*.tgz | grep -v "swarm-mail" | head -n 1 || true)
           
           echo "🔍 Found SWARM_MAIL_TGZ: '$SWARM_MAIL_TGZ'"
           echo "🔍 Found PLUGIN_TGZ: '$PLUGIN_TGZ'"
@@ -102,14 +110,13 @@ jobs:
           echo "🚀 Installing packages..."
           bun add "./$SWARM_MAIL_TGZ" "./$PLUGIN_TGZ"
           
-          # Extract owner from tarball name (everything before the first dash)
-          ACTUAL_OWNER=$(echo "$SWARM_MAIL_TGZ" | cut -d'-' -f1)
-          echo "👤 Detected owner for imports: $ACTUAL_OWNER"
+          # Use the OWNER we derived earlier
+          echo "👤 Using owner for imports: $OWNER"
           
           echo "📝 Creating test script..."
           cat > test.ts << EOF
-          import { getSwarmMailLibSQL } from '@${ACTUAL_OWNER}/swarm-mail';
-          import { swarm_init } from '@${ACTUAL_OWNER}/swarm';
+          import { getSwarmMailLibSQL } from '@${OWNER}/swarm-mail';
+          import { swarm_init } from '@${OWNER}/swarm';
           console.log('✅ Successfully imported both packages!');
           process.exit(0);
           EOF
