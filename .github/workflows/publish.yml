@@ -114,12 +114,12 @@ jobs:
           echo "👤 Using owner for imports: $OWNER"
           
           echo "📝 Creating test script..."
-          cat > test.ts << EOF
-          import { getSwarmMailLibSQL } from '@${OWNER}/swarm-mail';
-          import { swarm_init } from '@${OWNER}/swarm';
-          console.log('✅ Successfully imported both packages!');
-          process.exit(0);
-          EOF
+          # Use a more robust way to create the test script without indentation issues
+          cat << EOF > test.ts
+import { getSwarmMailLibSQL } from '@${OWNER}/swarm-mail';
+import { swarm_init } from '@${OWNER}/swarm';
+console.log('✅ Successfully imported both packages!');
+EOF
           
           echo "🏃 Running test script..."
           bun test.ts
