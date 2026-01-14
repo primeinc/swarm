@@ -121,11 +121,12 @@ function syncClaudePluginRuntimeAssets(packageRoot: string): void {
   console.log("\n🧰 Syncing Claude plugin runtime bundle...");
   copyClaudePluginRuntimeAssets({ packageRoot });
   const mcpBundleSource = join(packageRoot, "dist", "mcp", "swarm-mcp-server.cjs");
-  const mcpBundleTargetDir = join(packageRoot, "claude-plugin", "bin");
+  const mcpBundleTarget = join(packageRoot, "claude-plugin", "dist", "mcp", "swarm-mcp-server.cjs");
+  const mcpBundleTargetDir = join(packageRoot, "claude-plugin", "dist", "mcp");
   mkdirSync(mcpBundleTargetDir, { recursive: true });
-  cpSync(mcpBundleSource, join(mcpBundleTargetDir, "swarm-mcp-server.cjs"));
+  cpSync(mcpBundleSource, mcpBundleTarget);
   console.log("   Copied dist to claude-plugin/dist");
-  console.log("   Copied MCP bundle to claude-plugin/bin");
+  console.log("   Copied MCP bundle to claude-plugin/dist/mcp");
 }
 
 async function main() {
