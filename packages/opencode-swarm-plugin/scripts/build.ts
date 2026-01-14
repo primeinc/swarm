@@ -42,10 +42,9 @@ const CLI_ENTRIES: BuildEntry[] = [
 ];
 
 // Externals: modules that must be resolved at runtime, not bundled
-// NOTE: swarm-mail is bundled into CLI to avoid version mismatch issues with global install
+// NOTE: swarm-mail is bundled into all entries to avoid version mismatch and scoping issues
 const EXTERNALS = [
   "@electric-sql/pglite",
-  "swarm-mail",
   "evalite",  // dev-only, shouldn't be in production bundle
   "@clack/prompts",  // unicode detection must happen at runtime, not bundle time
   "@clack/core",

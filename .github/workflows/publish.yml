@@ -9,7 +9,7 @@ on:
       dry_run:
         description: 'Dry run (skip actual publish)'
         required: false
-        default: 'false'
+        default: false
         type: boolean
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
@@ -60,6 +60,36 @@ jobs:
           test -f packages/swarm-mail/dist/index.d.ts || { echo "Missing dist/index.d.ts"; exit 1; }
 
           echo "✅ All build artifacts verified"
+
+      - name: Verify scoped package installation (Smoke Test)
+        run: |
+          set -euo pipefail
+          OWNER="${{ github.repository_owner }}"
+          TEMP_DIR=$(mktemp -d)
+          echo "🧪 Performing smoke test in $TEMP_DIR"
+          
+          # Pack scoped packages
+          (cd packages/swarm-mail && bun pm pack --destination "$TEMP_DIR")
+          (cd packages/opencode-swarm-plugin && bun pm pack --destination "$TEMP_DIR")
+          
+          # Try installing them in a clean project
+          cd "$TEMP_DIR"
+          bun init -y
+          
+          # Find the tarballs (names will include the owner scope now)
+          # Use specific patterns to avoid matching swarm-mail tarball when globbing for plugin
+          SWARM_MAIL_TGZ=$(ls @${OWNER}-swarm-mail-*.tgz)
+          PLUGIN_TGZ=$(ls @${OWNER}-swarm-[0-9]*.tgz)
+          
+          echo "Installing $SWARM_MAIL_TGZ and $PLUGIN_TGZ"
+          bun add "./$SWARM_MAIL_TGZ" "./$PLUGIN_TGZ"
+          
+          # Verify we can import them without "swarm-mail" missing error
+          echo "import { getSwarmMailLibSQL } from '@${OWNER}/swarm-mail'; console.log('Successfully imported swarm-mail');" > test.ts
+          echo "import { swarm_init } from '@${OWNER}/swarm'; console.log('Successfully imported swarm plugin');" >> test.ts
+          
+          bun test.ts
+          echo "✅ Smoke test passed!"
 
       - name: Read changesets
         id: changesets_content

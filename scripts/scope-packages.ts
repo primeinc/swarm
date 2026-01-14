@@ -126,4 +126,39 @@ try {
   console.warn(`\n⚠ Could not update changeset config: ${e}`);
 }
 
+// Third pass: update all changeset files (.changeset/*.md)
+console.log("\n📝 Updating changeset files...\n");
+const changesetDir = join(ROOT, ".changeset");
+try {
+  const changesetFiles = readdirSync(changesetDir)
+    .filter(f => f.endsWith(".md") && f !== "README.md")
+    .map(f => join(changesetDir, f));
+
+  for (const file of changesetFiles) {
+    let content = readFileSync(file, "utf-8");
+    let modified = false;
+
+    for (const [original, scoped] of Object.entries(nameMapping)) {
+      // Changesets look like:
+      // ---
+      // "package-name": patch
+      // ---
+      // We only want to replace the package name in the frontmatter (between the --- markers)
+      // The regex targets "package-name" followed by a colon, ensuring we don't hit prose.
+      const regex = new RegExp(`^"${original}":`, "m");
+      if (regex.test(content)) {
+        content = content.replace(regex, `"${scoped}":`);
+        modified = true;
+      }
+    }
+
+    if (modified) {
+      writeFileSync(file, content);
+      console.log(`  ✓ Updated ${join(".changeset", file.split(/[\\/]/).pop()!)}`);
+    }
+  }
+} catch (e) {
+  console.warn(`\n⚠ Could not update changeset files: ${e}`);
+}
+
 console.log("\n✅ Done! Packages are now scoped to @" + owner + "\n");
