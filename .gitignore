@@ -44,3 +44,6 @@ npm-debug.log*
 .turbo
 *.db
 *.db.migrated
+
+# VS Code workspace files (user-specific)
+*.code-workspace
