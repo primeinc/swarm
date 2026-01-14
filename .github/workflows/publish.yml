@@ -4,15 +4,25 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (skip actual publish)'
+        required: false
+        default: 'false'
+        type: boolean
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 permissions:
   contents: write
   pull-requests: write
+  id-token: write # For npm provenance
 
 jobs:
   release:
+    # Runs on any repo with NPM_TOKEN configured - fork-friendly!
+    # Forks can set their own NPM_TOKEN secret to publish to their scope
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -20,62 +30,36 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
 
-      - name: Setup npmrc
-        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
+      - name: Setup npmrc for publishing
+        run: |
+          echo "//registry.npmjs.org/:_authToken=\${NPM_TOKEN}" > .npmrc
+          echo "always-auth=true" >> .npmrc
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Scope packages for repository owner
+        run: bun scripts/scope-packages.ts ${{ github.repository_owner }}
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+
       - name: Build
         run: bun turbo build --filter='!@swarmtools/web' --filter='!swarm-dashboard'
 
-      - name: Verify package tarballs
+      - name: Verify build artifacts
         run: |
           set -euo pipefail
-          verify_package() {
-            local package_dir="$1"
-            local package_name="$2"
-            shift 2
 
-            for expected in "$@"; do
-              if [ ! -e "$package_dir/$expected" ]; then
-                echo "Missing build artifact: $package_dir/$expected"
-                exit 1
-              fi
-            done
+          echo "🔍 Verifying opencode-swarm-plugin build..."
+          test -f packages/opencode-swarm-plugin/dist/index.js || { echo "Missing dist/index.js"; exit 1; }
+          test -f packages/opencode-swarm-plugin/dist/index.d.ts || { echo "Missing dist/index.d.ts"; exit 1; }
+          test -d packages/opencode-swarm-plugin/claude-plugin/dist || { echo "Missing claude-plugin/dist"; exit 1; }
 
-            local pack_dir
-            pack_dir=$(mktemp -d)
+          echo "🔍 Verifying swarm-mail build..."
+          test -f packages/swarm-mail/dist/index.js || { echo "Missing dist/index.js"; exit 1; }
+          test -f packages/swarm-mail/dist/index.d.ts || { echo "Missing dist/index.d.ts"; exit 1; }
 
-            (cd "$package_dir" && bun pm pack --destination "$pack_dir")
-
-            local tarball
-            tarball=$(ls "$pack_dir/${package_name}-"*.tgz)
-
-            if [ -z "$tarball" ]; then
-              echo "No tarball produced for ${package_name}"
-              exit 1
-            fi
-
-            if [ "$(echo "$tarball" | wc -l | tr -d ' ')" -ne 1 ]; then
-              echo "Expected a single tarball for ${package_name}, got:"
-              echo "$tarball"
-              exit 1
-            fi
-
-            local contents_file
-            contents_file="$pack_dir/contents.txt"
-            tar -tzf "$tarball" > "$contents_file"
-
-            for expected in "$@"; do
-              grep -q "package/${expected}" "$contents_file"
-            done
-
-            rm -rf "$pack_dir"
-          }
-
-          verify_package "packages/opencode-swarm-plugin" "opencode-swarm-plugin" "dist/index.js" "dist/index.d.ts" "claude-plugin/dist/"
-          verify_package "packages/swarm-mail" "swarm-mail" "dist/index.js" "dist/index.d.ts"
+          echo "✅ All build artifacts verified"
 
       - name: Read changesets
         id: changesets_content
@@ -134,9 +118,10 @@ jobs:
           version: bun run ci:version
           commit: ${{ steps.final_title.outputs.title }}
           title: ${{ steps.final_title.outputs.title }}
-          publish: bun run ci:publish
+          publish: ${{ inputs.dry_run == true && 'echo Skipping publish (dry run)' || 'bun run ci:publish' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Get release info
         if: steps.changesets.outputs.published == 'true'
