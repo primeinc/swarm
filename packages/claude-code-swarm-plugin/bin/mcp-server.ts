@@ -203,7 +203,7 @@ async function main(): Promise<void> {
 
   for (const tool of tools) {
     // Convert JSON Schema from CLI to Zod for MCP SDK
-    const zodSchema = jsonSchemaToZod(tool.inputSchema);
+    const zodSchema = jsonSchemaToZod(tool.inputSchema) as unknown as any;
 
     server.registerTool(
       tool.name,
