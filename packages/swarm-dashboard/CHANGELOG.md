@@ -1,5 +1,12 @@
 # swarm-dashboard
 
+## 0.0.12
+
+### Patch Changes
+
+- Updated dependencies [fb67099]
+  - @primeinc/swarm-mail@1.10.3
+
 ## 0.0.11
 
 ### Patch Changes

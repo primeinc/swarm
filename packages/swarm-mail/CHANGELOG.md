@@ -1,5 +1,11 @@
 # swarm-mail
 
+## 1.10.3
+
+### Patch Changes
+
+- fb67099: Add fork-friendly npm publishing workflow with dynamic package scoping
+
 ## 1.10.2
 
 ### Patch Changes

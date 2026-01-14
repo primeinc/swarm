@@ -1,7 +1,7 @@
 {
-  "name": "swarm-dashboard",
+  "name": "@primeinc/swarm-dashboard",
   "private": true,
-  "version": "0.0.11",
+  "version": "0.0.12",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -14,7 +14,7 @@
     "partysocket": "^1.1.10",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "swarm-mail": "workspace:*"
+    "@primeinc/swarm-mail": "1.10.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
