@@ -8,7 +8,8 @@
   "fixed": [],
   "linked": [],
   "access": "public",
-  "baseBranch": "main",
-  "updateInternalDependencies": "patch",
-  "ignore": ["@swarmtools/web"]
-}
+    "baseBranch": "main",
+    "updateInternalDependencies": "patch",
+    "ignore": ["@swarmtools/web"],
+    "provenance": true
+  }
