@@ -69,33 +69,31 @@ jobs:
         run: |
           set -euo pipefail
           OWNER="${{ github.repository_owner }}"
+          # Use a clean directory for packing and testing
           TEMP_DIR=$(mktemp -d)
           echo "🧪 Performing smoke test in $TEMP_DIR"
           
           # Pack scoped packages
-          (cd packages/swarm-mail && bun pm pack --destination "$TEMP_DIR")
-          (cd packages/opencode-swarm-plugin && bun pm pack --destination "$TEMP_DIR")
+          # We use 'npm pack' instead of 'bun pm pack' because it doesn't 
+          # attempt to resolve workspace dependencies against the root, 
+          # which would fail after renaming.
+          (cd packages/swarm-mail && npm pack --pack-destination "$TEMP_DIR")
+          (cd packages/opencode-swarm-plugin && npm pack --pack-destination "$TEMP_DIR")
           
           # Try installing them in a clean project
           cd "$TEMP_DIR"
           bun init -y
           
           # Find the tarballs (names will include the owner scope now)
-          # Use specific patterns to avoid matching swarm-mail tarball when globbing for plugin
-          # NOTE: bun pm pack generates filenames like 'swarm-mail-1.10.2.tgz' (no scope in filename)
-          SWARM_MAIL_TGZ=$(ls swarm-mail-*.tgz)
-          PLUGIN_TGZ=$(ls opencode-swarm-plugin-*.tgz 2>/dev/null || ls swarm-*.tgz)
+          # NOTE: npm pack for scoped packages produces names like 'owner-name-version.tgz'
+          SWARM_MAIL_TGZ=$(ls ${OWNER}-swarm-mail-*.tgz)
+          PLUGIN_TGZ=$(ls ${OWNER}-swarm-*.tgz | grep -v swarm-mail)
           
           echo "Installing $SWARM_MAIL_TGZ and $PLUGIN_TGZ"
-          # Rename tarballs to include scope for 'bun add' to register them correctly under scoped names
-          # Use OWNER-NAME.tgz format which bun resolves to @OWNER/NAME
-          mv "$SWARM_MAIL_TGZ" "${OWNER}-swarm-mail.tgz"
-          mv "$PLUGIN_TGZ" "${OWNER}-swarm.tgz"
-
-          # Use absolute paths and force installation of local files
-          bun add "file:./${OWNER}-swarm-mail.tgz" "file:./${OWNER}-swarm.tgz"
+          bun add "./$SWARM_MAIL_TGZ" "./$PLUGIN_TGZ"
           
           # Verify we can import them without "swarm-mail" missing error
+          # Use the actual scoped names we assigned in scope-packages.ts
           echo "import { getSwarmMailLibSQL } from '@${OWNER}/swarm-mail'; console.log('Successfully imported swarm-mail');" > test.ts
           echo "import { swarm_init } from '@${OWNER}/swarm'; console.log('Successfully imported swarm plugin');" >> test.ts
           
