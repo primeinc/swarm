@@ -78,8 +78,9 @@ jobs:
           
           # Find the tarballs (names will include the owner scope now)
           # Use specific patterns to avoid matching swarm-mail tarball when globbing for plugin
-          SWARM_MAIL_TGZ=$(ls @${OWNER}-swarm-mail-*.tgz)
-          PLUGIN_TGZ=$(ls @${OWNER}-swarm-[0-9]*.tgz)
+          # NOTE: bun pm pack generates filenames like 'swarm-mail-1.10.2.tgz' (no scope in filename)
+          SWARM_MAIL_TGZ=$(ls swarm-mail-*.tgz)
+          PLUGIN_TGZ=$(ls opencode-swarm-plugin-*.tgz 2>/dev/null || ls swarm-*.tgz)
           
           echo "Installing $SWARM_MAIL_TGZ and $PLUGIN_TGZ"
           bun add "./$SWARM_MAIL_TGZ" "./$PLUGIN_TGZ"
