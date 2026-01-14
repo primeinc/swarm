@@ -280,7 +280,7 @@ export async function importFromJSONL(
   // Temporarily disable FK constraints during import to allow parent_id
   // references to cells that haven't been imported yet
   const db = await adapter.getDatabase();
-  await db.query("PRAGMA foreign_keys = OFF");
+  await db.exec("PRAGMA foreign_keys = OFF");
 
   try {
     for (const cellExport of cells) {
@@ -295,7 +295,7 @@ export async function importFromJSONL(
     }
   } finally {
     // Re-enable FK constraints
-    await db.query("PRAGMA foreign_keys = ON");
+    await db.exec("PRAGMA foreign_keys = ON");
   }
 
   return result;
