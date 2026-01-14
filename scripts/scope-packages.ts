@@ -205,11 +205,15 @@ try {
 
     for (const [original, scoped] of Object.entries(nameMapping)) {
       // Replace imports from the original package name
-      // Handles: import ... from "swarm-mail"; and import ... from 'swarm-mail';
-      // Use word boundaries or regex that matches the whole string
-      const regex = new RegExp(`from ["']${original}["']`, "g");
+      // This more aggressive regex handles:
+      // - import ... from "swarm-mail"
+      // - import type ... from "swarm-mail"
+      // - await import("swarm-mail")
+      // - require("swarm-mail")
+      // It matches the package name wrapped in single or double quotes
+      const regex = new RegExp(`(["'])${original}\\1`, "g");
       if (regex.test(content)) {
-        content = content.replace(regex, `from "${scoped}"`);
+        content = content.replace(regex, `$1${scoped}$1`);
         modified = true;
       }
     }
