@@ -74,8 +74,6 @@ jobs:
           echo "🧪 Performing smoke test for owner: $OWNER in $TEMP_DIR"
           
           # Pack scoped packages
-          # We use 'npm pack' because it doesn't attempt to resolve workspace:* 
-          # against the local tree as strictly as 'bun pm pack' does.
           (cd packages/swarm-mail && npm pack --pack-destination "$TEMP_DIR")
           (cd packages/opencode-swarm-plugin && npm pack --pack-destination "$TEMP_DIR")
           
@@ -83,15 +81,31 @@ jobs:
           cd "$TEMP_DIR"
           bun init -y
           
-          # Find the tarballs. NPM pack for @owner/pkg produces owner-pkg-version.tgz
-          echo "Checking for tarballs in $(pwd):"
-          ls -R
+          echo "Contents of $TEMP_DIR:"
+          ls -la
           
-          SWARM_MAIL_TGZ=$(ls ${OWNER}-swarm-mail-*.tgz | head -n 1)
-          PLUGIN_TGZ=$(ls ${OWNER}-swarm-*.tgz | grep -v swarm-mail | head -n 1)
+          # Find the tarballs using a more robust loop instead of 'ls' subshell
+          SWARM_MAIL_TGZ=""
+          for f in ${OWNER}-swarm-mail-*.tgz; do
+            if [ -f "$f" ]; then SWARM_MAIL_TGZ="$f"; break; fi
+          done
+
+          PLUGIN_TGZ=""
+          for f in ${OWNER}-swarm-*.tgz; do
+            if [ -f "$f" ] && [[ "$f" != *"swarm-mail"* ]]; then
+              PLUGIN_TGZ="$f"
+              break
+            fi
+          done
           
-          if [ -z "$SWARM_MAIL_TGZ" ] || [ -z "$PLUGIN_TGZ" ]; then
-            echo "❌ Failed to find packed tarballs"
+          if [ -z "$SWARM_MAIL_TGZ" ]; then
+            echo "❌ Failed to find swarm-mail tarball matching ${OWNER}-swarm-mail-*.tgz"
+            ls -la
+            exit 1
+          fi
+          if [ -z "$PLUGIN_TGZ" ]; then
+            echo "❌ Failed to find plugin tarball matching ${OWNER}-swarm-*.tgz"
+            ls -la
             exit 1
           fi
           
@@ -99,7 +113,6 @@ jobs:
           bun add "./$SWARM_MAIL_TGZ" "./$PLUGIN_TGZ"
           
           # Verify we can import them without "swarm-mail" missing error
-          # Use the actual scoped names assigned by scope-packages.ts
           echo "import { getSwarmMailLibSQL } from '@${OWNER}/swarm-mail'; console.log('Successfully imported swarm-mail');" > test.ts
           echo "import { swarm_init } from '@${OWNER}/swarm'; console.log('Successfully imported swarm plugin');" >> test.ts
           

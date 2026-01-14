@@ -155,7 +155,9 @@ try {
       // ---
       // We only want to replace the package name in the frontmatter (between the --- markers)
       // The regex targets "package-name" followed by a colon, ensuring we don't hit prose.
-      const regex = new RegExp(`^"${original}":`, "m");
+      // Escape the original name to be safe with special characters like '@'
+      const escapedOriginal = original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regex = new RegExp(`^"${escapedOriginal}":`, "m");
       if (regex.test(content)) {
         content = content.replace(regex, `"${scoped}":`);
         modified = true;
