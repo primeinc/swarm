@@ -228,101 +228,123 @@ export const makeEmbeddingsProviderLive = (config: XenovaConfig) => {
   return Layer.succeed(
     EmbeddingsProvider,
     {
-      embed: async (text: string): Promise<EmbeddingWithMetadata> => {
-        if (config.preferLocal) {
-          // Use Xenova directly
-          const embedding = await xenova.embed(text);
+      embed: (text: string) =>
+        Effect.gen(function* () {
+          if (config.preferLocal) {
+            // Use Xenova directly
+            const embedding = yield* Effect.tryPromise({
+              try: () => xenova.embed(text),
+              catch: (error) =>
+                new EmbeddingsProviderError({
+                  reason: error instanceof Error ? error.message : String(error),
+                }),
+            });
+            return {
+              embedding,
+              source: "xenova",
+              dimension: 384,
+            };
+          }
+
+          // Try Ollama first, fallback to Xenova
+          try {
+            // Import Ollama dynamically
+            const { Ollama, makeOllamaLive } = yield* Effect.promise(() => import("./ollama.js"));
+            const ollamaLayer = makeOllamaLive(config);
+
+            const program = Effect.gen(function* () {
+              const ollama = yield* Ollama;
+              return yield* ollama.embed(text);
+            });
+
+            const result = yield* program.pipe(Effect.provide(ollamaLayer), Effect.either);
+
+            if (result._tag === "Right") {
+              return {
+                embedding: result.right,
+                source: "ollama",
+                dimension: 1024,
+              };
+            }
+
+            // Ollama failed, fall through to Xenova
+          } catch (error) {
+            // Ollama initialization failed, fall through to Xenova
+          }
+
+          // Fallback to Xenova
+          const embedding = yield* Effect.tryPromise({
+            try: () => xenova.embed(text),
+            catch: (error) =>
+              new EmbeddingsProviderError({
+                reason: error instanceof Error ? error.message : String(error),
+              }),
+          });
           return {
             embedding,
             source: "xenova",
             dimension: 384,
           };
-        }
+        }),
 
-        // Try Ollama first, fallback to Xenova
-        try {
-          // Import Ollama dynamically
-          const { Ollama, makeOllamaLive } = await import("./ollama.js");
-          const ollamaLayer = makeOllamaLive(config);
-
-          const program = Effect.gen(function* () {
-            const ollama = yield* Ollama;
-            return yield* ollama.embed(text);
-          });
-
-          const result = await Effect.runPromise(
-            program.pipe(Effect.provide(ollamaLayer), Effect.either)
-          );
-
-          if (result._tag === "Right") {
-            return {
-              embedding: result.right,
-              source: "ollama",
-              dimension: 1024,
-            };
+      embedBatch: (texts: string[], concurrency?: number) =>
+        Effect.gen(function* () {
+          if (config.preferLocal) {
+            // Use Xenova directly
+            const embeddings = yield* Effect.tryPromise({
+              try: () => xenova.embedBatch(texts, concurrency),
+              catch: (error) =>
+                new EmbeddingsProviderError({
+                  reason: error instanceof Error ? error.message : String(error),
+                }),
+            });
+            return embeddings.map((embedding) => ({
+              embedding,
+              source: "xenova",
+              dimension: 384,
+            }));
           }
 
-          // Ollama failed, fall through to Xenova
-        } catch (error) {
-          // Ollama initialization failed, fall through to Xenova
-        }
+          // Try Ollama first, fallback to Xenova
+          try {
+            // Import Ollama dynamically
+            const { Ollama, makeOllamaLive } = yield* Effect.promise(() => import("./ollama.js"));
+            const ollamaLayer = makeOllamaLive(config);
 
-        // Fallback to Xenova
-        const embedding = await xenova.embed(text);
-        return {
-          embedding,
-          source: "xenova",
-          dimension: 384,
-        };
-      },
+            const program = Effect.gen(function* () {
+              const ollama = yield* Ollama;
+              return yield* ollama.embedBatch(texts, concurrency);
+            });
 
-      embedBatch: async (texts: string[], concurrency?: number): Promise<EmbeddingWithMetadata[]> => {
-        if (config.preferLocal) {
-          // Use Xenova directly
-          const embeddings = await xenova.embedBatch(texts, concurrency);
+            const result = yield* program.pipe(Effect.provide(ollamaLayer), Effect.either);
+
+            if (result._tag === "Right") {
+              return result.right.map((embedding) => ({
+                embedding,
+                source: "ollama",
+                dimension: 1024,
+              }));
+            }
+
+            // Ollama failed, fall through to Xenova
+          } catch (error) {
+            // Ollama initialization failed, fall through to Xenova
+          }
+
+          // Fallback to Xenova
+          const embeddings = yield* Effect.tryPromise({
+            try: () => xenova.embedBatch(texts, concurrency),
+            catch: (error) =>
+              new EmbeddingsProviderError({
+                reason: error instanceof Error ? error.message : String(error),
+              }),
+          });
           return embeddings.map((embedding) => ({
             embedding,
             source: "xenova",
             dimension: 384,
           }));
-        }
-
-        // Try Ollama first, fallback to Xenova
-        try {
-          // Import Ollama dynamically
-          const { Ollama, makeOllamaLive } = await import("./ollama.js");
-          const ollamaLayer = makeOllamaLive(config);
-
-          const program = Effect.gen(function* () {
-            const ollama = yield* Ollama;
-            return yield* ollama.embedBatch(texts, concurrency);
-          });
-
-          const result = await Effect.runPromise(
-            program.pipe(Effect.provide(ollamaLayer), Effect.either)
-          );
-
-          if (result._tag === "Right") {
-            return result.right.map((embedding) => ({
-              embedding,
-              source: "ollama",
-              dimension: 1024,
-            }));
-          }
-
-          // Ollama failed, fall through to Xenova
-        } catch (error) {
-          // Ollama initialization failed, fall through to Xenova
-        }
-
-        // Fallback to Xenova
-        const embeddings = await xenova.embedBatch(texts, concurrency);
-        return embeddings.map((embedding) => ({
-          embedding,
-          source: "xenova",
-          dimension: 384,
-        }));
-      },
+        }),
     }
   );
 };
