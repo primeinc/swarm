@@ -579,7 +579,7 @@ async function autoMigrateFromJSONL(adapter: HiveAdapter, projectKey: string): P
         `[hive] Migration errors (keeping ${jsonlPath} for retry):`,
         result.errors.slice(0, 5).map((e) => `${e.cellId}: ${e.error}`)
       );
-    } else if (result.created > 0) {
+    } else if (result.created > 0 || result.updated > 0) {
       // Success with no errors - rename to .old so we don't reimport
       const { renameSync } = await import("node:fs");
       renameSync(jsonlPath, oldPath);
