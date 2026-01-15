@@ -40,8 +40,12 @@ jobs:
       - name: Scope packages for @${{ github.repository_owner }}
         run: bun scripts/scope-packages.ts ${{ github.repository_owner }}
 
-      - name: Build
-        run: bun turbo build --filter='!@swarmtools/web' --filter='!swarm-dashboard'
+      - name: Build only publishable packages
+        run: |
+          # Build swarm-mail first (dependency)
+          (cd packages/swarm-mail && bun run build)
+          # Build opencode-swarm-plugin
+          (cd packages/opencode-swarm-plugin && bun run build)
 
       - name: Publish to NPM
         if: ${{ inputs.dry_run != true }}
