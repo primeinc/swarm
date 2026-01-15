@@ -60,18 +60,6 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Fix dist-tags (remove latest, keep only beta)
-        if: ${{ inputs.dry_run != true }}
-        run: |
-          OWNER="${{ github.repository_owner }}"
-          for pkg in "@${OWNER}/swarm" "@${OWNER}/swarm-mail"; do
-            echo "🏷️ Fixing dist-tags for $pkg..."
-            # Remove 'latest' tag if it exists (fork shouldn't have latest)
-            npm dist-tag rm "$pkg" latest 2>/dev/null || true
-          done
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
       - name: Dry run - show what would be published
         if: ${{ inputs.dry_run == true }}
         run: |
