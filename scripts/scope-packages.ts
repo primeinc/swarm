@@ -23,7 +23,15 @@ const packages = {
   "packages/swarm-mail": `${scope}/swarm-mail`,
 };
 
-// Update each package.json
+// First pass: collect versions
+const versions: Record<string, string> = {};
+for (const [dir, newName] of Object.entries(packages)) {
+  const pkgPath = join(dir, "package.json");
+  const pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
+  versions[newName] = pkg.version;
+}
+
+// Second pass: update packages
 for (const [dir, newName] of Object.entries(packages)) {
   const pkgPath = join(dir, "package.json");
   const pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
@@ -31,9 +39,10 @@ for (const [dir, newName] of Object.entries(packages)) {
   const oldName = pkg.name;
   pkg.name = newName;
   
-  // Update internal dependency references
+  // Update internal dependency references - resolve workspace:* to actual version
   if (pkg.dependencies?.["swarm-mail"]) {
-    pkg.dependencies[`${scope}/swarm-mail`] = pkg.dependencies["swarm-mail"];
+    const swarmMailVersion = versions[`${scope}/swarm-mail`];
+    pkg.dependencies[`${scope}/swarm-mail`] = swarmMailVersion || pkg.dependencies["swarm-mail"];
     delete pkg.dependencies["swarm-mail"];
   }
   
