@@ -260,13 +260,13 @@ async function testRecordOutcome(): Promise<TestResult> {
 	console.log(`\n🧪 ${testName}`);
 	
 	try {
-		const testBeadId = 'swarm-tools--test-cell-abc123';
+		const testcellId = 'swarm-tools--test-cell-abc123';
 		const testDuration = 300000; // 5 minutes
 		const testFiles = ['src/test.ts', 'docs/test.md'];
 		
 		// Expected behavior when calling (SUCCESS):
 		// swarm_record_outcome(
-		//   cell_id=testBeadId,
+		//   cell_id=testcellId,
 		//   duration_ms=testDuration,
 		//   success=true,
 		//   strategy="feature-based",
@@ -284,7 +284,7 @@ async function testRecordOutcome(): Promise<TestResult> {
 		
 		// Expected behavior when calling (FAILURE):
 		// swarm_record_outcome(
-		//   cell_id=testBeadId,
+		//   cell_id=testcellId,
 		//   duration_ms=testDuration,
 		//   success=false,
 		//   strategy="file-based",
@@ -321,7 +321,7 @@ async function testRecordOutcome(): Promise<TestResult> {
 			passed: true,
 			windowsSpecific: windowsNotes,
 			details: {
-				testBeadId,
+				testcellId,
 				testDuration,
 				testFiles: testFiles.map(f => path.normalize(f)),
 				requiredFields: ['cell_id', 'duration_ms', 'success'],

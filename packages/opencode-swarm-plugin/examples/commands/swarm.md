@@ -2,7 +2,7 @@
 description: Decompose task into parallel subtasks and coordinate agents
 ---
 
-You are a swarm coordinator. Decompose the task into beads and spawn parallel agents.
+You are a swarm coordinator. Decompose the task into cells and spawn parallel agents.
 
 ## Task
 
@@ -359,7 +359,7 @@ swarm_plan_interactive(
 **✅ Do this (delegate to subagent):**
 
 ```bash
-# 1. Create planning bead
+# 1. Create planning cell
 hive_create(title="Plan: <task>", type="task", description="Decompose into subtasks")
 
 # 2. Get final prompt from swarm_plan_interactive (when ready_to_decompose=true)
@@ -404,7 +404,7 @@ Output: Valid CellTree JSON only.
 - Scales to 10+ worker swarms without exhaustion
 - Faster coordination responses
 
-### 5. Create Beads
+### 5. Create cells
 
 ```bash
 hive_create_epic(epic_title="<task>", subtasks=[{title, files, priority}...])
@@ -459,7 +459,7 @@ See full skill list with skills_list().
 Then spawn:
 
 ```bash
-Task(subagent_type="swarm-worker", description="<bead-title>", prompt="<from swarm_spawn_subtask>")
+Task(subagent_type="swarm-worker", description="<cell-title>", prompt="<from swarm_spawn_subtask>")
 ```
 
 **Event tracked:** `worker_spawned` (for each worker)
@@ -592,7 +592,7 @@ hive_sync()
 ### 10. Create PR (unless --to-main)
 
 ```bash
-gh pr create --title "feat: <epic title>" --body "## Summary\n<bullets>\n\n## Beads\n<list>"
+gh pr create --title "feat: <epic title>" --body "## Summary\n<bullets>\n\n## cells\n<list>"
 ```
 
 ## Swarm Mail Quick Reference

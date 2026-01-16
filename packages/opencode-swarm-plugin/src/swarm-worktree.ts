@@ -160,7 +160,7 @@ export const swarm_worktree_create = tool({
     "Create a git worktree for isolated task execution. Worker operates in worktree, not main branch.",
   args: {
     project_path: z.string().describe("Absolute path to project root"),
-    task_id: z.string().describe("Task/bead ID (e.g., bd-abc123.1)"),
+    task_id: z.string().describe("Task/cell ID (e.g., bd-abc123.1)"),
     start_commit: z
       .string()
       .describe("Commit SHA to create worktree at (swarm start point)"),
@@ -226,7 +226,7 @@ export const swarm_worktree_merge = tool({
     "Cherry-pick commits from worktree back to main branch. Call after worker completes.",
   args: {
     project_path: z.string().describe("Absolute path to project root"),
-    task_id: z.string().describe("Task/bead ID"),
+    task_id: z.string().describe("Task/cell ID"),
     start_commit: z
       .string()
       .optional()
@@ -345,7 +345,7 @@ export const swarm_worktree_cleanup = tool({
     "Remove a worktree after completion or abort. Idempotent - safe to call multiple times.",
   args: {
     project_path: z.string().describe("Absolute path to project root"),
-    task_id: z.string().optional().describe("Task/bead ID to clean up"),
+    task_id: z.string().optional().describe("Task/cell ID to clean up"),
     cleanup_all: z
       .boolean()
       .optional()

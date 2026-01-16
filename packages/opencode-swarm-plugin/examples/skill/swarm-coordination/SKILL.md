@@ -183,7 +183,7 @@ swarmmail_send({
 3. **Clear boundaries** - Define exactly what files/modules each subtask touches
 4. **Explicit handoffs** - When one task enables another, communicate clearly
 5. **Graceful failures** - If a subtask fails, don't block the whole swarm
-6. **Progress updates** - Use beads to track subtask status
+6. **Progress updates** - Use cells to track subtask status
 7. **Load relevant skills** - Workers should call `skills_use()` based on their task type:
    - Testing work → `skills_use(name="testing-patterns")`
    - Architecture decisions → `skills_use(name="system-design")`

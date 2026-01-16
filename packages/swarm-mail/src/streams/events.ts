@@ -124,7 +124,7 @@ export const FileReservedEventSchema = BaseEventSchema.extend({
 	lock_holder_ids: z.array(z.string()).optional(),
 	/** Epic ID if part of swarm work */
 	epic_id: z.string().optional(),
-	/** Cell/bead ID if part of swarm work */
+	/** Cell/cell ID if part of swarm work */
 	cell_id: z.string().optional(),
 	/** Number of files being reserved */
 	file_count: z.number().optional(),
@@ -149,7 +149,7 @@ export const FileReleasedEventSchema = BaseEventSchema.extend({
 	lock_holder_ids: z.array(z.string()).optional(),
 	/** Epic ID if part of swarm work */
 	epic_id: z.string().optional(),
-	/** Cell/bead ID if part of swarm work */
+	/** Cell/cell ID if part of swarm work */
 	cell_id: z.string().optional(),
 	/** Number of files being released */
 	file_count: z.number().optional(),
@@ -169,7 +169,7 @@ export const FileConflictEventSchema = BaseEventSchema.extend({
 	paths: z.array(z.string()),
 	/** Epic ID if part of swarm work */
 	epic_id: z.string().optional(),
-	/** Cell/bead ID if part of swarm work */
+	/** Cell/cell ID if part of swarm work */
 	cell_id: z.string().optional(),
 	/** How the conflict was resolved */
 	resolution: z.enum(["wait", "force", "abort"]).optional(),

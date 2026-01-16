@@ -1,7 +1,7 @@
 /**
- * Bead Validation - Port of steveyegge/beads internal/validation/bead.go
+ * cell Validation - Port of steveyegge/cells internal/validation/cell.go
  *
- * Implements validation rules from steveyegge/beads internal/types/types.go Validate() method.
+ * Implements validation rules from steveyegge/cells internal/types/types.go Validate() method.
  *
  * ## Business Rules
  * - Title required, max 500 chars
@@ -47,12 +47,12 @@ export interface UpdateCellOptions {
 }
 
 /**
- * Validate bead creation options
+ * Validate cell creation options
  *
- * @param options - Bead creation options
+ * @param options - cell creation options
  * @returns Validation result with errors if invalid
  */
-export function validateCreateBead(
+export function validateCreatecell(
 	options: CreateCellOptions,
 ): ValidationResult {
 	const errors: string[] = [];
@@ -92,12 +92,12 @@ export function validateCreateBead(
 }
 
 /**
- * Validate bead update options
+ * Validate cell update options
  *
- * @param options - Bead update options
+ * @param options - cell update options
  * @returns Validation result with errors if invalid
  */
-export function validateUpdateBead(
+export function validateUpdatecell(
 	options: UpdateCellOptions,
 ): ValidationResult {
 	const errors: string[] = [];
@@ -138,7 +138,7 @@ export function validateUpdateBead(
  *
  * Direct transitions to tombstone are prohibited - use delete operation.
  *
- * @param currentStatus - Current bead status
+ * @param currentStatus - Current cell status
  * @param newStatus - Target status
  * @returns Validation result with errors if invalid
  */
@@ -156,7 +156,7 @@ export function validateStatusTransition(
 	// Tombstone is permanent - no transitions allowed
 	if (currentStatus === "tombstone") {
 		errors.push(
-			"cannot transition from tombstone (deleted beads are permanent)",
+			"cannot transition from tombstone (deleted cells are permanent)",
 		);
 		return { valid: false, errors };
 	}

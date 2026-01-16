@@ -60,7 +60,7 @@ console.log(
 	`Memories: ${result.memories.migrated} migrated, ${result.memories.skipped} skipped, ${result.memories.failed} failed`,
 );
 console.log(
-	`Beads: ${result.beads.migrated} migrated, ${result.beads.skipped} skipped, ${result.beads.failed} failed`,
+	`cells: ${result.cells.migrated} migrated, ${result.cells.skipped} skipped, ${result.cells.failed} failed`,
 );
 console.log(
 	`Messages: ${result.messages.migrated} migrated, ${result.messages.skipped} skipped, ${result.messages.failed} failed`,

@@ -48,7 +48,7 @@ describe("DecompositionPatternSchema", () => {
       failure_count: 2,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      example_beads: ["bd-123", "bd-456"],
+      example_cells: ["bd-123", "bd-456"],
       tags: ["file-splitting"],
       reason: "Test pattern",
     };
@@ -65,7 +65,7 @@ describe("DecompositionPatternSchema", () => {
       failure_count: 8,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      example_beads: [],
+      example_cells: [],
       tags: [],
     };
     expect(() => DecompositionPatternSchema.parse(antiPattern)).not.toThrow();
@@ -84,7 +84,7 @@ describe("DecompositionPatternSchema", () => {
     expect(parsed.success_count).toBe(0);
     expect(parsed.failure_count).toBe(0);
     expect(parsed.tags).toEqual([]);
-    expect(parsed.example_beads).toEqual([]);
+    expect(parsed.example_cells).toEqual([]);
   });
 
   it("rejects negative success_count", () => {
@@ -144,7 +144,7 @@ describe("PatternInversionResultSchema", () => {
         created_at: now,
         updated_at: now,
         tags: [],
-        example_beads: [],
+        example_cells: [],
       },
       inverted: {
         id: "anti-pattern-123",
@@ -156,7 +156,7 @@ describe("PatternInversionResultSchema", () => {
         created_at: now,
         updated_at: now,
         tags: [],
-        example_beads: [],
+        example_cells: [],
       },
       reason: "Failed 8/10 times (80% failure rate)",
     };
@@ -179,7 +179,7 @@ describe("shouldInvertPattern", () => {
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     tags: [],
-    example_beads: [],
+    example_cells: [],
   };
 
   it("returns true when failure rate exceeds 60%", () => {
@@ -307,7 +307,7 @@ describe("invertToAntiPattern", () => {
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     tags: ["file-splitting"],
-    example_beads: ["bd-123", "bd-456"],
+    example_cells: ["bd-123", "bd-456"],
   };
 
   it("converts pattern to anti-pattern with correct kind", () => {
@@ -333,9 +333,9 @@ describe("invertToAntiPattern", () => {
     expect(result.inverted.failure_count).toBe(basePattern.failure_count);
   });
 
-  it("preserves example_beads", () => {
+  it("preserves example_cells", () => {
     const result = invertToAntiPattern(basePattern, "Test");
-    expect(result.inverted.example_beads).toEqual(["bd-123", "bd-456"]);
+    expect(result.inverted.example_cells).toEqual(["bd-123", "bd-456"]);
   });
 
   it("preserves tags", () => {
@@ -426,7 +426,7 @@ describe("recordPatternObservation", () => {
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     tags: [],
-    example_beads: [],
+    example_cells: [],
   };
 
   it("increments success count on success", () => {
@@ -441,33 +441,33 @@ describe("recordPatternObservation", () => {
     expect(result.pattern.failure_count).toBe(3);
   });
 
-  it("adds bead to example_beads when provided", () => {
+  it("adds cell to example_cells when provided", () => {
     const result = recordPatternObservation(basePattern, true, "bd-789");
-    expect(result.pattern.example_beads).toContain("bd-789");
+    expect(result.pattern.example_cells).toContain("bd-789");
   });
 
-  it("does not modify example_beads when beadId not provided", () => {
+  it("does not modify example_cells when cellId not provided", () => {
     const result = recordPatternObservation(basePattern, true);
-    expect(result.pattern.example_beads).toEqual([]);
+    expect(result.pattern.example_cells).toEqual([]);
   });
 
-  it("limits example_beads to MAX_EXAMPLE_BEADS (10)", () => {
+  it("limits example_cells to MAX_EXAMPLE_cellS (10)", () => {
     const pattern = {
       ...basePattern,
-      example_beads: Array(10)
+      example_cells: Array(10)
         .fill(0)
         .map((_, i) => `bd-${i}`),
     };
     const result = recordPatternObservation(pattern, true, "bd-new");
-    expect(result.pattern.example_beads.length).toBe(10);
-    expect(result.pattern.example_beads).toContain("bd-new");
-    expect(result.pattern.example_beads).not.toContain("bd-0"); // Oldest removed
+    expect(result.pattern.example_cells.length).toBe(10);
+    expect(result.pattern.example_cells).toContain("bd-new");
+    expect(result.pattern.example_cells).not.toContain("bd-0"); // Oldest removed
   });
 
-  it("keeps newest beads when trimming example_beads", () => {
+  it("keeps newest cells when trimming example_cells", () => {
     const pattern = {
       ...basePattern,
-      example_beads: [
+      example_cells: [
         "bd-1",
         "bd-2",
         "bd-3",
@@ -481,8 +481,8 @@ describe("recordPatternObservation", () => {
       ],
     };
     const result = recordPatternObservation(pattern, true, "bd-new");
-    expect(result.pattern.example_beads[0]).toBe("bd-2"); // First one removed
-    expect(result.pattern.example_beads[9]).toBe("bd-new"); // New one added
+    expect(result.pattern.example_cells[0]).toBe("bd-2"); // First one removed
+    expect(result.pattern.example_cells[9]).toBe("bd-new"); // New one added
   });
 
   it("updates updated_at timestamp", () => {
@@ -716,9 +716,9 @@ describe("createPattern", () => {
     expect(pattern.updated_at).toBe(pattern.created_at);
   });
 
-  it("initializes example_beads to empty array", () => {
+  it("initializes example_cells to empty array", () => {
     const pattern = createPattern("Test");
-    expect(pattern.example_beads).toEqual([]);
+    expect(pattern.example_cells).toEqual([]);
   });
 });
 
@@ -739,7 +739,7 @@ describe("formatAntiPatternsForPrompt", () => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         tags: [],
-        example_beads: [],
+        example_cells: [],
       },
     ];
     const formatted = formatAntiPatternsForPrompt(patterns);
@@ -759,7 +759,7 @@ describe("formatAntiPatternsForPrompt", () => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         tags: [],
-        example_beads: [],
+        example_cells: [],
       },
       {
         id: "anti-1",
@@ -771,7 +771,7 @@ describe("formatAntiPatternsForPrompt", () => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         tags: [],
-        example_beads: [],
+        example_cells: [],
       },
     ];
     const formatted = formatAntiPatternsForPrompt(patterns);
@@ -791,7 +791,7 @@ describe("formatAntiPatternsForPrompt", () => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         tags: [],
-        example_beads: [],
+        example_cells: [],
       },
     ];
     const formatted = formatAntiPatternsForPrompt(patterns);
@@ -815,7 +815,7 @@ describe("formatAntiPatternsForPrompt", () => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         tags: [],
-        example_beads: [],
+        example_cells: [],
       },
       {
         id: "anti-2",
@@ -827,7 +827,7 @@ describe("formatAntiPatternsForPrompt", () => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         tags: [],
-        example_beads: [],
+        example_cells: [],
       },
     ];
     const formatted = formatAntiPatternsForPrompt(patterns);
@@ -853,7 +853,7 @@ describe("formatSuccessfulPatternsForPrompt", () => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         tags: [],
-        example_beads: [],
+        example_cells: [],
       },
       {
         id: "pattern-2",
@@ -865,7 +865,7 @@ describe("formatSuccessfulPatternsForPrompt", () => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         tags: [],
-        example_beads: [],
+        example_cells: [],
       },
     ];
     const formatted = formatSuccessfulPatternsForPrompt(patterns, 0.7);
@@ -885,7 +885,7 @@ describe("formatSuccessfulPatternsForPrompt", () => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         tags: [],
-        example_beads: [],
+        example_cells: [],
       },
     ];
     const formatted = formatSuccessfulPatternsForPrompt(patterns);
@@ -904,7 +904,7 @@ describe("formatSuccessfulPatternsForPrompt", () => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         tags: [],
-        example_beads: [],
+        example_cells: [],
       },
     ];
     const formatted = formatSuccessfulPatternsForPrompt(patterns);
@@ -923,7 +923,7 @@ describe("formatSuccessfulPatternsForPrompt", () => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         tags: [],
-        example_beads: [],
+        example_cells: [],
       },
     ];
     const formatted = formatSuccessfulPatternsForPrompt(patterns, 0.7);
@@ -942,7 +942,7 @@ describe("formatSuccessfulPatternsForPrompt", () => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         tags: [],
-        example_beads: [],
+        example_cells: [],
       },
     ];
     const formatted = formatSuccessfulPatternsForPrompt(patterns, 0.7);
@@ -966,7 +966,7 @@ describe("formatSuccessfulPatternsForPrompt", () => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         tags: [],
-        example_beads: [],
+        example_cells: [],
       },
     ];
     const formatted = formatSuccessfulPatternsForPrompt(patterns);
@@ -985,7 +985,7 @@ describe("formatSuccessfulPatternsForPrompt", () => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         tags: [],
-        example_beads: [],
+        example_cells: [],
       },
     ];
     const formatted = formatSuccessfulPatternsForPrompt(patterns, 0.5);
@@ -1004,7 +1004,7 @@ describe("formatSuccessfulPatternsForPrompt", () => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         tags: [],
-        example_beads: [],
+        example_cells: [],
       },
       {
         id: "pattern-2",
@@ -1016,7 +1016,7 @@ describe("formatSuccessfulPatternsForPrompt", () => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         tags: [],
-        example_beads: [],
+        example_cells: [],
       },
     ];
     const formatted = formatSuccessfulPatternsForPrompt(patterns);
@@ -1036,7 +1036,7 @@ describe("formatSuccessfulPatternsForPrompt", () => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         tags: [],
-        example_beads: [],
+        example_cells: [],
       },
     ];
     const formatted = formatSuccessfulPatternsForPrompt(patterns);

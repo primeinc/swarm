@@ -1867,7 +1867,7 @@ export const swarm_spawn_subtask: ReturnType<typeof tool> = tool({
 				projectKey: args.project_path || process.cwd(),
 				agentName: "coordinator",
 				epicId: args.epic_id,
-				beadId: args.cell_id,
+				cellId: args.cell_id,
 				workerName: "worker", // Will be set at swarmmail_init
 				subtaskTitle: args.subtask_title,
 				files: args.files,

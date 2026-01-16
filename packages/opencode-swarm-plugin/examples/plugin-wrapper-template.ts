@@ -180,13 +180,13 @@ function projectSwarmState(events: ToolCallEvent[]): SwarmProjection {
       }
 
       case "swarm_spawn_subtask": {
-        const beadId = typeof event.input.cell_id === "string" ? event.input.cell_id : undefined;
+        const cellId = typeof event.input.cell_id === "string" ? event.input.cell_id : undefined;
         const title = typeof event.input.subtask_title === "string" ? event.input.subtask_title : "Unknown";
         const files = Array.isArray(event.input.files) ? (event.input.files as string[]) : [];
 
-        if (beadId) {
+        if (cellId) {
           hasSpawn = true;
-          const existing = state.subtasks.get(beadId);
+          const existing = state.subtasks.get(cellId);
           if (existing) {
             if (existing.status === "created") { state.counts.created--; state.counts.spawned++; }
             existing.status = "spawned";
@@ -194,7 +194,7 @@ function projectSwarmState(events: ToolCallEvent[]): SwarmProjection {
             existing.files = files;
             existing.spawnedAt = event.timestamp;
           } else {
-            state.subtasks.set(beadId, { id: beadId, title, status: "spawned", files, spawnedAt: event.timestamp });
+            state.subtasks.set(cellId, { id: cellId, title, status: "spawned", files, spawnedAt: event.timestamp });
             state.counts.total++;
             state.counts.spawned++;
           }
@@ -223,9 +223,9 @@ function projectSwarmState(events: ToolCallEvent[]): SwarmProjection {
       }
 
       case "swarm_complete": {
-        const beadId = typeof event.input.cell_id === "string" ? event.input.cell_id : undefined;
-        if (beadId) {
-          const subtask = state.subtasks.get(beadId);
+        const cellId = typeof event.input.cell_id === "string" ? event.input.cell_id : undefined;
+        if (cellId) {
+          const subtask = state.subtasks.get(cellId);
           if (subtask && subtask.status !== "closed") {
             if (subtask.status === "created") state.counts.created--;
             else if (subtask.status === "spawned") state.counts.spawned--;
@@ -695,13 +695,13 @@ async function execTool(
 }
 
 // =============================================================================
-// Beads Tools
+// cells Tools
 // =============================================================================
 
 const hive_create = tool({
-  description: "Create a new bead with type-safe validation",
+  description: "Create a new cell with type-safe validation",
   args: {
-    title: tool.schema.string().describe("Bead title"),
+    title: tool.schema.string().describe("cell title"),
     type: tool.schema
       .enum(["bug", "feature", "task", "epic", "chore"])
       .optional()
@@ -712,11 +712,11 @@ const hive_create = tool({
       .max(3)
       .optional()
       .describe("Priority 0-3 (default: 2)"),
-    description: tool.schema.string().optional().describe("Bead description"),
+    description: tool.schema.string().optional().describe("cell description"),
     parent_id: tool.schema
       .string()
       .optional()
-      .describe("Parent bead ID for epic children"),
+      .describe("Parent cell ID for epic children"),
   },
   execute: (args, ctx) => execTool("hive_create", args, ctx),
 });
@@ -743,7 +743,7 @@ const hive_create_epic = tool({
 });
 
 const hive_query = tool({
-  description: "Query beads with filters (replaces bd list, bd ready, bd wip)",
+  description: "Query cells with filters (replaces bd list, bd ready, bd wip)",
   args: {
     status: tool.schema
       .enum(["open", "in_progress", "blocked", "closed"])
@@ -756,7 +756,7 @@ const hive_query = tool({
     ready: tool.schema
       .boolean()
       .optional()
-      .describe("Only show unblocked beads"),
+      .describe("Only show unblocked cells"),
     limit: tool.schema
       .number()
       .optional()
@@ -766,7 +766,7 @@ const hive_query = tool({
 });
 
 const hive_update = tool({
-  description: "Update bead status/description",
+  description: "Update cell status/description",
   args: {
     id: tool.schema.string().describe("Cell ID"),
     status: tool.schema
@@ -785,7 +785,7 @@ const hive_update = tool({
 });
 
 const hive_close = tool({
-  description: "Close a bead with reason",
+  description: "Close a cell with reason",
   args: {
     id: tool.schema.string().describe("Cell ID"),
     reason: tool.schema.string().describe("Completion reason"),
@@ -794,7 +794,7 @@ const hive_close = tool({
 });
 
 const hive_start = tool({
-  description: "Mark a bead as in-progress",
+  description: "Mark a cell as in-progress",
   args: {
     id: tool.schema.string().describe("Cell ID"),
   },
@@ -802,13 +802,13 @@ const hive_start = tool({
 });
 
 const hive_ready = tool({
-  description: "Get the next ready bead (unblocked, highest priority)",
+  description: "Get the next ready cell (unblocked, highest priority)",
   args: {},
   execute: (args, ctx) => execTool("hive_ready", args, ctx),
 });
 
 const hive_sync = tool({
-  description: "Sync beads to git and push (MANDATORY at session end)",
+  description: "Sync cells to git and push (MANDATORY at session end)",
   args: {
     auto_pull: tool.schema.boolean().optional().describe("Pull before sync"),
   },
@@ -843,13 +843,13 @@ PREFER THIS OVER hive_query when you need to:
   execute: (args, ctx) => execTool("hive_cells", args, ctx),
 });
 
-const beads_link_thread = tool({
-  description: "Add metadata linking bead to Agent Mail thread",
+const cells_link_thread = tool({
+  description: "Add metadata linking cell to Agent Mail thread",
   args: {
     cell_id: tool.schema.string().describe("Cell ID"),
     thread_id: tool.schema.string().describe("Agent Mail thread ID"),
   },
-  execute: (args, ctx) => execTool("beads_link_thread", args, ctx),
+  execute: (args, ctx) => execTool("cells_link_thread", args, ctx),
 });
 
 // =============================================================================
@@ -1055,7 +1055,7 @@ const structured_parse_decomposition = tool({
 });
 
 const structured_parse_cell_tree = tool({
-  description: "Parse and validate bead tree response",
+  description: "Parse and validate cell tree response",
   args: {
     response: tool.schema.string().describe("Agent response"),
   },
@@ -1158,7 +1158,7 @@ const swarm_validate_decomposition = tool({
 const swarm_status = tool({
   description: "Get status of a swarm by epic ID",
   args: {
-    epic_id: tool.schema.string().describe("Epic bead ID"),
+    epic_id: tool.schema.string().describe("Epic cell ID"),
     project_key: tool.schema.string().describe("Project key"),
   },
   execute: (args, ctx) => execTool("swarm_status", args, ctx),
@@ -1334,7 +1334,7 @@ const swarm_worktree_create = tool({
     "Create a git worktree for isolated task execution. Worker operates in worktree, not main branch.",
   args: {
     project_path: tool.schema.string().describe("Absolute path to project root"),
-    task_id: tool.schema.string().describe("Task/bead ID (e.g., bd-abc123.1)"),
+    task_id: tool.schema.string().describe("Task/cell ID (e.g., bd-abc123.1)"),
     start_commit: tool.schema
       .string()
       .describe("Commit SHA to create worktree at (swarm start point)"),
@@ -1347,7 +1347,7 @@ const swarm_worktree_merge = tool({
     "Cherry-pick commits from worktree back to main branch. Call after worker completes.",
   args: {
     project_path: tool.schema.string().describe("Absolute path to project root"),
-    task_id: tool.schema.string().describe("Task/bead ID"),
+    task_id: tool.schema.string().describe("Task/cell ID"),
     start_commit: tool.schema
       .string()
       .optional()
@@ -1361,7 +1361,7 @@ const swarm_worktree_cleanup = tool({
     "Remove a worktree after completion or abort. Idempotent - safe to call multiple times.",
   args: {
     project_path: tool.schema.string().describe("Absolute path to project root"),
-    task_id: tool.schema.string().optional().describe("Task/bead ID to clean up"),
+    task_id: tool.schema.string().optional().describe("Task/cell ID to clean up"),
     cleanup_all: tool.schema
       .boolean()
       .optional()
@@ -1387,8 +1387,8 @@ const swarm_review = tool({
     "Generate a review prompt for a completed subtask. Includes epic context, dependencies, and diff.",
   args: {
     project_key: tool.schema.string().describe("Project path"),
-    epic_id: tool.schema.string().describe("Epic bead ID"),
-    task_id: tool.schema.string().describe("Subtask bead ID to review"),
+    epic_id: tool.schema.string().describe("Epic cell ID"),
+    task_id: tool.schema.string().describe("Subtask cell ID to review"),
     files_touched: tool.schema
       .array(tool.schema.string())
       .optional()
@@ -1402,7 +1402,7 @@ const swarm_review_feedback = tool({
     "Send review feedback to a worker. Tracks attempts (max 3). Fails task after 3 rejections.",
   args: {
     project_key: tool.schema.string().describe("Project path"),
-    task_id: tool.schema.string().describe("Subtask bead ID"),
+    task_id: tool.schema.string().describe("Subtask cell ID"),
     worker_id: tool.schema.string().describe("Worker agent name"),
     status: tool.schema
       .enum(["approved", "needs_changes"])
@@ -2424,7 +2424,7 @@ async function detectSwarm(): Promise<SwarmDetection> {
     const cliStart = Date.now();
     const result = await new Promise<{ exitCode: number; stdout: string; stderr: string }>(
       (resolve) => {
-        // Use swarm tool to query beads
+        // Use swarm tool to query cells
         const proc = spawn(SWARM_CLI, ["tool", "hive_query"], {
           cwd: projectDirectory,
           stdio: ["ignore", "pipe", "pipe"],
@@ -2824,7 +2824,7 @@ const SwarmPlugin: Plugin = async (
   
   return {
     tool: {
-      // Beads
+      // cells
       hive_create,
       hive_create_epic,
       hive_query,
@@ -2834,7 +2834,7 @@ const SwarmPlugin: Plugin = async (
       hive_ready,
       hive_cells,
       hive_sync,
-      beads_link_thread,
+      cells_link_thread,
       // Session Handoff (Chainlink)
       hive_session_start,
       hive_session_end,

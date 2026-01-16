@@ -48,12 +48,12 @@ import {
 } from "swarm-mail";
 import { fileURLToPath } from "url";
 import {
-	checkBeadsMigrationNeeded,
+	checkCellsMigrationNeeded,
 	ensureHiveDirectory,
 	getHiveAdapter,
 	importJsonlToLibSQL,
-	mergeHistoricBeads,
-	migrateBeadsToHive,
+	mergeHistoricCells,
+	migrateCellsToHive,
 } from "../dist/hive.js";
 import { formatCoordinatorPrompt } from "../dist/swarm-prompts.js";
 import {
@@ -2456,32 +2456,32 @@ async function setup(forceReinstall = false, nonInteractive = false) {
 		}
 	}
 
-	// Check for .beads → .hive migration
-	p.log.step("Checking for legacy .beads directory...");
-	const migrationCheck = checkBeadsMigrationNeeded(cwd);
+	// Check for .cells → .hive migration
+	p.log.step("Checking for legacy .cells directory...");
+	const migrationCheck = checkCellsMigrationNeeded(cwd);
 	if (migrationCheck.needed) {
-		p.log.warn("Found legacy .beads directory");
-		p.log.message(dim("  Path: " + migrationCheck.beadsPath));
+		p.log.warn("Found legacy .cells directory");
+		p.log.message(dim("  Path: " + migrationCheck.cellsPath));
 		p.log.message(dim("  Will rename to .hive/ and merge history"));
 
 		const shouldMigrate = await safeConfirm(
-			"Migrate .beads to .hive? (recommended)",
+			"Migrate .cells to .hive? (recommended)",
 			true,
 		);
 
 		if (shouldMigrate) {
 			const migrateSpinner = p.spinner();
-			migrateSpinner.start("Migrating .beads to .hive...");
+			migrateSpinner.start("Migrating .cells to .hive...");
 
 			try {
-				const result = await migrateBeadsToHive(cwd);
+				const result = await migrateCellsToHive(cwd);
 				if (result.migrated) {
-					migrateSpinner.stop("Renamed .beads/ → .hive/");
+					migrateSpinner.stop("Renamed .cells/ → .hive/");
 					p.log.success("Directory migration complete");
 
 					// Merge historic cells into issues.jsonl (legacy migration)
 					migrateSpinner.start("Merging historic cells...");
-					const mergeResult = await mergeHistoricBeads(cwd);
+					const mergeResult = await mergeHistoricCells(cwd);
 					if (mergeResult.merged > 0) {
 						migrateSpinner.stop("Historic cells merged");
 						p.log.success(
@@ -2510,11 +2510,11 @@ async function setup(forceReinstall = false, nonInteractive = false) {
 			}
 		} else {
 			p.log.warn(
-				"Skipping migration - .beads will continue to work but is deprecated",
+				"Skipping migration - .cells will continue to work but is deprecated",
 			);
 		}
 	} else {
-		p.log.message(dim("  No legacy .beads directory found"));
+		p.log.message(dim("  No legacy .cells directory found"));
 	}
 
 	// Check for legacy semantic-memory MCP server in OpenCode config
@@ -2619,8 +2619,8 @@ async function setup(forceReinstall = false, nonInteractive = false) {
 				`Cleaned ${repairResult.totalCleaned} orphaned/invalid records`,
 			);
 
-			if (repairResult.nullBeads > 0) {
-				p.log.message(dim(`  - ${repairResult.nullBeads} cells with NULL IDs`));
+			if (repairResult.nullCells > 0) {
+				p.log.message(dim(`  - ${repairResult.nullCells} cells with NULL IDs`));
 			}
 
 			if (repairResult.orphanedRecipients > 0) {
@@ -3571,9 +3571,9 @@ async function init() {
 		process.exit(1);
 	}
 
-	// Check for existing .hive or .beads directories
+	// Check for existing .hive or .cells directories
 	const hiveDir = existsSync(".hive");
-	const beadsDir = existsSync(".beads");
+	const cellsDir = existsSync(".cells");
 
 	if (hiveDir) {
 		p.log.warn("Hive already initialized in this project (.hive/ exists)");
@@ -3584,24 +3584,24 @@ async function init() {
 			p.outro("Aborted");
 			process.exit(0);
 		}
-	} else if (beadsDir) {
-		// Offer migration from .beads to .hive
-		p.log.warn("Found legacy .beads/ directory");
+	} else if (cellsDir) {
+		// Offer migration from .cells to .hive
+		p.log.warn("Found legacy .cells/ directory");
 
-		const migrate = await safeConfirm("Migrate .beads/ to .hive/?", true);
+		const migrate = await safeConfirm("Migrate .cells/ to .hive/?", true);
 
 		if (migrate) {
 			const s = p.spinner();
-			s.start("Migrating .beads/ to .hive/...");
+			s.start("Migrating .cells/ to .hive/...");
 
-			const result = await migrateBeadsToHive(projectPath);
+			const result = await migrateCellsToHive(projectPath);
 
 			if (result.migrated) {
 				s.stop("Migration complete");
-				p.log.success("Renamed .beads/ to .hive/");
+				p.log.success("Renamed .cells/ to .hive/");
 
-				// Merge historic cells if beads.base.jsonl exists (legacy migration)
-				const mergeResult = await mergeHistoricBeads(projectPath);
+				// Merge historic cells if cells.base.jsonl exists (legacy migration)
+				const mergeResult = await mergeHistoricCells(projectPath);
 				if (mergeResult.merged > 0) {
 					p.log.success(`Merged ${mergeResult.merged} historic cells`);
 				}
@@ -6021,7 +6021,7 @@ async function logs() {
  * Returns counts of cleaned records
  */
 async function runDbRepair(options: { dryRun: boolean }): Promise<{
-	nullBeads: number;
+	nullCells: number;
 	orphanedRecipients: number;
 	messagesWithoutRecipients: number;
 	expiredReservations: number;
@@ -6033,10 +6033,10 @@ async function runDbRepair(options: { dryRun: boolean }): Promise<{
 	const db = await swarmMail.getDatabase();
 
 	// Count records before cleanup
-	const nullBeadsResult = await db.query<{ count: number }>(
-		"SELECT COUNT(*) as count FROM beads WHERE id IS NULL",
+	const nullCellsResult = await db.query<{ count: number }>(
+		"SELECT COUNT(*) as count FROM cells WHERE id IS NULL",
 	);
-	const nullBeads = Number(nullBeadsResult[0]?.count ?? 0);
+	const nullCells = Number(nullCellsResult[0]?.count ?? 0);
 
 	const orphanedRecipientsResult = await db.query<{ count: number }>(
 		"SELECT COUNT(*) as count FROM message_recipients WHERE NOT EXISTS (SELECT 1 FROM agents WHERE agents.name = message_recipients.agent_name)",
@@ -6056,7 +6056,7 @@ async function runDbRepair(options: { dryRun: boolean }): Promise<{
 	const expiredReservations = Number(expiredReservationsResult[0]?.count ?? 0);
 
 	const totalCleaned =
-		nullBeads +
+		nullCells +
 		orphanedRecipients +
 		messagesWithoutRecipients +
 		expiredReservations;
@@ -6064,7 +6064,7 @@ async function runDbRepair(options: { dryRun: boolean }): Promise<{
 	// If dry run or nothing to clean, return early
 	if (dryRun || totalCleaned === 0) {
 		return {
-			nullBeads,
+			nullCells,
 			orphanedRecipients,
 			messagesWithoutRecipients,
 			expiredReservations,
@@ -6073,8 +6073,8 @@ async function runDbRepair(options: { dryRun: boolean }): Promise<{
 	}
 
 	// Execute cleanup queries
-	if (nullBeads > 0) {
-		await db.query("DELETE FROM beads WHERE id IS NULL");
+	if (nullCells > 0) {
+		await db.query("DELETE FROM cells WHERE id IS NULL");
 	}
 
 	if (orphanedRecipients > 0) {
@@ -6096,7 +6096,7 @@ async function runDbRepair(options: { dryRun: boolean }): Promise<{
 	}
 
 	return {
-		nullBeads,
+		nullCells,
 		orphanedRecipients,
 		messagesWithoutRecipients,
 		expiredReservations,
@@ -6132,8 +6132,8 @@ async function dbRepair() {
 
 		// Show counts
 		p.log.step(dryRun ? "Would delete:" : "Deleting:");
-		if (result.nullBeads > 0) {
-			p.log.message(`  - ${result.nullBeads} cells with NULL IDs`);
+		if (result.nullCells > 0) {
+			p.log.message(`  - ${result.nullCells} cells with NULL IDs`);
 		}
 		if (result.orphanedRecipients > 0) {
 			p.log.message(
@@ -6235,7 +6235,7 @@ async function db() {
 		try {
 			// Static import at top of file
 			const schema = execSync(
-				`sqlite3 "${dbFile}" "SELECT sql FROM sqlite_master WHERE type='table' AND name='beads'"`,
+				`sqlite3 "${dbFile}" "SELECT sql FROM sqlite_master WHERE type='table' AND name='cells'"`,
 				{ encoding: "utf-8" },
 			).trim();
 
@@ -6253,7 +6253,7 @@ async function db() {
 				}
 			} else {
 				console.log(
-					`  ${dim("○")} No beads table yet (will be created on first use)`,
+					`  ${dim("○")} No cells table yet (will be created on first use)`,
 				);
 			}
 
@@ -6272,11 +6272,11 @@ async function db() {
 
 			// Count records
 			try {
-				const beadCount = execSync(
-					`sqlite3 "${dbFile}" "SELECT COUNT(*) FROM beads"`,
+				const cellCount = execSync(
+					`sqlite3 "${dbFile}" "SELECT COUNT(*) FROM cells"`,
 					{ encoding: "utf-8" },
 				).trim();
-				console.log(`  ${dim("○")} Cells: ${beadCount}`);
+				console.log(`  ${dim("○")} Cells: ${cellCount}`);
 			} catch {
 				// Table doesn't exist yet
 			}

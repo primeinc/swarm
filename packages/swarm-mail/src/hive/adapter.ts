@@ -51,9 +51,9 @@ import type {
 	CellUpdatedEvent,
 } from "./events.js";
 
-// Import projections functions - NOTE: some still use legacy 'Bead' naming in exports
+// Import projections functions - NOTE: some still use legacy 'cell' naming in exports
 import {
-	clearDirtyBead as clearDirtyCell,
+	clearDirtycell as clearDirtyCell,
 	getBlockedCells,
 	getBlockers,
 	getCell,
@@ -65,7 +65,7 @@ import {
 	getLabels,
 	getNextReadyCell,
 	isBlocked,
-	markBeadDirty as markCellDirty,
+	markcellDirty as markCellDirty,
 	queryCells,
 } from "./projections.js";
 // Import implementation functions from store.ts and projections.ts
@@ -723,29 +723,29 @@ export function createHiveAdapter(
 				closedResult,
 			] = await Promise.all([
 				db.query<{ count: string }>(
-					"SELECT COUNT(*) as count FROM beads WHERE project_key = $1",
+					"SELECT COUNT(*) as count FROM cells WHERE project_key = $1",
 					[projectKey],
 				),
 				db.query<{ count: string }>(
-					"SELECT COUNT(*) as count FROM beads WHERE project_key = $1 AND status = 'open'",
+					"SELECT COUNT(*) as count FROM cells WHERE project_key = $1 AND status = 'open'",
 					[projectKey],
 				),
 				db.query<{ count: string }>(
-					"SELECT COUNT(*) as count FROM beads WHERE project_key = $1 AND status = 'in_progress'",
+					"SELECT COUNT(*) as count FROM cells WHERE project_key = $1 AND status = 'in_progress'",
 					[projectKey],
 				),
 				db.query<{ count: string }>(
-					"SELECT COUNT(*) as count FROM beads WHERE project_key = $1 AND status = 'blocked'",
+					"SELECT COUNT(*) as count FROM cells WHERE project_key = $1 AND status = 'blocked'",
 					[projectKey],
 				),
 				db.query<{ count: string }>(
-					"SELECT COUNT(*) as count FROM beads WHERE project_key = $1 AND status = 'closed'",
+					"SELECT COUNT(*) as count FROM cells WHERE project_key = $1 AND status = 'closed'",
 					[projectKey],
 				),
 			]);
 
 			const byTypeResult = await db.query<{ type: string; count: string }>(
-				"SELECT type, COUNT(*) as count FROM beads WHERE project_key = $1 GROUP BY type",
+				"SELECT type, COUNT(*) as count FROM cells WHERE project_key = $1 GROUP BY type",
 				[projectKey],
 			);
 
@@ -765,7 +765,7 @@ export function createHiveAdapter(
 		},
 
 		async rebuildBlockedCache(projectKeyParam, _projectPath?) {
-			// Rebuild cache for all beads in project (import at runtime)
+			// Rebuild cache for all cells in project (import at runtime)
 			const { rebuildAllBlockedCaches } = await import("./dependencies.js");
 			await rebuildAllBlockedCaches(db, projectKeyParam);
 		},

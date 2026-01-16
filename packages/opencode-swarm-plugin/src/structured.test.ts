@@ -553,7 +553,7 @@ describe("structured_validate", () => {
   });
 
   describe("cell_tree schema", () => {
-    it("validates correct bead tree", async () => {
+    it("validates correct cell tree", async () => {
       const validTree = {
         epic: { title: "Epic", description: "Desc" },
         subtasks: [
@@ -858,7 +858,7 @@ describe("structured_parse_decomposition", () => {
 describe("structured_parse_cell_tree", () => {
   const mockCtx = {} as ToolContext;
 
-  it("parses valid bead tree", async () => {
+  it("parses valid cell tree", async () => {
     const validTree = {
       epic: {
         title: "Add authentication",
@@ -954,7 +954,7 @@ describe("structured_parse_cell_tree", () => {
     expect(parsed.summary.files).toEqual(["shared.ts", "a.ts", "b.ts"]);
   });
 
-  it("returns error for invalid bead tree", async () => {
+  it("returns error for invalid cell tree", async () => {
     const result = await structured_parse_cell_tree.execute(
       { response: '{"epic": {}}' }, // Missing required fields
       mockCtx,

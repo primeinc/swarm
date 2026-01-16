@@ -45,7 +45,7 @@ describe("swarm_complete integration", () => {
 	});
 
 	test("swarm_complete accesses database without dbOverride error", async () => {
-		const beadId = "test-cell-123";
+		const cellId = "test-cell-123";
 		
 		// Call swarm_complete - the key test is that it doesn't throw "dbOverride required"
 		// when trying to access the database for deferred resolution
@@ -53,7 +53,7 @@ describe("swarm_complete integration", () => {
 		const result = await swarm_complete.execute({
 			project_key: testProjectPath,
 			agent_name: "TestWorker",
-			cell_id: beadId,
+			cell_id: cellId,
 			summary: "Test task completed",
 			files_touched: ["test.ts"],
 			start_time: Date.now() - 1000, // 1 second ago
@@ -71,7 +71,7 @@ describe("swarm_complete integration", () => {
 		const result = await swarm_complete.execute({
 			project_key: testProjectPath,
 			agent_name: "TestWorker",
-			cell_id: "no-deferred-bead",
+			cell_id: "no-deferred-cell",
 			summary: "Task without deferred",
 			files_touched: ["test.ts"],
 			start_time: Date.now() - 1000,

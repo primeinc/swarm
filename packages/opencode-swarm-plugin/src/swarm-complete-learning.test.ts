@@ -84,7 +84,7 @@ describe("swarm_complete learning integration", () => {
     }, { sessionID: "test-session" } as any);
     
     const taskData = JSON.parse(createResult);
-    const beadId = taskData.id;
+    const cellId = taskData.id;
     const startTime = Date.now() - 30000; // Started 30 seconds ago
 
     // Call swarm_complete
@@ -92,7 +92,7 @@ describe("swarm_complete learning integration", () => {
       {
         project_key: testProjectPath,
         agent_name: "TestAgent",
-        cell_id: beadId,
+        cell_id: cellId,
         summary: "Completed test task",
         files_touched: ["src/test.ts"],
         skip_verification: true,
@@ -119,9 +119,9 @@ describe("swarm_complete learning integration", () => {
     const allFeedback = await storage.getAllFeedback();
     expect(allFeedback.length).toBeGreaterThan(0);
     
-    const feedbackForBead = await storage.getFeedbackByBead(beadId);
-    expect(feedbackForBead.length).toBeGreaterThan(0);
-    expect(feedbackForBead[0].cell_id).toBe(beadId);
-    expect(feedbackForBead[0].criterion).toBe("task_completion");
+    const feedbackForcell = await storage.getFeedbackBycell(cellId);
+    expect(feedbackForcell.length).toBeGreaterThan(0);
+    expect(feedbackForcell[0].cell_id).toBe(cellId);
+    expect(feedbackForcell[0].criterion).toBe("task_completion");
   });
 });

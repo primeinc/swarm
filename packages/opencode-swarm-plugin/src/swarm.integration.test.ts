@@ -1390,7 +1390,7 @@ describe("Graceful Degradation", () => {
 // Coordinator-Centric Swarm Tools (V2)
 // ============================================================================
 
-describe("Swarm Prompt V2 (with Swarm Mail/Beads)", () => {
+describe("Swarm Prompt V2 (with Swarm Mail/cells)", () => {
 	describe("formatSubtaskPromptV2", () => {
 		it("generates correct prompt with all fields", async () => {
 			const result = await formatSubtaskPromptV2({
@@ -2237,7 +2237,7 @@ describe("Contract Validation", () => {
 		it("finds cells created with full path project_key", async () => {
 			// BUG: swarm_complete was mangling project_key with .replace(/\//g, "-")
 			// before querying, but cells are stored with the original path.
-			// This caused "Bead not found" errors for cells created via hive_create_epic.
+			// This caused "cell not found" errors for cells created via hive_create_epic.
 
 			const testProjectPath =
 				"/tmp/swarm-complete-projectkey-test-" + Date.now();
@@ -2269,7 +2269,7 @@ describe("Contract Validation", () => {
 			const parsed = JSON.parse(result);
 
 			// This should succeed - the cell exists with this project_key
-			// BUG: Before fix, this fails with "Bead not found" because swarm_complete
+			// BUG: Before fix, this fails with "cell not found" because swarm_complete
 			// was looking for project_key "-tmp-swarm-complete-projectkey-test-xxx"
 			expect(parsed.success).toBe(true);
 			expect(parsed.error).toBeUndefined();

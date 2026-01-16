@@ -1,11 +1,11 @@
 /**
- * 3-Way Merge Driver for Beads JSONL
+ * 3-Way Merge Driver for cells JSONL
  *
- * Ported from steveyegge/beads internal/merge/merge.go (MIT License)
- * Original by @neongreen: https://github.com/neongreen/mono/tree/main/beads-merge
+ * Ported from steveyegge/cells internal/merge/merge.go (MIT License)
+ * Original by @neongreen: https://github.com/neongreen/mono/tree/main/cells-merge
  *
  * Features:
- * - 3-way merge of JSONL bead files
+ * - 3-way merge of JSONL cell files
  * - Tombstone semantics (soft-delete wins over live, expired allows resurrection)
  * - Field-level merge with updated_at tiebreaker
  * - Deterministic conflict resolution (no manual intervention needed)
@@ -22,7 +22,7 @@
  * - notes: concatenate on conflict
  * - dependencies: union (deduplicated)
  *
- * @module beads/merge
+ * @module cells/merge
  */
 
 import type { CellExport } from "./jsonl.js";
@@ -62,7 +62,7 @@ export interface IssueKey {
  * Merge result
  */
 export interface MergeResult {
-	/** Successfully merged beads */
+	/** Successfully merged cells */
 	merged: CellExport[];
 	/** Conflict markers (for manual resolution if needed) */
 	conflicts: string[];
@@ -103,7 +103,7 @@ function makeKey(cell: CellExport): string {
 // ============================================================================
 
 /**
- * Check if a bead is a tombstone (soft-deleted)
+ * Check if a cell is a tombstone (soft-deleted)
  */
 export function isTombstone(cell: CellExport): boolean {
 	return cell.status === STATUS_TOMBSTONE;
@@ -112,7 +112,7 @@ export function isTombstone(cell: CellExport): boolean {
 /**
  * Check if a tombstone has expired (resurrection allowed)
  *
- * @param bead - The bead to check
+ * @param cell - The cell to check
  * @param ttlMs - TTL in milliseconds (default: 30 days)
  * @returns true if tombstone is expired, false otherwise
  */
@@ -486,13 +486,13 @@ function mergeIssue(
 // ============================================================================
 
 /**
- * Perform 3-way merge of JSONL bead arrays
+ * Perform 3-way merge of JSONL cell arrays
  *
  * @param base - Common ancestor (e.g., git merge-base)
  * @param left - Local changes (e.g., HEAD)
  * @param right - Remote changes (e.g., MERGE_HEAD)
  * @param options - Merge options
- * @returns Merged beads and any conflicts
+ * @returns Merged cells and any conflicts
  */
 export function merge3Way(
 	base: CellExport[],
@@ -505,18 +505,18 @@ export function merge3Way(
 
 	// Build maps for quick lookup
 	const baseMap = new Map<string, CellExport>();
-	for (const bead of base) {
-		baseMap.set(makeKey(bead), bead);
+	for (const cell of base) {
+		baseMap.set(makeKey(cell), cell);
 	}
 
 	const leftMap = new Map<string, CellExport>();
-	for (const bead of left) {
-		leftMap.set(makeKey(bead), bead);
+	for (const cell of left) {
+		leftMap.set(makeKey(cell), cell);
 	}
 
 	const rightMap = new Map<string, CellExport>();
-	for (const bead of right) {
-		rightMap.set(makeKey(bead), bead);
+	for (const cell of right) {
+		rightMap.set(makeKey(cell), cell);
 	}
 
 	// Collect all unique keys
@@ -529,121 +529,121 @@ export function merge3Way(
 	const conflicts: string[] = [];
 
 	for (const key of allKeys) {
-		const baseBead = baseMap.get(key);
-		const leftBead = leftMap.get(key);
-		const rightBead = rightMap.get(key);
+		const basecell = baseMap.get(key);
+		const leftcell = leftMap.get(key);
+		const rightcell = rightMap.get(key);
 
 		// Determine tombstone status (safe because we check existence)
-		const leftTombstone = leftBead !== undefined && isTombstone(leftBead);
-		const rightTombstone = rightBead !== undefined && isTombstone(rightBead);
+		const leftTombstone = leftcell !== undefined && isTombstone(leftcell);
+		const rightTombstone = rightcell !== undefined && isTombstone(rightcell);
 
 		// Handle different scenarios based on presence in each version
-		if (baseBead && leftBead && rightBead) {
+		if (basecell && leftcell && rightcell) {
 			// All three present
 
 			// CASE: Both are tombstones - merge tombstones
 			if (leftTombstone && rightTombstone) {
-				result.push(mergeTombstones(leftBead, rightBead));
+				result.push(mergeTombstones(leftcell, rightcell));
 				continue;
 			}
 
 			// CASE: Left is tombstone, right is live
 			if (leftTombstone && !rightTombstone) {
-				if (isExpiredTombstone(leftBead, ttl)) {
+				if (isExpiredTombstone(leftcell, ttl)) {
 					// Tombstone expired - resurrection allowed
-					result.push(rightBead);
+					result.push(rightcell);
 				} else {
 					// Tombstone wins
-					result.push(leftBead);
+					result.push(leftcell);
 				}
 				continue;
 			}
 
 			// CASE: Right is tombstone, left is live
 			if (rightTombstone && !leftTombstone) {
-				if (isExpiredTombstone(rightBead, ttl)) {
+				if (isExpiredTombstone(rightcell, ttl)) {
 					// Tombstone expired - resurrection allowed
-					result.push(leftBead);
+					result.push(leftcell);
 				} else {
 					// Tombstone wins
-					result.push(rightBead);
+					result.push(rightcell);
 				}
 				continue;
 			}
 
 			// CASE: Both are live - standard merge
-			const { merged, conflict } = mergeIssue(baseBead, leftBead, rightBead);
+			const { merged, conflict } = mergeIssue(basecell, leftcell, rightcell);
 			if (conflict) {
 				conflicts.push(conflict);
 			} else {
 				result.push(merged);
 			}
-		} else if (!baseBead && leftBead && rightBead) {
+		} else if (!basecell && leftcell && rightcell) {
 			// Added in both
 
 			// CASE: Both are tombstones
 			if (leftTombstone && rightTombstone) {
-				result.push(mergeTombstones(leftBead, rightBead));
+				result.push(mergeTombstones(leftcell, rightcell));
 				continue;
 			}
 
 			// CASE: Left is tombstone, right is live
 			if (leftTombstone && !rightTombstone) {
-				if (isExpiredTombstone(leftBead, ttl)) {
-					result.push(rightBead);
+				if (isExpiredTombstone(leftcell, ttl)) {
+					result.push(rightcell);
 				} else {
-					result.push(leftBead);
+					result.push(leftcell);
 				}
 				continue;
 			}
 
 			// CASE: Right is tombstone, left is live
 			if (rightTombstone && !leftTombstone) {
-				if (isExpiredTombstone(rightBead, ttl)) {
-					result.push(leftBead);
+				if (isExpiredTombstone(rightcell, ttl)) {
+					result.push(leftcell);
 				} else {
-					result.push(rightBead);
+					result.push(rightcell);
 				}
 				continue;
 			}
 
 			// CASE: Both are live - merge with empty base
 			const emptyBase: CellExport = {
-				id: leftBead.id,
+				id: leftcell.id,
 				title: "",
 				status: "open",
 				priority: 0,
-				issue_type: leftBead.issue_type,
-				created_at: leftBead.created_at,
-				updated_at: leftBead.created_at,
+				issue_type: leftcell.issue_type,
+				created_at: leftcell.created_at,
+				updated_at: leftcell.created_at,
 				dependencies: [],
 				labels: [],
 				comments: [],
 			};
-			const { merged } = mergeIssue(emptyBase, leftBead, rightBead);
+			const { merged } = mergeIssue(emptyBase, leftcell, rightcell);
 			result.push(merged);
-		} else if (baseBead && leftBead && !rightBead) {
+		} else if (basecell && leftcell && !rightcell) {
 			// Deleted in right, maybe modified in left
 
 			// Tombstones must be preserved
 			if (leftTombstone) {
-				result.push(leftBead);
+				result.push(leftcell);
 			}
 			// Otherwise deletion wins over modification (issue not included)
-		} else if (baseBead && !leftBead && rightBead) {
+		} else if (basecell && !leftcell && rightcell) {
 			// Deleted in left, maybe modified in right
 
 			// Tombstones must be preserved
 			if (rightTombstone) {
-				result.push(rightBead);
+				result.push(rightcell);
 			}
 			// Otherwise deletion wins over modification (issue not included)
-		} else if (!baseBead && leftBead && !rightBead) {
+		} else if (!basecell && leftcell && !rightcell) {
 			// Added only in left
-			result.push(leftBead);
-		} else if (!baseBead && !leftBead && rightBead) {
+			result.push(leftcell);
+		} else if (!basecell && !leftcell && rightcell) {
 			// Added only in right
-			result.push(rightBead);
+			result.push(rightcell);
 		}
 	}
 
@@ -684,7 +684,7 @@ export function mergeJsonl(
 	const { merged, conflicts } = merge3Way(base, left, right, options);
 
 	// Serialize back to JSONL
-	const jsonl = merged.map((bead) => JSON.stringify(bead)).join("\n");
+	const jsonl = merged.map((cell) => JSON.stringify(cell)).join("\n");
 
 	return { jsonl, conflicts };
 }

@@ -34,8 +34,8 @@ This test scenario verifies that the swarm coordination system can survive conte
    bun add opencode-swarm-plugin
    ```
 
-3. **Test bead structure**
-   - Epic bead with at least one subtask
+3. **Test cell structure**
+   - Epic cell with at least one subtask
    - Example:
      ```bash
      hive_create_epic(
@@ -150,12 +150,12 @@ This test scenario verifies that the swarm coordination system can survive conte
 5. **Verify checkpoint was created in swarm-mail**
    ```typescript
    // Query the event store directly (if you have access)
-   // Or check via beads metadata
+   // Or check via cells metadata
    hive_query(status: "in_progress")
    ```
    
    **Expected result:**
-   - Bead shows 50% progress
+   - cell shows 50% progress
    - Checkpoint event exists in event store
    
    **Verify:**
@@ -297,7 +297,7 @@ This test scenario verifies that the swarm coordination system can survive conte
     {
       "success": true,
       "data": {
-        "bead_closed": true,
+        "cell_closed": true,
         "reservations_released": true,
         "ubs_scan_passed": true
       }
@@ -305,7 +305,7 @@ This test scenario verifies that the swarm coordination system can survive conte
     ```
     
     **Verify:**
-    - ✅ Bead marked complete
+    - ✅ cell marked complete
     - ✅ Reservations released
     - ✅ All files touched recorded (both sessions combined)
 
@@ -347,7 +347,7 @@ This test scenario verifies that the swarm coordination system can survive conte
 ```typescript
 swarm_recover(
   project_key: "/path/to/project",
-  cell_id: "bd-999.1"  // Non-existent bead
+  cell_id: "bd-999.1"  // Non-existent cell
 )
 ```
 
@@ -355,13 +355,13 @@ swarm_recover(
 ```json
 {
   "success": false,
-  "error": "No checkpoint found for bead bd-999.1"
+  "error": "No checkpoint found for cell bd-999.1"
 }
 ```
 
 ### Test 2: Recovery Before Any Progress
 ```typescript
-// Create bead but never report progress
+// Create cell but never report progress
 swarm_recover(
   project_key: "/path/to/project",
   cell_id: "bd-123.2"

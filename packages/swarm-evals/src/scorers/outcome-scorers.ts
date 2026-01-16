@@ -310,8 +310,8 @@ export const noRework = createScorer({
         const actualFiles = new Set(outcome.actual_files);
 
         // Check if this subtask touched files planned for another subtask
-        for (const [otherBeadId, otherPlanned] of plannedBySubtask.entries()) {
-          if (otherBeadId === outcome.cell_id) {
+        for (const [othercellId, otherPlanned] of plannedBySubtask.entries()) {
+          if (othercellId === outcome.cell_id) {
             continue; // Skip self
           }
 
@@ -322,7 +322,7 @@ export const noRework = createScorer({
 
           if (overlap.length > 0) {
             reworkCases.push(
-              `${outcome.title || outcome.cell_id} touched ${overlap.length} file(s) from ${otherBeadId}`,
+              `${outcome.title || outcome.cell_id} touched ${overlap.length} file(s) from ${othercellId}`,
             );
           }
         }

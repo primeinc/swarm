@@ -272,7 +272,7 @@ describe("swarm_review", () => {
   });
 
   it("returns JSON with review_prompt field", async () => {
-    // This test exercises the tool structure without needing real git/beads
+    // This test exercises the tool structure without needing real git/cells
     // The tool will fail to get real data but should still return valid JSON
     // Use /tmp which exists on all systems
     const result = await swarm_review.execute(

@@ -1,5 +1,5 @@
 /**
- * Beads Event Store - Drizzle ORM Implementation
+ * cells Event Store - Drizzle ORM Implementation
  *
  * Drizzle-based implementation of cell event store operations.
  * Replaces raw SQL queries with type-safe Drizzle query builder.
@@ -12,10 +12,10 @@
  *
  * ## Event Flow
  * 1. appendCellEvent() -> INSERT INTO events
- * 2. updateProjections() -> UPDATE materialized views (beads, dependencies, labels, etc.)
+ * 2. updateProjections() -> UPDATE materialized views (cells, dependencies, labels, etc.)
  * 3. Query operations read from projections (fast)
  *
- * @module beads/store
+ * @module cells/store
  */
 
 import { and, eq, gt, gte, inArray, lte, sql } from "drizzle-orm";
@@ -42,11 +42,11 @@ function parseTimestamp(timestamp: string | number): number {
 	const ts =
 		typeof timestamp === "string" ? parseInt(timestamp, 10) : timestamp;
 	if (Number.isNaN(ts)) {
-		throw new Error(`[BeadsStore] Invalid timestamp: ${timestamp}`);
+		throw new Error(`[cellsStore] Invalid timestamp: ${timestamp}`);
 	}
 	if (ts > Number.MAX_SAFE_INTEGER) {
 		console.warn(
-			`[BeadsStore] Timestamp ${timestamp} exceeds MAX_SAFE_INTEGER (year 2286+)`,
+			`[cellsStore] Timestamp ${timestamp} exceeds MAX_SAFE_INTEGER (year 2286+)`,
 		);
 	}
 	return ts;
@@ -105,7 +105,7 @@ export async function appendCellEventDrizzle(
 
 	const row = result[0];
 	if (!row) {
-		throw new Error("[BeadsStore] Failed to insert event - no row returned");
+		throw new Error("[cellsStore] Failed to insert event - no row returned");
 	}
 
 	let { id, sequence } = row;
@@ -310,53 +310,53 @@ export async function replayCellEvents(
 		// Optionally clear cell-specific materialized views using Drizzle
 		if (options.clearViews) {
 			const {
-				beads,
-				beadComments,
-				beadLabels,
-				beadDependencies,
-				blockedBeadsCache,
-				dirtyBeads,
+				cells,
+				cellComments,
+				cellLabels,
+				cellDependencies,
+				blockedcellsCache,
+				dirtycells,
 			} = await import("../db/schema/hive.js");
 
 			if (options.projectKey) {
 				// Clear for specific project using Drizzle
 				// Get cell IDs for this project first
 				const cellIds = await swarmDb
-					.select({ id: beads.id })
-					.from(beads)
-					.where(eq(beads.project_key, options.projectKey));
+					.select({ id: cells.id })
+					.from(cells)
+					.where(eq(cells.project_key, options.projectKey));
 
 				const cellIdList = cellIds.map((r) => r.id);
 
 				if (cellIdList.length > 0) {
 					// Delete related data in proper order (foreign keys)
 					await swarmDb
-						.delete(beadComments)
-						.where(inArray(beadComments.cell_id, cellIdList));
+						.delete(cellComments)
+						.where(inArray(cellComments.cell_id, cellIdList));
 					await swarmDb
-						.delete(beadLabels)
-						.where(inArray(beadLabels.cell_id, cellIdList));
+						.delete(cellLabels)
+						.where(inArray(cellLabels.cell_id, cellIdList));
 					await swarmDb
-						.delete(beadDependencies)
-						.where(inArray(beadDependencies.cell_id, cellIdList));
+						.delete(cellDependencies)
+						.where(inArray(cellDependencies.cell_id, cellIdList));
 					await swarmDb
-						.delete(blockedBeadsCache)
-						.where(inArray(blockedBeadsCache.cell_id, cellIdList));
+						.delete(blockedcellsCache)
+						.where(inArray(blockedcellsCache.cell_id, cellIdList));
 					await swarmDb
-						.delete(dirtyBeads)
-						.where(inArray(dirtyBeads.cell_id, cellIdList));
+						.delete(dirtycells)
+						.where(inArray(dirtycells.cell_id, cellIdList));
 					await swarmDb
-						.delete(beads)
-						.where(eq(beads.project_key, options.projectKey));
+						.delete(cells)
+						.where(eq(cells.project_key, options.projectKey));
 				}
 			} else {
 				// Clear all cell views using Drizzle
-				await swarmDb.delete(beadComments);
-				await swarmDb.delete(beadLabels);
-				await swarmDb.delete(beadDependencies);
-				await swarmDb.delete(blockedBeadsCache);
-				await swarmDb.delete(dirtyBeads);
-				await swarmDb.delete(beads);
+				await swarmDb.delete(cellComments);
+				await swarmDb.delete(cellLabels);
+				await swarmDb.delete(cellDependencies);
+				await swarmDb.delete(blockedcellsCache);
+				await swarmDb.delete(dirtycells);
+				await swarmDb.delete(cells);
 			}
 		}
 

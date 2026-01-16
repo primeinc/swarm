@@ -586,18 +586,18 @@ Time: ~15ms per call
 ```typescript
 // WILL FAIL with SQLITE_BUSY
 await Promise.all([
-  swarm_record_outcome(bead1, ...),
-  swarm_record_outcome(bead2, ...),
-  swarm_record_outcome(bead3, ...)
+  swarm_record_outcome(cell1, ...),
+  swarm_record_outcome(cell2, ...),
+  swarm_record_outcome(cell3, ...)
 ]);
 ```
 
 ✅ **GOOD** (sequential writes):
 ```typescript
 // Will succeed
-await swarm_record_outcome(bead1, ...);
-await swarm_record_outcome(bead2, ...);
-await swarm_record_outcome(bead3, ...);
+await swarm_record_outcome(cell1, ...);
+await swarm_record_outcome(cell2, ...);
+await swarm_record_outcome(cell3, ...);
 ```
 
 #### 🪟 Path Storage Format
@@ -902,13 +902,13 @@ const prompt = swarm_subtask_prompt(
 #### 4. Serialize Record Operations
 ```typescript
 // ✅ GOOD: Sequential outcome recording
-for (const bead of completed_beads) {
-  await swarm_record_outcome(bead, ...);
+for (const cell of completed_cells) {
+  await swarm_record_outcome(cell, ...);
 }
 
 // ❌ BAD: Parallel outcome recording
 await Promise.all(
-  completed_beads.map(bead => swarm_record_outcome(bead, ...))
+  completed_cells.map(cell => swarm_record_outcome(cell, ...))
 );  // SQLITE_BUSY errors!
 ```
 

@@ -3507,7 +3507,7 @@
 
   - No longer shells out to `bd init` or `bd create`
   - Uses `ensureHiveDirectory()` and `getHiveAdapter()` directly
-  - Supports `.beads` → `.hive` migration with user prompts
+  - Supports `.cells` → `.hive` migration with user prompts
   - Creates cells via HiveAdapter, not CLI
 
   ### Auto-sync Removed from `index.ts`
@@ -3556,7 +3556,7 @@
 
   **swarm-mail:**
 
-  - `generateBeadId()` now reads `package.json` name field from project directory
+  - `generatecellId()` now reads `package.json` name field from project directory
   - Added `slugifyProjectName()` for safe ID generation (lowercase, special chars → dashes)
   - Falls back to `cell-` prefix if no package.json or no name field
 
@@ -3578,7 +3578,7 @@
 
   - **Identifiable at a glance** - Know which project a cell belongs to without looking it up
   - **Multi-project workspaces** - Filter/search cells by project prefix
-  - **Terminology cleanup** - Removes legacy "bead" (`bd-`) from user-facing IDs
+  - **Terminology cleanup** - Removes legacy "cell" (`bd-`) from user-facing IDs
 
   ### Backward Compatible
 
@@ -3623,9 +3623,9 @@
 
 ### Minor Changes
 
-- [`de2fa62`](https://github.com/joelhooks/swarm-tools/commit/de2fa628524b88511e06164104ff7b5fb93d39e5) Thanks [@joelhooks](https://github.com/joelhooks)! - Add full beads→hive migration pipeline with JSONL import to PGLite
+- [`de2fa62`](https://github.com/joelhooks/swarm-tools/commit/de2fa628524b88511e06164104ff7b5fb93d39e5) Thanks [@joelhooks](https://github.com/joelhooks)! - Add full cells→hive migration pipeline with JSONL import to PGLite
 
-  - Add `mergeHistoricBeads()` to merge beads.base.jsonl into issues.jsonl
+  - Add `mergeHistoriccells()` to merge cells.base.jsonl into issues.jsonl
   - Add `importJsonlToPGLite()` to import JSONL records into PGLite database
   - Wire both functions into `swarm setup` migration flow
   - Fix closed_at constraint issue when importing closed cells
@@ -3647,11 +3647,11 @@
 
 ### Patch Changes
 
-- [`ec23d25`](https://github.com/joelhooks/swarm-tools/commit/ec23d25aeca667c0294a6255fecf11dd7d7fd6b3) Thanks [@joelhooks](https://github.com/joelhooks)! - Add .beads → .hive directory migration support
+- [`ec23d25`](https://github.com/joelhooks/swarm-tools/commit/ec23d25aeca667c0294a6255fecf11dd7d7fd6b3) Thanks [@joelhooks](https://github.com/joelhooks)! - Add .cells → .hive directory migration support
 
-  - Fix migration version collision: beadsMigration now v7, cellsViewMigration now v8 (was conflicting with streams v6)
-  - Add `checkBeadsMigrationNeeded()` to detect legacy .beads directories
-  - Add `migrateBeadsToHive()` to rename .beads to .hive
+  - Fix migration version collision: cellsMigration now v7, cellsViewMigration now v8 (was conflicting with streams v6)
+  - Add `checkcellsMigrationNeeded()` to detect legacy .cells directories
+  - Add `migratecellsToHive()` to rename .cells to .hive
   - Add `ensureHiveDirectory()` to create .hive if missing (called by hive_sync)
   - Update hive_sync to ensure .hive directory exists before writing
   - Add migration prompt to `swarm setup` CLI flow
@@ -3678,17 +3678,17 @@
 
 ### Minor Changes
 
-- [`26fd2ef`](https://github.com/joelhooks/swarm-tools/commit/26fd2ef27562edc39f7db7a9cdbed399a465200d) Thanks [@joelhooks](https://github.com/joelhooks)! - Rename beads → hive across the codebase
+- [`26fd2ef`](https://github.com/joelhooks/swarm-tools/commit/26fd2ef27562edc39f7db7a9cdbed399a465200d) Thanks [@joelhooks](https://github.com/joelhooks)! - Rename cells → hive across the codebase
 
-  - `createBeadsAdapter` → `createHiveAdapter` (old name still exported as alias)
-  - `BeadsAdapter` type → `HiveAdapter` type
+  - `createcellsAdapter` → `createHiveAdapter` (old name still exported as alias)
+  - `cellsAdapter` type → `HiveAdapter` type
   - All internal references updated to use hive terminology
   - Backward compatible: old exports still work but are deprecated
 
 - [`ab23071`](https://github.com/joelhooks/swarm-tools/commit/ab23071cc7509c4fc37e1cac0f38a3812022cdf5) Thanks [@joelhooks](https://github.com/joelhooks)! - Add swarm-aware compaction hook to keep swarms cooking after context compression
 
   - New `experimental.session.compacting` hook detects active swarms and injects recovery context
-  - `hasSwarmSign()` checks for swarm evidence: in-progress beads, subtasks, unclosed epics
+  - `hasSwarmSign()` checks for swarm evidence: in-progress cells, subtasks, unclosed epics
   - Compaction prompt instructs coordinator to immediately resume orchestration
   - Fix @types/node conflicts by pinning to 22.19.3 in root overrides
 
@@ -3701,12 +3701,12 @@
 
 ### Patch Changes
 
-- [`b2d4a84`](https://github.com/joelhooks/swarm-tools/commit/b2d4a84748cdef4b9dbca7666dd3d313b6cd2b24) Thanks [@joelhooks](https://github.com/joelhooks)! - Add automatic JSONL migration for beads on first use
+- [`b2d4a84`](https://github.com/joelhooks/swarm-tools/commit/b2d4a84748cdef4b9dbca7666dd3d313b6cd2b24) Thanks [@joelhooks](https://github.com/joelhooks)! - Add automatic JSONL migration for cells on first use
 
-  - Auto-migrate from `.beads/issues.jsonl` when database is empty
+  - Auto-migrate from `.cells/issues.jsonl` when database is empty
   - Fix import to handle missing dependencies/labels/comments arrays
-  - Fix closed bead import to satisfy check constraint (status + closed_at)
-  - Migrates 500+ historical beads seamlessly on first adapter initialization
+  - Fix closed cell import to satisfy check constraint (status + closed_at)
+  - Migrates 500+ historical cells seamlessly on first adapter initialization
 
 - Updated dependencies [[`b2d4a84`](https://github.com/joelhooks/swarm-tools/commit/b2d4a84748cdef4b9dbca7666dd3d313b6cd2b24)]:
   - swarm-mail@0.2.1
@@ -3763,7 +3763,7 @@
 
 ### Patch Changes
 
-- [`34a2c3a`](https://github.com/joelhooks/swarm-tools/commit/34a2c3a07f036297db449414ef8dbeb7b39721e2) Thanks [@joelhooks](https://github.com/joelhooks)! - Grant swarm workers autonomy to file beads against the epic
+- [`34a2c3a`](https://github.com/joelhooks/swarm-tools/commit/34a2c3a07f036297db449414ef8dbeb7b39721e2) Thanks [@joelhooks](https://github.com/joelhooks)! - Grant swarm workers autonomy to file cells against the epic
 
   Workers can now create bugs, tech debt, and follow-up tasks linked to their parent epic via `parent_id`. Prompt explicitly encourages workers to file issues rather than silently ignoring them.
 
@@ -3778,7 +3778,7 @@
   - `skills_update(name="foo", content="new stuff")` - preferred
   - `skills_update(name="foo", body="new stuff")` - still works for backwards compat
 
-- [`3d619ff`](https://github.com/joelhooks/swarm-tools/commit/3d619ffda78b2e6066491f053e8fad8dac7b5b71) Thanks [@joelhooks](https://github.com/joelhooks)! - Fix swarm_complete failing when bead project doesn't match CWD
+- [`3d619ff`](https://github.com/joelhooks/swarm-tools/commit/3d619ffda78b2e6066491f053e8fad8dac7b5b71) Thanks [@joelhooks](https://github.com/joelhooks)! - Fix swarm_complete failing when cell project doesn't match CWD
 
   - Use `project_key` as working directory for `bd close` command
   - Improved error messages with context-specific recovery steps

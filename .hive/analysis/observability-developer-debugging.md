@@ -361,7 +361,7 @@ class ReservationError extends Error {
     message: string,
     public context: {
       agent: string;
-      beadId: string;
+      cellId: string;
       path: string;
       currentHolder?: { agent: string; expiresAt: number; reason: string };
       recentEvents?: AgentEvent[];
@@ -383,7 +383,7 @@ class ReservationError extends Error {
 // Usage:
 throw new ReservationError("Failed to reserve file", {
   agent: agentName,
-  beadId: beadId,
+  cellId: cellId,
   path: filePath,
   currentHolder: { ... },
   recentEvents: await readEvents({ types: ["file_reserved", "file_released"], limit: 5 }),
@@ -660,7 +660,7 @@ ORDER BY recovery_delay_seconds DESC;
 ## 10. Next Steps
 
 1. **Approve this ADR** - Stakeholder sign-off
-2. **Create implementation epic** - Break into 4 beads (replay, dump, errors, verbose)
+2. **Create implementation epic** - Break into 4 cells (replay, dump, errors, verbose)
 3. **Ship Phase 1** - Replay CLI (2 days)
 4. **Iterate based on usage** - Gather feedback from developers debugging swarms
 

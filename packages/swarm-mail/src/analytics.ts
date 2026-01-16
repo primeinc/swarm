@@ -72,7 +72,7 @@ export const ANALYTICS_QUERIES: AnalyticsQuery[] = [
 			SELECT 
 				json_extract(data, '$.agent') as agent,
 				COUNT(*) as failed_count,
-				GROUP_CONCAT(DISTINCT json_extract(data, '$.cell_id')) as failed_beads
+				GROUP_CONCAT(DISTINCT json_extract(data, '$.cell_id')) as failed_cells
 			FROM events
 			WHERE type = 'subtask_outcome'
 				AND json_extract(data, '$.success') = 0

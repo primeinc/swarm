@@ -185,7 +185,7 @@ describe("captureSubtaskOutcome integration", () => {
     expect(epicData.success).toBe(true);
     
     const epicId = epicData.epic.id;
-    const beadId = epicData.subtasks[0].id;
+    const cellId = epicData.subtasks[0].id;
 
     const startTime = Date.now() - 120000; // Started 2 minutes ago
     const plannedFiles = ["src/auth/service.ts", "src/auth/schema.ts"];
@@ -196,7 +196,7 @@ describe("captureSubtaskOutcome integration", () => {
       {
         project_key: testProjectPath,
         agent_name: "TestAgent",
-        cell_id: beadId,
+        cell_id: cellId,
         summary: "Implemented OAuth service with JWT strategy",
         files_touched: actualFiles,
         skip_verification: true, // Skip verification for test
@@ -218,7 +218,7 @@ describe("captureSubtaskOutcome integration", () => {
     const call = captureOutcomeSpy.mock.calls[0][0];
     expect(call.epicId).toBe(epicId);
     expect(call.projectPath).toBe(testProjectPath);
-    expect(call.beadId).toBe(beadId);
+    expect(call.cellId).toBe(cellId);
     expect(call.title).toBe("Add auth service");
     expect(call.plannedFiles).toEqual(plannedFiles);
     expect(call.actualFiles).toEqual(actualFiles);
@@ -247,14 +247,14 @@ describe("captureSubtaskOutcome integration", () => {
     }, mockContext);
     
     const epicData = JSON.parse(epicResult);
-    const beadId = epicData.subtasks[0].id;
+    const cellId = epicData.subtasks[0].id;
 
     // Call without planned_files
     const result = await swarm_complete.execute(
       {
         project_key: testProjectPath,
         agent_name: "TestAgent",
-        cell_id: beadId,
+        cell_id: cellId,
         summary: "Fixed the bug",
         start_time: Date.now() - 1000,
         skip_verification: true,
@@ -328,7 +328,7 @@ describe("subtask_outcome event emission", () => {
     
     const epicData = JSON.parse(epicResult);
     const epicId = epicData.epic.id;
-    const beadId = epicData.subtasks[0].id;
+    const cellId = epicData.subtasks[0].id;
 
     const startTime = Date.now() - 60000; // Started 1 minute ago
 
@@ -337,7 +337,7 @@ describe("subtask_outcome event emission", () => {
       {
         project_key: testProjectPath,
         agent_name: "TestAgent",
-        cell_id: beadId,
+        cell_id: cellId,
         summary: "Implemented X service",
         files_touched: ["src/x.ts"],
         skip_verification: true,
@@ -370,7 +370,7 @@ describe("subtask_outcome event emission", () => {
     const event = events[0] as any;
     expect(event.type).toBe("subtask_outcome");
     expect(event.epic_id).toBe(epicId);
-    expect(event.cell_id).toBe(beadId);
+    expect(event.cell_id).toBe(cellId);
     expect(event.success).toBe(true);
     expect(event.duration_ms).toBeGreaterThan(0);
   });
@@ -394,7 +394,7 @@ describe("subtask_outcome event emission", () => {
     
     const epicData = JSON.parse(epicResult);
     const epicId = epicData.epic.id;
-    const beadId = epicData.subtasks[0].id;
+    const cellId = epicData.subtasks[0].id;
 
     const startTime = Date.now() - 90000; // Started 1.5 minutes ago
 
@@ -403,7 +403,7 @@ describe("subtask_outcome event emission", () => {
       {
         project_key: testProjectPath,
         agent_name: "TestAgent",
-        cell_id: beadId,
+        cell_id: cellId,
         summary: "Implemented Y service",
         files_touched: ["src/y.ts", "src/y.test.ts"],
         skip_verification: true,
@@ -434,7 +434,7 @@ describe("subtask_outcome event emission", () => {
     expect(parsed.length).toBe(1);
     
     const outcome = parsed[0];
-    expect(outcome.cell_id).toBe(beadId);
+    expect(outcome.cell_id).toBe(cellId);
     expect(outcome.success).toBe(true);
     expect(outcome.duration_ms).toBeGreaterThan(0);
     expect(outcome.planned_files).toEqual(["src/y.ts"]);
@@ -463,11 +463,11 @@ describe("finalizeEvalRecord integration", () => {
 
     const testProjectPath = "/tmp/test-project";
     const testEpicId = "bd-test123";
-    const testBeadId = `${testEpicId}.0`;
+    const testcellId = `${testEpicId}.0`;
 
     // Call swarm_record_outcome with epic_id and project_path
     await swarm_record_outcome.execute({
-      cell_id: testBeadId,
+      cell_id: testcellId,
       duration_ms: 120000,
       error_count: 0,
       retry_count: 0,
@@ -493,11 +493,11 @@ describe("finalizeEvalRecord integration", () => {
     // Spy on finalizeEvalRecord
     const finalizeEvalSpy = spyOn(evalCapture, "finalizeEvalRecord");
 
-    const testBeadId = "bd-test123.0";
+    const testcellId = "bd-test123.0";
 
     // Call without epic_id or project_path
     await swarm_record_outcome.execute({
-      cell_id: testBeadId,
+      cell_id: testcellId,
       duration_ms: 120000,
       error_count: 0,
       retry_count: 0,
@@ -533,11 +533,11 @@ describe("finalizeEvalRecord integration", () => {
 
     const testProjectPath = "/tmp/test-project";
     const testEpicId = "bd-test123";
-    const testBeadId = `${testEpicId}.0`;
+    const testcellId = `${testEpicId}.0`;
 
     // Call with epic_id and project_path
     const result = await swarm_record_outcome.execute({
-      cell_id: testBeadId,
+      cell_id: testcellId,
       duration_ms: 120000,
       error_count: 0,
       retry_count: 0,
@@ -676,14 +676,14 @@ describe("anti-pattern auto-deprecation integration", () => {
     }, mockContext);
     
     const epicData = JSON.parse(epicResult);
-    const beadId = epicData.subtasks[0].id;
+    const cellId = epicData.subtasks[0].id;
 
     // Complete the subtask (success case)
     const result = await swarm_complete.execute(
       {
         project_key: testProjectPath,
         agent_name: "TestAgent",
-        cell_id: beadId,
+        cell_id: cellId,
         summary: "Implemented user CRUD",
         files_touched: ["src/user-service.ts"],
         skip_verification: true,
@@ -723,14 +723,14 @@ describe("anti-pattern auto-deprecation integration", () => {
     }, mockContext);
     
     const epicData = JSON.parse(epicResult);
-    const beadId = epicData.subtasks[0].id;
+    const cellId = epicData.subtasks[0].id;
 
     // Complete the subtask
     const result = await swarm_complete.execute(
       {
         project_key: testProjectPath,
         agent_name: "TestAgent",
-        cell_id: beadId,
+        cell_id: cellId,
         summary: "Fixed auth bug",
         files_touched: ["src/auth.ts"],
         skip_verification: true,
@@ -771,15 +771,15 @@ describe("anti-pattern auto-deprecation integration", () => {
     }, mockContext);
     
     const epicData = JSON.parse(epicResult);
-    const bead1Id = epicData.subtasks[0].id;
-    const bead2Id = epicData.subtasks[1].id;
+    const cell1Id = epicData.subtasks[0].id;
+    const cell2Id = epicData.subtasks[1].id;
 
     // Complete first subtask
     const result1 = await swarm_complete.execute(
       {
         project_key: testProjectPath,
         agent_name: "TestAgent",
-        cell_id: bead1Id,
+        cell_id: cell1Id,
         summary: "Completed auth service",
         files_touched: ["src/service.ts"],
         skip_verification: true,
@@ -802,7 +802,7 @@ describe("anti-pattern auto-deprecation integration", () => {
       {
         project_key: testProjectPath,
         agent_name: "TestAgent",
-        cell_id: bead2Id,
+        cell_id: cell2Id,
         summary: "Completed auth controller",
         files_touched: ["src/controller.ts"],
         skip_verification: true,

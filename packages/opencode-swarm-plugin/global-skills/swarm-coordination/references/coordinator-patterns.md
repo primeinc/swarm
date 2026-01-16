@@ -44,7 +44,7 @@ For each subtask:
 1. Generate worker prompt with `swarm_spawn_subtask`
 2. Include relevant skills in prompt
 3. Spawn worker agent via Task tool
-4. Track bead status
+4. Track cell status
 
 ### 4. Progress Monitoring
 
@@ -54,10 +54,10 @@ For each subtask:
 
 ### 5. Completion & Aggregation
 
-- Verify all subtasks completed via bead status
+- Verify all subtasks completed via cell status
 - Aggregate results from worker summaries
 - Run final verification (typecheck, tests)
-- Close epic bead with summary
+- Close epic cell with summary
 
 ---
 
@@ -88,7 +88,7 @@ For each subtask:
 | Worker blocked >5 min     | Check inbox, offer guidance                           |
 | File conflict detected    | Mediate, reassign files                               |
 | Worker asking questions   | Answer directly, don't spawn new agent                |
-| Scope creep detected      | Redirect to original task, create new bead for extras |
+| Scope creep detected      | Redirect to original task, create new cell for extras |
 | Worker failing repeatedly | Take over subtask or reassign                         |
 
 ### When to Abort

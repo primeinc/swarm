@@ -19,7 +19,7 @@ import { createHiveAdapter } from "./adapter.js";
 import { FlushManager } from "./flush-manager.js";
 import { parseJSONL } from "./jsonl.js";
 import {
-	beadsMigrationLibSQL,
+	cellsMigrationLibSQL,
 	cellsViewMigrationLibSQL,
 } from "./migrations.js";
 
@@ -89,8 +89,8 @@ describe("Full Hive Session Flow", () => {
       )
     `);
 
-		// Run hive migrations directly (beads tables, cells view)
-		await db.exec(beadsMigrationLibSQL.up);
+		// Run hive migrations directly (cells tables, cells view)
+		await db.exec(cellsMigrationLibSQL.up);
 		await db.exec(cellsViewMigrationLibSQL.up);
 
 		adapter = createHiveAdapter(db, projectKey);
@@ -229,7 +229,7 @@ describe("Full Hive Session Flow", () => {
 
 		expect(st1Cell).toBeDefined();
 		expect(st1Cell?.status).toBe("closed");
-		// Note: close reason is stored in DB but not exported to JSONL (steveyegge/beads compat)
+		// Note: close reason is stored in DB but not exported to JSONL (steveyegge/cells compat)
 
 		expect(st2Cell).toBeDefined();
 		expect(st2Cell?.status).toBe("closed");

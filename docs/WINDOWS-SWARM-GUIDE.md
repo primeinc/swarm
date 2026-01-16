@@ -324,7 +324,7 @@ await hive_session_end({
 // ✅ Approval - Omit issues parameter
 await swarm_review_feedback({
   project_key: projectPath,
-  task_id: beadId,
+  task_id: cellId,
   worker_id: workerName,
   status: "approved",
   summary: "All checks passed"
@@ -334,7 +334,7 @@ await swarm_review_feedback({
 // ✅ Rejection - Stringify JSON
 await swarm_review_feedback({
   project_key: projectPath,
-  task_id: beadId,
+  task_id: cellId,
   worker_id: workerName,
   status: "needs_changes",
   summary: "Type errors found",

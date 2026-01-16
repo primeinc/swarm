@@ -1,12 +1,12 @@
 /**
  * FlushManager - Debounced JSONL export to file
  *
- * Automatically exports dirty beads to a JSONL file on a debounced timer.
+ * Automatically exports dirty cells to a JSONL file on a debounced timer.
  * Prevents excessive writes while ensuring changes are persisted.
  *
- * Based on steveyegge/beads flush_manager.go
+ * Based on steveyegge/cells flush_manager.go
  *
- * @module beads/flush-manager
+ * @module cells/flush-manager
  */
 
 import { existsSync } from "node:fs";
@@ -14,11 +14,11 @@ import { readFile, writeFile } from "node:fs/promises";
 import type { HiveAdapter } from "../types/hive-adapter.js";
 import {
 	type CellExport,
-	exportDirtyBeads,
+	exportDirtycells,
 	parseJSONL,
 	serializeToJSONL,
 } from "./jsonl.js";
-import { clearDirtyBead } from "./projections.js";
+import { clearDirtycell } from "./projections.js";
 
 export interface FlushManagerOptions {
 	adapter: HiveAdapter;
@@ -35,18 +35,18 @@ export interface FlushResult {
 }
 
 /**
- * FlushManager handles debounced export of dirty beads to JSONL
+ * FlushManager handles debounced export of dirty cells to JSONL
  *
  * Usage:
  * ```ts
  * const manager = new FlushManager({
  *   adapter,
  *   projectKey: "/path/to/project",
- *   outputPath: ".beads/issues.jsonl",
+ *   outputPath: ".cells/issues.jsonl",
  *   debounceMs: 30000,
  * });
  *
- * // Schedule flushes as beads change
+ * // Schedule flushes as cells change
  * manager.scheduleFlush();
  *
  * // Clean up
@@ -92,7 +92,7 @@ export class FlushManager {
 	/**
 	 * Force immediate flush
 	 *
-	 * Exports all dirty beads to the output file, merging with existing content.
+	 * Exports all dirty cells to the output file, merging with existing content.
 	 * Dirty cells overwrite existing cells with the same ID.
 	 */
 	async flush(): Promise<FlushResult> {
@@ -116,8 +116,8 @@ export class FlushManager {
 				this.timer = null;
 			}
 
-			// Export dirty beads
-			const { jsonl: dirtyJsonl, cellIds } = await exportDirtyBeads(
+			// Export dirty cells
+			const { jsonl: dirtyJsonl, cellIds } = await exportDirtycells(
 				this.adapter,
 				this.projectKey,
 			);
@@ -162,7 +162,7 @@ export class FlushManager {
 			// Clear dirty flags
 			const db = await this.adapter.getDatabase();
 			for (const cellId of cellIds) {
-				await clearDirtyBead(db, this.projectKey, cellId);
+				await clearDirtycell(db, this.projectKey, cellId);
 			}
 
 			const result: FlushResult = {

@@ -38,7 +38,7 @@ opencode-swarm-plugin/
 │       ├── package.json       # Independent versioning, published as "swarm-mail"
 │       └── tsconfig.json
 ├── src/                       # opencode-swarm-plugin source (stays at root)
-│   ├── beads.ts
+│   ├── cells.ts
 │   ├── swarm-*.ts
 │   └── plugin.ts
 ├── apps/

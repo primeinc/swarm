@@ -47,7 +47,7 @@ export interface DecisionTraceInput {
 	decision_type: string;
 	/** Epic this decision relates to (optional) */
 	epic_id?: string;
-	/** Specific cell/bead this decision relates to (optional) */
+	/** Specific cell/cell this decision relates to (optional) */
 	cell_id?: string;
 	/** Agent making the decision */
 	agent_name: string;

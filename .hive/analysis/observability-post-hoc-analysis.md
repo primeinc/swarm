@@ -232,7 +232,7 @@ swarm-db export --format=jsonl --output=events.jsonl
 | Swarm Event | OTEL Concept | Span Attributes |
 |-------------|--------------|-----------------|
 | epic | trace | trace_id=epic_id |
-| bead | span | span_id=cell_id, parent_id=epic_id |
+| cell | span | span_id=cell_id, parent_id=epic_id |
 | task_started | span start | start_time |
 | task_completed | span end | end_time, status, error_count |
 | message_sent | event | event.name=message_sent |
@@ -609,7 +609,7 @@ WHERE data->>'agent_name' = 'BlueLake'
 ORDER BY timestamp;
 ```
 
-**Critical insight:** We don't need to add trace IDs. Epic ID IS the trace ID. Bead ID IS the span ID. The schema already models distributed tracing.
+**Critical insight:** We don't need to add trace IDs. Epic ID IS the trace ID. cell ID IS the span ID. The schema already models distributed tracing.
 
 ### 4.3 What's the query interface?
 
@@ -765,7 +765,7 @@ const failures = await analytics.failedDecompositions({ since: '7d' });
 
 **Scope:**
 - Timeline view (Gantt chart of agent activity)
-- Dependency graph (epic → beads → dependencies)
+- Dependency graph (epic → cells → dependencies)
 - Heatmap (lock contention, message volume)
 - Pattern browser (visualize extracted patterns)
 
@@ -947,7 +947,7 @@ SELECT
   json_extract(data, '$.strategy') as strategy,
   COUNT(*) as failure_count,
   AVG(CAST(json_extract(data, '$.duration_ms') AS REAL)) as avg_duration_ms,
-  GROUP_CONCAT(json_extract(data, '$.cell_id'), ', ') as failed_beads
+  GROUP_CONCAT(json_extract(data, '$.cell_id'), ', ') as failed_cells
 FROM events
 WHERE type = 'subtask_outcome' 
   AND json_extract(data, '$.success') = 'false'
@@ -1032,7 +1032,7 @@ ORDER BY timestamp DESC;
 | Swarm Concept | OTEL Concept | Mapping |
 |---------------|--------------|---------|
 | Epic | Trace | `trace_id` = `epic_id` |
-| Bead | Span | `span_id` = `cell_id`, `parent_span_id` = `epic_id` |
+| cell | Span | `span_id` = `cell_id`, `parent_span_id` = `epic_id` |
 | task_started | Span start | `start_time` |
 | task_completed | Span end | `end_time`, `status.code` |
 | task_blocked | Span event | `event.name` = "blocked", `event.attributes.reason` |

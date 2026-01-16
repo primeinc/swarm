@@ -1,7 +1,7 @@
 /**
- * Beads Event Store Tests
+ * cells Event Store Tests
  *
- * Tests event store operations (append, read, replay) for bead events.
+ * Tests event store operations (append, read, replay) for cell events.
  *
  * ## Test Strategy (TDD)
  * 1. appendCellEvent - append events to shared event store
@@ -24,7 +24,7 @@ import {
 import { appendCellEvent, readCellEvents, replayCellEvents } from "./store.js";
 
 /**
- * Helper to create bead events without importing from plugin package
+ * Helper to create cell events without importing from plugin package
  */
 function createCellEvent<T extends CellEvent["type"]>(
 	type: T,
@@ -40,7 +40,7 @@ function createCellEvent<T extends CellEvent["type"]>(
 	} as Extract<CellEvent, { type: T }>;
 }
 
-describe("Bead Event Store", () => {
+describe("cell Event Store", () => {
 	let db: DatabaseAdapter;
 	const projectKey = "/test/project";
 
@@ -54,11 +54,11 @@ describe("Bead Event Store", () => {
 	// appendCellEvent
 	// ============================================================================
 
-	test("appendCellEvent - appends bead_created event", async () => {
+	test("appendCellEvent - appends cell_created event", async () => {
 		const event = createCellEvent("cell_created", {
 			project_key: projectKey,
 			cell_id: "bd-test-001",
-			title: "Test Bead",
+			title: "Test cell",
 			issue_type: "task",
 			priority: 2,
 		});
@@ -76,7 +76,7 @@ describe("Bead Event Store", () => {
 		expect(events[0]?.cell_id).toBe("bd-test-001");
 	});
 
-	test("appendCellEvent - updates projection for bead_created", async () => {
+	test("appendCellEvent - updates projection for cell_created", async () => {
 		const event = createCellEvent("cell_created", {
 			project_key: projectKey,
 			cell_id: "bd-test-002",
@@ -88,15 +88,15 @@ describe("Bead Event Store", () => {
 		await appendCellEvent(event, undefined, db);
 
 		// Check projection was updated
-		const bead = await getCell(db, projectKey, "bd-test-002");
-		expect(bead).not.toBeNull();
-		expect(bead?.title).toBe("Test Projection");
-		expect(bead?.type).toBe("feature");
-		expect(bead?.status).toBe("open");
+		const cell = await getCell(db, projectKey, "bd-test-002");
+		expect(cell).not.toBeNull();
+		expect(cell?.title).toBe("Test Projection");
+		expect(cell?.type).toBe("feature");
+		expect(cell?.status).toBe("open");
 	});
 
-	test("appendCellEvent - handles bead_updated event", async () => {
-		// Create bead first
+	test("appendCellEvent - handles cell_updated event", async () => {
+		// Create cell first
 		const createEvent = createCellEvent("cell_created", {
 			project_key: projectKey,
 			cell_id: "bd-test-003",
@@ -117,11 +117,11 @@ describe("Bead Event Store", () => {
 		await appendCellEvent(updateEvent, undefined, db);
 
 		// Check projection
-		const bead = await getCell(db, projectKey, "bd-test-003");
-		expect(bead?.title).toBe("Updated Title");
+		const cell = await getCell(db, projectKey, "bd-test-003");
+		expect(cell?.title).toBe("Updated Title");
 	});
 
-	test("appendCellEvent - handles bead_status_changed event", async () => {
+	test("appendCellEvent - handles cell_status_changed event", async () => {
 		const createEvent = createCellEvent("cell_created", {
 			project_key: projectKey,
 			cell_id: "bd-test-004",
@@ -139,11 +139,11 @@ describe("Bead Event Store", () => {
 		});
 		await appendCellEvent(statusEvent, undefined, db);
 
-		const bead = await getCell(db, projectKey, "bd-test-004");
-		expect(bead?.status).toBe("in_progress");
+		const cell = await getCell(db, projectKey, "bd-test-004");
+		expect(cell?.status).toBe("in_progress");
 	});
 
-	test("appendCellEvent - handles bead_closed event", async () => {
+	test("appendCellEvent - handles cell_closed event", async () => {
 		const createEvent = createCellEvent("cell_created", {
 			project_key: projectKey,
 			cell_id: "bd-test-005",
@@ -160,14 +160,14 @@ describe("Bead Event Store", () => {
 		});
 		await appendCellEvent(closeEvent, undefined, db);
 
-		const bead = await getCell(db, projectKey, "bd-test-005");
-		expect(bead?.status).toBe("closed");
-		expect(bead?.closed_reason).toBe("Completed successfully");
-		expect(bead?.closed_at).toBeGreaterThan(0);
+		const cell = await getCell(db, projectKey, "bd-test-005");
+		expect(cell?.status).toBe("closed");
+		expect(cell?.closed_reason).toBe("Completed successfully");
+		expect(cell?.closed_at).toBeGreaterThan(0);
 	});
 
 	test("appendCellEvent - handles dependency events", async () => {
-		// Create two beads
+		// Create two cells
 		await appendCellEvent(
 			createCellEvent("cell_created", {
 				project_key: projectKey,
@@ -332,7 +332,7 @@ describe("Bead Event Store", () => {
 			createCellEvent("cell_created", {
 				project_key: projectKey,
 				cell_id: "bd-test-014",
-				title: "Specific Bead",
+				title: "Specific cell",
 				issue_type: "task",
 				priority: 2,
 			}),
@@ -345,7 +345,7 @@ describe("Bead Event Store", () => {
 				project_key: projectKey,
 				cell_id: "bd-test-014",
 				changes: {
-					title: { old: "Specific Bead", new: "Updated Bead" },
+					title: { old: "Specific cell", new: "Updated cell" },
 				},
 			}),
 			undefined,
@@ -462,12 +462,12 @@ describe("Bead Event Store", () => {
 		);
 
 		// Clear projections
-		await db.exec("DELETE FROM bead_labels");
-		await db.exec("DELETE FROM beads");
+		await db.exec("DELETE FROM cell_labels");
+		await db.exec("DELETE FROM cells");
 
 		// Verify cleared
-		const beadBefore = await getCell(db, projectKey, cellId);
-		expect(beadBefore).toBeNull();
+		const cellBefore = await getCell(db, projectKey, cellId);
+		expect(cellBefore).toBeNull();
 
 		// Replay
 		const result = await replayCellEvents(
@@ -478,9 +478,9 @@ describe("Bead Event Store", () => {
 		expect(result.eventsReplayed).toBeGreaterThanOrEqual(2);
 
 		// Verify restored
-		const beadAfter = await getCell(db, projectKey, cellId);
-		expect(beadAfter).not.toBeNull();
-		expect(beadAfter?.title).toBe("Replay Test");
+		const cellAfter = await getCell(db, projectKey, cellId);
+		expect(cellAfter).not.toBeNull();
+		expect(cellAfter?.title).toBe("Replay Test");
 
 		const labels = await getLabels(db, projectKey, cellId);
 		expect(labels).toContain("replay");
@@ -508,12 +508,12 @@ describe("Bead Event Store", () => {
 		expect(result.duration).toBeGreaterThanOrEqual(0);
 
 		// Projections should be rebuilt
-		const beads = await queryCells(db, projectKey);
-		expect(beads.length).toBeGreaterThan(0);
+		const cells = await queryCells(db, projectKey);
+		expect(cells.length).toBeGreaterThan(0);
 	});
 
 	test("replayCellEvents - filters by fromSequence", async () => {
-		const bead1Event = await appendCellEvent(
+		const cell1Event = await appendCellEvent(
 			createCellEvent("cell_created", {
 				project_key: projectKey,
 				cell_id: "bd-test-018",
@@ -538,10 +538,10 @@ describe("Bead Event Store", () => {
 		);
 
 		// Clear and replay only after first event
-		await db.exec("DELETE FROM beads");
+		await db.exec("DELETE FROM cells");
 
 		const result = await replayCellEvents(
-			{ projectKey, fromSequence: bead1Event.sequence, clearViews: false },
+			{ projectKey, fromSequence: cell1Event.sequence, clearViews: false },
 			undefined,
 			db,
 		);
@@ -549,8 +549,8 @@ describe("Bead Event Store", () => {
 		// Should only replay second event
 		expect(result.eventsReplayed).toBe(1);
 
-		const beads = await queryCells(db, projectKey);
-		expect(beads).toHaveLength(1);
-		expect(beads[0]?.id).toBe("bd-test-019");
+		const cells = await queryCells(db, projectKey);
+		expect(cells).toHaveLength(1);
+		expect(cells[0]?.id).toBe("bd-test-019");
 	});
 });

@@ -274,7 +274,7 @@ export const migrations: Migration[] = [
         updated_at BIGINT NOT NULL
       );
       CREATE INDEX IF NOT EXISTS idx_swarm_contexts_epic ON swarm_contexts(epic_id);
-      CREATE INDEX IF NOT EXISTS idx_swarm_contexts_bead ON swarm_contexts(cell_id);
+      CREATE INDEX IF NOT EXISTS idx_swarm_contexts_cell ON swarm_contexts(cell_id);
     `,
 		down: `DROP TABLE IF EXISTS swarm_contexts;`,
 	},
@@ -298,7 +298,7 @@ export const migrations: Migration[] = [
       -- Create new indexes
       CREATE INDEX IF NOT EXISTS idx_swarm_contexts_project ON swarm_contexts(project_key);
       DROP INDEX IF EXISTS idx_swarm_contexts_epic;
-      DROP INDEX IF EXISTS idx_swarm_contexts_bead;
+      DROP INDEX IF EXISTS idx_swarm_contexts_cell;
       CREATE UNIQUE INDEX IF NOT EXISTS idx_swarm_contexts_unique ON swarm_contexts(project_key, epic_id, cell_id);
     `,
 		down: `
@@ -311,7 +311,7 @@ export const migrations: Migration[] = [
       ALTER TABLE swarm_contexts ALTER COLUMN id SET NOT NULL;
       ALTER TABLE swarm_contexts ADD CONSTRAINT swarm_contexts_pkey PRIMARY KEY (id);
       CREATE INDEX IF NOT EXISTS idx_swarm_contexts_epic ON swarm_contexts(epic_id);
-      CREATE INDEX IF NOT EXISTS idx_swarm_contexts_bead ON swarm_contexts(cell_id);
+      CREATE INDEX IF NOT EXISTS idx_swarm_contexts_cell ON swarm_contexts(cell_id);
     `,
 	},
 	{

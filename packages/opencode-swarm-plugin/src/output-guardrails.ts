@@ -39,7 +39,7 @@ export interface GuardrailConfig {
   /**
    * Tools that should never be truncated
    *
-   * Internal coordination tools (beads_*, swarmmail_*, structured_*)
+   * Internal coordination tools (cells_*, swarmmail_*, structured_*)
    * should always return complete output.
    */
   skipTools: string[];
@@ -108,7 +108,7 @@ export const DEFAULT_GUARDRAIL_CONFIG: GuardrailConfig = {
   },
 
   skipTools: [
-    // Beads tools - always return full output
+    // cells tools - always return full output
     "hive_create",
     "hive_create_epic",
     "hive_query",

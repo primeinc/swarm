@@ -371,14 +371,14 @@ await swarm_complete(
 // ❌ BAD - Parallel writes fail
 await Promise.all([
   hive_session_end(notes),
-  swarm_complete(bead),
-  hive_close(bead),
+  swarm_complete(cell),
+  hive_close(cell),
 ]);
 
 // ✅ GOOD - Sequential writes
 await hive_session_end(notes);
-await swarm_complete(bead);
-await hive_close(bead);
+await swarm_complete(cell);
+await hive_close(cell);
 ```
 
 #### 🪟 Session Management vs SwarmMail

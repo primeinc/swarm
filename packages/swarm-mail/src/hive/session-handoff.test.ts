@@ -15,7 +15,7 @@ import { type Client, createClient } from "@libsql/client";
 import { convertPlaceholders, type DatabaseAdapter } from "../libsql.js";
 import { createHiveAdapter } from "./adapter.js";
 import {
-	beadsMigrationLibSQL,
+	cellsMigrationLibSQL,
 	cellsViewMigrationLibSQL,
 	sessionsMigrationLibSQL,
 } from "./migrations.js";
@@ -78,7 +78,7 @@ describe("Session Handoff Notes", () => {
     `);
 
 		// Run hive migrations
-		await db.exec(beadsMigrationLibSQL.up);
+		await db.exec(cellsMigrationLibSQL.up);
 		await db.exec(cellsViewMigrationLibSQL.up);
 		await db.exec(sessionsMigrationLibSQL.up);
 

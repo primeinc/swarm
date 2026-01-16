@@ -8,7 +8,7 @@
  * - semantic-memory: Learning persistence with semantic search
  * - cass: Cross-agent session search for historical context
  * - hive: Git-backed issue tracking (primary)
- * - beads (bd): DEPRECATED - Use hive instead (kept for backward compatibility)
+ * - cells (bd): DEPRECATED - Use hive instead (kept for backward compatibility)
  * - swarm-mail: Embedded multi-agent coordination (PGLite-based)
  * - agent-mail: DEPRECATED - Legacy MCP server (use swarm-mail instead)
  */
@@ -26,7 +26,7 @@ export type ToolName =
   | "cass"
   | "hivemind" // Unified memory system (ADR-011) - replaces semantic-memory + cass
   | "hive"
-  | "beads" // DEPRECATED: Use "hive" instead
+  | "cells" // DEPRECATED: Use "hive" instead
   | "swarm-mail"
   | "agent-mail";
 
@@ -255,7 +255,7 @@ const toolCheckers: Record<ToolName, () => Promise<ToolStatus>> = {
 
   // DEPRECATED: Use hive instead
   // bd CLI is deprecated - always return false, use HiveAdapter instead
-  beads: async () => {
+  cells: async () => {
     return {
       available: false,
       checkedAt: new Date().toISOString(),
@@ -312,7 +312,7 @@ const fallbackBehaviors: Record<ToolName, string> = {
   hivemind:
     "Unified memory unavailable - learnings stored in-memory only, no session history search",
   hive: "Swarm cannot track issues - task coordination will be less reliable",
-  beads:
+  cells:
     "DEPRECATED: Use hive instead. Swarm cannot track issues - task coordination will be less reliable",
   "swarm-mail":
     "Multi-agent coordination disabled - file conflicts possible if multiple agents active",
@@ -372,7 +372,7 @@ export async function checkAllTools(): Promise<
     "cass",
     "hivemind",
     "hive",
-    "beads",
+    "cells",
     "swarm-mail",
     "agent-mail",
   ];

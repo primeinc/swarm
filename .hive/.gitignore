@@ -16,12 +16,12 @@ db.sqlite
 bd.db
 
 # Merge artifacts (temporary files from 3-way merge)
-beads.base.jsonl
-beads.base.meta.json
-beads.left.jsonl
-beads.left.meta.json
-beads.right.jsonl
-beads.right.meta.json
+cells.base.jsonl
+cells.base.meta.json
+cells.left.jsonl
+cells.left.meta.json
+cells.right.jsonl
+cells.right.meta.json
 
 # Keep JSONL exports and config (source of truth for git)
 !issues.jsonl

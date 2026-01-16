@@ -1,15 +1,15 @@
 /**
- * Beads Query Functions
+ * cells Query Functions
  *
- * High-level query functions for common bead operations:
- * - Ready work (unblocked beads with sort policies)
+ * High-level query functions for common cell operations:
+ * - Ready work (unblocked cells with sort policies)
  * - Blocked issues with blockers
  * - Epics eligible for closure
  * - Stale issues
  * - Statistics
  * - Partial ID resolution (hash → full cell ID)
  *
- * Based on steveyegge/beads query patterns.
+ * Based on steveyegge/cells query patterns.
  *
  * ## Drizzle Migration Status
  * - ✅ resolvePartialId - Drizzle (simple LIKE query)
@@ -19,7 +19,7 @@
  * - ❌ getBlockedIssues - Raw SQL (cache JOIN + JSON parsing)
  * - ❌ getEpicsEligibleForClosure - Raw SQL (complex JOIN + GROUP BY + HAVING)
  *
- * @module beads/queries
+ * @module cells/queries
  */
 
 import type { DatabaseAdapter } from "../types/database.js";
@@ -79,11 +79,11 @@ export interface Statistics {
 /**
  * Get ready work (unblocked, prioritized)
  *
- * By default returns both 'open' and 'in_progress' beads so epics/tasks
- * ready to close are visible (matching steveyegge/beads behavior).
+ * By default returns both 'open' and 'in_progress' cells so epics/tasks
+ * ready to close are visible (matching steveyegge/cells behavior).
  *
  * ❌ KEPT AS RAW SQL: Complex query requirements
- * - Uses blocked_beads_cache table with EXISTS subquery
+ * - Uses blocked_cells_cache table with EXISTS subquery
  * - Dynamic WHERE clause building based on options
  * - Hybrid sort policy with complex CASE expressions
  * - Label filtering with multiple EXISTS subqueries
@@ -110,7 +110,7 @@ export async function getReadyWork(
 	// Not blocked (uses cache)
 	conditions.push(`
     NOT EXISTS (
-      SELECT 1 FROM blocked_beads_cache bbc WHERE bbc.cell_id = b.id
+      SELECT 1 FROM blocked_cells_cache bbc WHERE bbc.cell_id = b.id
     )
   `);
 
@@ -127,7 +127,7 @@ export async function getReadyWork(
 		for (const label of options.labels) {
 			conditions.push(`
         EXISTS (
-          SELECT 1 FROM bead_labels
+          SELECT 1 FROM cell_labels
           WHERE cell_id = b.id AND label = $${paramIndex++}
         )
       `);
@@ -141,7 +141,7 @@ export async function getReadyWork(
 
 	// Build query
 	let query = `
-    SELECT b.* FROM beads b
+    SELECT b.* FROM cells b
     WHERE ${conditions.join(" AND ")}
     ${orderBySQL}
   `;
@@ -156,10 +156,10 @@ export async function getReadyWork(
 }
 
 /**
- * Get all blocked beads with their blockers
+ * Get all blocked cells with their blockers
  *
  * ❌ KEPT AS RAW SQL: Requires cache table JOIN and JSON parsing
- * - JOINs with blocked_beads_cache materialized view
+ * - JOINs with blocked_cells_cache materialized view
  * - Parses blocker_ids JSON column (SQLite doesn't have native arrays)
  *
  * Drizzle doesn't have great JSON column support for SQLite.
@@ -172,8 +172,8 @@ export async function getBlockedIssues(
 
 	const result = await db.query<Cell & { blocker_ids: string }>(
 		`SELECT b.*, bbc.blocker_ids 
-     FROM beads b
-     JOIN blocked_beads_cache bbc ON b.id = bbc.cell_id
+     FROM cells b
+     JOIN blocked_cells_cache bbc ON b.id = bbc.cell_id
      WHERE b.project_key = $1 AND b.deleted_at IS NULL
      ORDER BY b.priority ASC, b.created_at ASC`,
 		[projectKey],
@@ -193,7 +193,7 @@ export async function getBlockedIssues(
  * Get epics eligible for closure (all children closed)
  *
  * ❌ KEPT AS RAW SQL: Complex GROUP BY + HAVING with conditional counts
- * - Self-JOIN on beads table (parent → children)
+ * - Self-JOIN on cells table (parent → children)
  * - GROUP BY with HAVING clause
  * - Conditional COUNT with CASE
  *
@@ -211,8 +211,8 @@ export async function getEpicsEligibleForClosure(
        e.title,
        COUNT(c.id) as total_children,
        COUNT(CASE WHEN c.status = 'closed' THEN 1 END) as closed_children
-     FROM beads e
-     JOIN beads c ON c.parent_id = e.id
+     FROM cells e
+     JOIN cells c ON c.parent_id = e.id
      WHERE e.project_key = $1 
        AND e.type = 'epic'
        AND e.status != 'closed'
@@ -252,7 +252,7 @@ export async function getStaleIssues(
  *
  * HYBRID APPROACH:
  * - ✅ Status counts and type counts use Drizzle (simple aggregations)
- * - ❌ Blocked/ready counts use raw SQL (requires blocked_beads_cache EXISTS)
+ * - ❌ Blocked/ready counts use raw SQL (requires blocked_cells_cache EXISTS)
  */
 export async function getStatistics(
 	adapter: HiveAdapter,
@@ -266,8 +266,8 @@ export async function getStatistics(
 	// Get blocked count (RAW SQL - needs cache table JOIN)
 	const blockedResult = await db.query<{ count: string }>(
 		`SELECT COUNT(DISTINCT b.id) as count
-     FROM beads b
-     JOIN blocked_beads_cache bbc ON b.id = bbc.cell_id
+     FROM cells b
+     JOIN blocked_cells_cache bbc ON b.id = bbc.cell_id
      WHERE b.project_key = $1 AND b.deleted_at IS NULL`,
 		[projectKey],
 	);
@@ -277,12 +277,12 @@ export async function getStatistics(
 	// Get ready count (RAW SQL - needs cache table EXISTS)
 	const readyResult = await db.query<{ count: string }>(
 		`SELECT COUNT(*) as count
-     FROM beads b
+     FROM cells b
      WHERE b.project_key = $1
        AND b.status = 'open'
        AND b.deleted_at IS NULL
        AND NOT EXISTS (
-         SELECT 1 FROM blocked_beads_cache bbc WHERE bbc.cell_id = b.id
+         SELECT 1 FROM blocked_cells_cache bbc WHERE bbc.cell_id = b.id
        )`,
 		[projectKey],
 	);

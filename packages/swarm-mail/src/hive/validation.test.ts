@@ -1,5 +1,5 @@
 /**
- * Validation Tests - Port of steveyegge/beads internal/validation/bead.go
+ * Validation Tests - Port of steveyegge/cells internal/validation/cell.go
  *
  * Business rules from types.go Validate() method:
  * - Title required, max 500 chars
@@ -15,14 +15,14 @@ import { describe, expect, it } from "bun:test";
 import type { CellStatus } from "../types/hive-adapter.js";
 import {
 	type ValidationResult,
-	validateCreateBead,
+	validateCreatecell,
 	validateStatusTransition,
-	validateUpdateBead,
+	validateUpdatecell,
 } from "./validation.js";
 
-describe("validateCreateBead", () => {
-	it("accepts valid bead creation", () => {
-		const result = validateCreateBead({
+describe("validateCreatecell", () => {
+	it("accepts valid cell creation", () => {
+		const result = validateCreatecell({
 			title: "Fix the thing",
 			type: "bug",
 			priority: 2,
@@ -33,7 +33,7 @@ describe("validateCreateBead", () => {
 	});
 
 	it("rejects empty title", () => {
-		const result = validateCreateBead({
+		const result = validateCreatecell({
 			title: "",
 			type: "task",
 			priority: 2,
@@ -44,7 +44,7 @@ describe("validateCreateBead", () => {
 	});
 
 	it("rejects title over 500 characters", () => {
-		const result = validateCreateBead({
+		const result = validateCreatecell({
 			title: "x".repeat(501),
 			type: "task",
 			priority: 2,
@@ -56,7 +56,7 @@ describe("validateCreateBead", () => {
 
 	it("accepts priority 0-4", () => {
 		for (let priority = 0; priority <= 4; priority++) {
-			const result = validateCreateBead({
+			const result = validateCreatecell({
 				title: "Task",
 				type: "task",
 				priority,
@@ -66,7 +66,7 @@ describe("validateCreateBead", () => {
 	});
 
 	it("rejects priority < 0", () => {
-		const result = validateCreateBead({
+		const result = validateCreatecell({
 			title: "Task",
 			type: "task",
 			priority: -1,
@@ -77,7 +77,7 @@ describe("validateCreateBead", () => {
 	});
 
 	it("rejects priority > 4", () => {
-		const result = validateCreateBead({
+		const result = validateCreatecell({
 			title: "Task",
 			type: "task",
 			priority: 5,
@@ -88,7 +88,7 @@ describe("validateCreateBead", () => {
 	});
 
 	it("defaults priority to 2 if not provided", () => {
-		const result = validateCreateBead({
+		const result = validateCreatecell({
 			title: "Task",
 			type: "task",
 		});
@@ -100,7 +100,7 @@ describe("validateCreateBead", () => {
 		const validTypes = ["bug", "feature", "task", "epic", "chore", "message"];
 
 		for (const type of validTypes) {
-			const result = validateCreateBead({
+			const result = validateCreatecell({
 				title: "Task",
 				type: type as any,
 				priority: 2,
@@ -110,7 +110,7 @@ describe("validateCreateBead", () => {
 	});
 
 	it("rejects invalid type", () => {
-		const result = validateCreateBead({
+		const result = validateCreatecell({
 			title: "Task",
 			type: "invalid" as any,
 			priority: 2,
@@ -121,7 +121,7 @@ describe("validateCreateBead", () => {
 	});
 
 	it("accepts optional description", () => {
-		const result = validateCreateBead({
+		const result = validateCreatecell({
 			title: "Task",
 			type: "task",
 			priority: 2,
@@ -132,7 +132,7 @@ describe("validateCreateBead", () => {
 	});
 
 	it("accepts optional parent_id", () => {
-		const result = validateCreateBead({
+		const result = validateCreatecell({
 			title: "Subtask",
 			type: "task",
 			priority: 2,
@@ -143,7 +143,7 @@ describe("validateCreateBead", () => {
 	});
 
 	it("accepts optional assignee", () => {
-		const result = validateCreateBead({
+		const result = validateCreatecell({
 			title: "Task",
 			type: "task",
 			priority: 2,
@@ -154,9 +154,9 @@ describe("validateCreateBead", () => {
 	});
 });
 
-describe("validateUpdateBead", () => {
+describe("validateUpdatecell", () => {
 	it("accepts valid title update", () => {
-		const result = validateUpdateBead({
+		const result = validateUpdatecell({
 			title: "New title",
 		});
 
@@ -165,7 +165,7 @@ describe("validateUpdateBead", () => {
 	});
 
 	it("rejects empty title", () => {
-		const result = validateUpdateBead({
+		const result = validateUpdatecell({
 			title: "",
 		});
 
@@ -174,7 +174,7 @@ describe("validateUpdateBead", () => {
 	});
 
 	it("rejects title over 500 characters", () => {
-		const result = validateUpdateBead({
+		const result = validateUpdatecell({
 			title: "x".repeat(501),
 		});
 
@@ -184,20 +184,20 @@ describe("validateUpdateBead", () => {
 
 	it("accepts priority update 0-4", () => {
 		for (let priority = 0; priority <= 4; priority++) {
-			const result = validateUpdateBead({ priority });
+			const result = validateUpdatecell({ priority });
 			expect(result.valid).toBe(true);
 		}
 	});
 
 	it("rejects invalid priority", () => {
-		const result = validateUpdateBead({ priority: 5 });
+		const result = validateUpdatecell({ priority: 5 });
 
 		expect(result.valid).toBe(false);
 		expect(result.errors).toContain("priority must be between 0 and 4");
 	});
 
 	it("accepts description update", () => {
-		const result = validateUpdateBead({
+		const result = validateUpdatecell({
 			description: "Updated details",
 		});
 
@@ -205,7 +205,7 @@ describe("validateUpdateBead", () => {
 	});
 
 	it("accepts assignee update", () => {
-		const result = validateUpdateBead({
+		const result = validateUpdatecell({
 			assignee: "newuser@example.com",
 		});
 
@@ -213,7 +213,7 @@ describe("validateUpdateBead", () => {
 	});
 
 	it("accepts multiple field updates", () => {
-		const result = validateUpdateBead({
+		const result = validateUpdatecell({
 			title: "New title",
 			priority: 1,
 			description: "New description",
@@ -224,7 +224,7 @@ describe("validateUpdateBead", () => {
 	});
 
 	it("accepts empty updates (no-op)", () => {
-		const result = validateUpdateBead({});
+		const result = validateUpdatecell({});
 
 		expect(result.valid).toBe(true);
 	});

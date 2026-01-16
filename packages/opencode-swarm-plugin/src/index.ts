@@ -16,8 +16,8 @@
  *
  * @example
  * ```typescript
- * // Programmatic usage (Hive is the new name, beads is deprecated)
- * import { hiveTools, beadsTools, agentMailTools, swarmMailTools } from "opencode-swarm-plugin"
+ * // Programmatic usage (Hive is the new name, cells is deprecated)
+ * import { hiveTools, cellsTools, agentMailTools, swarmMailTools } from "opencode-swarm-plugin"
  * ```
  */
 import type { Hooks, Plugin, PluginInput } from "@opencode-ai/plugin";
@@ -34,9 +34,9 @@ import { createCompactionHook } from "./compaction-hook";
 import { contributorTools } from "./contributor-tools";
 import { checkCoordinatorGuard } from "./coordinator-guard";
 import {
-	beadsTools,
+	cellsTools,
 	hiveTools,
-	setBeadsWorkingDirectory,
+	setCellsWorkingDirectory,
 	setHiveWorkingDirectory,
 } from "./hive";
 import { hivemindTools } from "./hivemind-tools";
@@ -74,7 +74,7 @@ import { worktreeTools } from "./swarm-worktree";
  *
  * Registers all swarm coordination tools:
  * - hive:* - Type-safe Hive issue tracker wrappers (primary)
- * - beads:* - Legacy aliases for Hive tools (deprecated, use hive:* instead)
+ * - cells:* - Legacy aliases for Hive tools (deprecated, use hive:* instead)
  * - agent-mail:* - Multi-agent coordination via Agent Mail MCP (legacy)
  * - swarm-mail:* - Multi-agent coordination with embedded event sourcing (recommended)
  * - structured:* - Structured output parsing and validation
@@ -158,7 +158,7 @@ const SwarmPlugin: Plugin = async (input: PluginInput): Promise<Hooks> => {
 		 *
 		 * Tools are namespaced by module:
 		 * - hive:create, hive:query, hive:update, etc. (primary)
-		 * - beads:* - Legacy aliases (deprecated, use hive:* instead)
+		 * - cells:* - Legacy aliases (deprecated, use hive:* instead)
 		 * - agent-mail:init, agent-mail:send, agent-mail:reserve, etc. (legacy MCP)
 		 * - swarm-mail:init, swarm-mail:send, swarm-mail:reserve, etc. (embedded)
 		 * - repo-crawl:readme, repo-crawl:structure, etc.
@@ -168,6 +168,7 @@ const SwarmPlugin: Plugin = async (input: PluginInput): Promise<Hooks> => {
 		 */
 		tool: {
 			...hiveTools,
+			...cellsTools,
 			...swarmMailTools,
 			...structuredTools,
 			...swarmTools,
@@ -589,16 +590,16 @@ export {
 	setAgentMailProjectDirectory,
 } from "./agent-mail";
 /**
- * Re-export Hive module (primary) and cells module (deprecated beads aliases)
+ * Re-export Hive module (primary) and cells module (deprecated cells aliases)
  *
  * Includes:
  * - hiveTools - All hive tool definitions (primary)
- * - beadsTools - Legacy aliases for backward compatibility (deprecated)
+ * - cellsTools - Legacy aliases for backward compatibility (deprecated)
  * - Individual tool exports (hive_create, hive_query, etc.)
  * - Legacy aliases (hive_create, hive_query, etc.)
  * - HiveError, HiveValidationError (and CellError, CellValidationError aliases)
  *
- * DEPRECATED: Use hive_* tools instead of beads_* tools
+ * DEPRECATED: Use hive_* tools instead of cells_* tools
  */
 export * from "./hive";
 /**
@@ -684,7 +685,7 @@ export {
  * This is used by `swarm tool <name>` command to dynamically execute tools.
  * Each tool has an `execute` function that takes (args, ctx) and returns a string.
  *
- * Note: hiveTools includes both hive_* and beads_* (legacy aliases)
+ * Note: hiveTools includes both hive_* and cells_* (legacy aliases)
  * Note: hivemindTools includes both hivemind_* and deprecated semantic-memory_* + cass_* aliases
  */
 export const allTools: Record<

@@ -1,5 +1,5 @@
 /**
- * Beads Projections Tests
+ * cells Projections Tests
  *
  * Tests projection updates from events and query functions.
  *
@@ -14,9 +14,9 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { createTestLibSQLDb } from "../test-libsql.js";
 import type { DatabaseAdapter } from "../types/database.js";
-import { rebuildBeadBlockedCache } from "./dependencies.js";
+import { rebuildcellBlockedCache } from "./dependencies.js";
 import {
-	clearDirtyBead,
+	clearDirtycell,
 	getBlockedCells,
 	getBlockers,
 	getCell,
@@ -28,12 +28,12 @@ import {
 	getLabels,
 	getNextReadyCell,
 	isBlocked,
-	markBeadDirty,
+	markcellDirty,
 	queryCells,
 	updateProjections,
 } from "./projections.js";
 
-describe("Beads Migrations", () => {
+describe("cells Migrations", () => {
 	let db: DatabaseAdapter;
 
 	beforeEach(async () => {
@@ -42,50 +42,50 @@ describe("Beads Migrations", () => {
 		db = adapter;
 	});
 
-	test("migration creates beads table", async () => {
+	test("migration creates cells table", async () => {
 		const result = await db.query(
-			`SELECT name FROM sqlite_master WHERE type='table' AND name='beads'`,
+			`SELECT name FROM sqlite_master WHERE type='table' AND name='cells'`,
 		);
 		expect(result.rows).toHaveLength(1);
 	});
 
-	test("migration creates bead_dependencies table", async () => {
+	test("migration creates cell_dependencies table", async () => {
 		const result = await db.query(
-			`SELECT name FROM sqlite_master WHERE type='table' AND name='bead_dependencies'`,
+			`SELECT name FROM sqlite_master WHERE type='table' AND name='cell_dependencies'`,
 		);
 		expect(result.rows).toHaveLength(1);
 	});
 
-	test("migration creates bead_labels table", async () => {
+	test("migration creates cell_labels table", async () => {
 		const result = await db.query(
-			`SELECT name FROM sqlite_master WHERE type='table' AND name='bead_labels'`,
+			`SELECT name FROM sqlite_master WHERE type='table' AND name='cell_labels'`,
 		);
 		expect(result.rows).toHaveLength(1);
 	});
 
-	test("migration creates bead_comments table", async () => {
+	test("migration creates cell_comments table", async () => {
 		const result = await db.query(
-			`SELECT name FROM sqlite_master WHERE type='table' AND name='bead_comments'`,
+			`SELECT name FROM sqlite_master WHERE type='table' AND name='cell_comments'`,
 		);
 		expect(result.rows).toHaveLength(1);
 	});
 
-	test("migration creates blocked_beads_cache table", async () => {
+	test("migration creates blocked_cells_cache table", async () => {
 		const result = await db.query(
-			`SELECT name FROM sqlite_master WHERE type='table' AND name='blocked_beads_cache'`,
+			`SELECT name FROM sqlite_master WHERE type='table' AND name='blocked_cells_cache'`,
 		);
 		expect(result.rows).toHaveLength(1);
 	});
 
-	test("migration creates dirty_beads table", async () => {
+	test("migration creates dirty_cells table", async () => {
 		const result = await db.query(
-			`SELECT name FROM sqlite_master WHERE type='table' AND name='dirty_beads'`,
+			`SELECT name FROM sqlite_master WHERE type='table' AND name='dirty_cells'`,
 		);
 		expect(result.rows).toHaveLength(1);
 	});
 });
 
-describe("Beads Projections", () => {
+describe("cells Projections", () => {
 	let db: DatabaseAdapter;
 	const projectKey = "/test/project";
 
@@ -96,12 +96,12 @@ describe("Beads Projections", () => {
 	});
 
 	describe("cell_created event", () => {
-		test("creates bead record", async () => {
+		test("creates cell record", async () => {
 			const event = {
 				type: "cell_created",
 				project_key: projectKey,
 				cell_id: "bd-123",
-				title: "Test Bead",
+				title: "Test cell",
 				description: "Test description",
 				issue_type: "task",
 				priority: 2,
@@ -110,20 +110,20 @@ describe("Beads Projections", () => {
 
 			await updateProjections(db, event);
 
-			const bead = await getCell(db, projectKey, "bd-123");
-			expect(bead).not.toBeNull();
-			expect(bead?.title).toBe("Test Bead");
-			expect(bead?.type).toBe("task");
-			expect(bead?.status).toBe("open");
-			expect(bead?.priority).toBe(2);
+			const cell = await getCell(db, projectKey, "bd-123");
+			expect(cell).not.toBeNull();
+			expect(cell?.title).toBe("Test cell");
+			expect(cell?.type).toBe("task");
+			expect(cell?.status).toBe("open");
+			expect(cell?.priority).toBe(2);
 		});
 
-		test("marks bead as dirty", async () => {
+		test("marks cell as dirty", async () => {
 			const event = {
 				type: "cell_created",
 				project_key: projectKey,
 				cell_id: "bd-123",
-				title: "Test Bead",
+				title: "Test cell",
 				issue_type: "task",
 				priority: 2,
 				timestamp: Date.now(),
@@ -131,14 +131,14 @@ describe("Beads Projections", () => {
 
 			await updateProjections(db, event);
 
-			const dirtyBeads = await getDirtyCells(db, projectKey);
-			expect(dirtyBeads).toContain("bd-123");
+			const dirtycells = await getDirtyCells(db, projectKey);
+			expect(dirtycells).toContain("bd-123");
 		});
 	});
 
 	describe("cell_updated event", () => {
-		test("updates bead fields", async () => {
-			// Create bead
+		test("updates cell fields", async () => {
+			// Create cell
 			await updateProjections(db, {
 				type: "cell_created",
 				project_key: projectKey,
@@ -160,8 +160,8 @@ describe("Beads Projections", () => {
 				timestamp: Date.now(),
 			});
 
-			const bead = await getCell(db, projectKey, "bd-123");
-			expect(bead?.title).toBe("Updated Title");
+			const cell = await getCell(db, projectKey, "bd-123");
+			expect(cell?.title).toBe("Updated Title");
 		});
 	});
 
@@ -171,7 +171,7 @@ describe("Beads Projections", () => {
 				type: "cell_created",
 				project_key: projectKey,
 				cell_id: "bd-123",
-				title: "Test Bead",
+				title: "Test cell",
 				issue_type: "task",
 				priority: 2,
 				timestamp: Date.now(),
@@ -186,18 +186,18 @@ describe("Beads Projections", () => {
 				timestamp: Date.now(),
 			});
 
-			const bead = await getCell(db, projectKey, "bd-123");
-			expect(bead?.status).toBe("in_progress");
+			const cell = await getCell(db, projectKey, "bd-123");
+			expect(cell?.status).toBe("in_progress");
 		});
 	});
 
 	describe("cell_closed event", () => {
-		test("closes bead", async () => {
+		test("closes cell", async () => {
 			await updateProjections(db, {
 				type: "cell_created",
 				project_key: projectKey,
 				cell_id: "bd-123",
-				title: "Test Bead",
+				title: "Test cell",
 				issue_type: "task",
 				priority: 2,
 				timestamp: Date.now(),
@@ -212,21 +212,21 @@ describe("Beads Projections", () => {
 				timestamp: closedAt,
 			});
 
-			const bead = await getCell(db, projectKey, "bd-123");
-			expect(bead?.status).toBe("closed");
-			expect(bead?.closed_at).toBe(closedAt);
-			expect(bead?.closed_reason).toBe("Completed");
+			const cell = await getCell(db, projectKey, "bd-123");
+			expect(cell?.status).toBe("closed");
+			expect(cell?.closed_at).toBe(closedAt);
+			expect(cell?.closed_reason).toBe("Completed");
 		});
 	});
 
 	describe("dependency events", () => {
 		test("adds dependency", async () => {
-			// Create two beads
+			// Create two cells
 			await updateProjections(db, {
 				type: "cell_created",
 				project_key: projectKey,
 				cell_id: "bd-123",
-				title: "Bead 1",
+				title: "cell 1",
 				issue_type: "task",
 				priority: 2,
 				timestamp: Date.now(),
@@ -236,7 +236,7 @@ describe("Beads Projections", () => {
 				type: "cell_created",
 				project_key: projectKey,
 				cell_id: "bd-124",
-				title: "Bead 2",
+				title: "cell 2",
 				issue_type: "task",
 				priority: 2,
 				timestamp: Date.now(),
@@ -258,12 +258,12 @@ describe("Beads Projections", () => {
 		});
 
 		test("rebuilds blocked cache", async () => {
-			// Create two beads
+			// Create two cells
 			await updateProjections(db, {
 				type: "cell_created",
 				project_key: projectKey,
 				cell_id: "bd-123",
-				title: "Bead 1",
+				title: "cell 1",
 				issue_type: "task",
 				priority: 2,
 				timestamp: Date.now(),
@@ -273,7 +273,7 @@ describe("Beads Projections", () => {
 				type: "cell_created",
 				project_key: projectKey,
 				cell_id: "bd-124",
-				title: "Bead 2",
+				title: "cell 2",
 				issue_type: "task",
 				priority: 2,
 				timestamp: Date.now(),
@@ -289,7 +289,7 @@ describe("Beads Projections", () => {
 			});
 
 			// Rebuild cache
-			await rebuildBeadBlockedCache(db, projectKey, "bd-124");
+			await rebuildcellBlockedCache(db, projectKey, "bd-124");
 
 			const blocked = await isBlocked(db, projectKey, "bd-124");
 			expect(blocked).toBe(true);
@@ -305,7 +305,7 @@ describe("Beads Projections", () => {
 				type: "cell_created",
 				project_key: projectKey,
 				cell_id: "bd-123",
-				title: "Test Bead",
+				title: "Test cell",
 				issue_type: "task",
 				priority: 2,
 				timestamp: Date.now(),
@@ -328,7 +328,7 @@ describe("Beads Projections", () => {
 				type: "cell_created",
 				project_key: projectKey,
 				cell_id: "bd-123",
-				title: "Test Bead",
+				title: "Test cell",
 				issue_type: "task",
 				priority: 2,
 				timestamp: Date.now(),
@@ -361,7 +361,7 @@ describe("Beads Projections", () => {
 				type: "cell_created",
 				project_key: projectKey,
 				cell_id: "bd-123",
-				title: "Test Bead",
+				title: "Test cell",
 				issue_type: "task",
 				priority: 2,
 				timestamp: Date.now(),
@@ -389,7 +389,7 @@ describe("Beads Projections", () => {
 				type: "cell_created",
 				project_key: projectKey,
 				cell_id: "bd-123",
-				title: "Open Bead",
+				title: "Open cell",
 				issue_type: "task",
 				priority: 2,
 				timestamp: Date.now(),
@@ -399,7 +399,7 @@ describe("Beads Projections", () => {
 				type: "cell_created",
 				project_key: projectKey,
 				cell_id: "bd-124",
-				title: "In Progress Bead",
+				title: "In Progress cell",
 				issue_type: "task",
 				priority: 2,
 				timestamp: Date.now(),
@@ -414,17 +414,17 @@ describe("Beads Projections", () => {
 				timestamp: Date.now(),
 			});
 
-			const openBeads = await queryCells(db, projectKey, { status: "open" });
-			expect(openBeads).toHaveLength(1);
-			expect(openBeads[0]?.id).toBe("bd-123");
+			const opencells = await queryCells(db, projectKey, { status: "open" });
+			expect(opencells).toHaveLength(1);
+			expect(opencells[0]?.id).toBe("bd-123");
 
-			const inProgressBeads = await getInProgressCells(db, projectKey);
-			expect(inProgressBeads).toHaveLength(1);
-			expect(inProgressBeads[0]?.id).toBe("bd-124");
+			const inProgresscells = await getInProgressCells(db, projectKey);
+			expect(inProgresscells).toHaveLength(1);
+			expect(inProgresscells[0]?.id).toBe("bd-124");
 		});
 
-		test("getNextReadyCell returns unblocked high priority bead", async () => {
-			// Create high priority bead
+		test("getNextReadyCell returns unblocked high priority cell", async () => {
+			// Create high priority cell
 			await updateProjections(db, {
 				type: "cell_created",
 				project_key: projectKey,
@@ -435,7 +435,7 @@ describe("Beads Projections", () => {
 				timestamp: Date.now(),
 			});
 
-			// Create low priority bead
+			// Create low priority cell
 			await updateProjections(db, {
 				type: "cell_created",
 				project_key: projectKey,
@@ -450,7 +450,7 @@ describe("Beads Projections", () => {
 			expect(ready?.id).toBe("bd-123"); // Higher priority
 		});
 
-		test("getBlockedCells returns beads with blockers", async () => {
+		test("getBlockedCells returns cells with blockers", async () => {
 			await updateProjections(db, {
 				type: "cell_created",
 				project_key: projectKey,
@@ -479,7 +479,7 @@ describe("Beads Projections", () => {
 				timestamp: Date.now(),
 			});
 
-			await rebuildBeadBlockedCache(db, projectKey, "bd-124");
+			await rebuildcellBlockedCache(db, projectKey, "bd-124");
 
 			const blocked = await getBlockedCells(db, projectKey);
 			expect(blocked).toHaveLength(1);
@@ -489,18 +489,18 @@ describe("Beads Projections", () => {
 	});
 
 	describe("dirty tracking", () => {
-		test("marks bead as dirty", async () => {
+		test("marks cell as dirty", async () => {
 			await updateProjections(db, {
 				type: "cell_created",
 				project_key: projectKey,
 				cell_id: "bd-123",
-				title: "Test Bead",
+				title: "Test cell",
 				issue_type: "task",
 				priority: 2,
 				timestamp: Date.now(),
 			});
 
-			await markBeadDirty(db, projectKey, "bd-123");
+			await markcellDirty(db, projectKey, "bd-123");
 
 			const dirty = await getDirtyCells(db, projectKey);
 			expect(dirty).toContain("bd-123");
@@ -511,14 +511,14 @@ describe("Beads Projections", () => {
 				type: "cell_created",
 				project_key: projectKey,
 				cell_id: "bd-123",
-				title: "Test Bead",
+				title: "Test cell",
 				issue_type: "task",
 				priority: 2,
 				timestamp: Date.now(),
 			});
 
-			await markBeadDirty(db, projectKey, "bd-123");
-			await clearDirtyBead(db, projectKey, "bd-123");
+			await markcellDirty(db, projectKey, "bd-123");
+			await clearDirtycell(db, projectKey, "bd-123");
 
 			const dirty = await getDirtyCells(db, projectKey);
 			expect(dirty).not.toContain("bd-123");

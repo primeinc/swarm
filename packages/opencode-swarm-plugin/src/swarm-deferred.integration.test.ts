@@ -11,7 +11,7 @@ import type { SwarmMailAdapter } from "../../swarm-mail/src/adapter";
 import type { HiveAdapter } from "../../swarm-mail/src/hive/adapter";
 import { createInMemorySwarmMailLibSQL } from "../../swarm-mail/src/libsql.convenience";
 import { createHiveAdapter } from "../../swarm-mail/src/hive/adapter";
-import { beadsMigrationLibSQL, cellsViewMigrationLibSQL } from "../../swarm-mail/src/hive/migrations";
+import { cellsMigrationLibSQL, cellsViewMigrationLibSQL } from "../../swarm-mail/src/hive/migrations";
 import { DurableDeferred, DurableDeferredLive } from "../../swarm-mail/src/streams/effect/deferred";
 import { swarm_complete } from "./swarm-orchestrate";
 
@@ -27,8 +27,8 @@ describe("swarm_complete DurableDeferred integration", () => {
     db = await swarmMail.getDatabase();
     projectKey = "/tmp/test-deferred-integration";
 
-    // Run hive migrations to create beads tables
-    await db.exec(beadsMigrationLibSQL.up);
+    // Run hive migrations to create cells tables
+    await db.exec(cellsMigrationLibSQL.up);
     await db.exec(cellsViewMigrationLibSQL.up);
 
     // Register test agent using swarm-mail adapter
@@ -48,7 +48,7 @@ describe("swarm_complete DurableDeferred integration", () => {
   });
 
   it("should resolve deferred when swarm_complete is called", async () => {
-    const beadId = "test-cell-123";
+    const cellId = "test-cell-123";
 
     // First create deferred (coordinator side)
     const createProgram = Effect.gen(function* () {
@@ -81,7 +81,7 @@ describe("swarm_complete DurableDeferred integration", () => {
       {
         project_key: projectKey,
         agent_name: "TestWorker",
-        cell_id: beadId,
+        cell_id: cellId,
         summary: "Task completed successfully",
         start_time: Date.now() - 1500,
         skip_verification: true, // Skip verification for test

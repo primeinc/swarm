@@ -141,13 +141,13 @@ describe("error-enrichment", () => {
 			});
 
 			const reEnriched = enrichError(swarmError, {
-				cell_id: "new-bead",
+				cell_id: "new-cell",
 				file: "src/test.ts",
 			});
 
 			// Should merge contexts
 			expect(reEnriched.context.agent).toBe("Agent1");
-			expect(reEnriched.context.cell_id).toBe("new-bead");
+			expect(reEnriched.context.cell_id).toBe("new-cell");
 			expect(reEnriched.context.file).toBe("src/test.ts");
 		});
 

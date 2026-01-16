@@ -178,7 +178,7 @@ describe("COORDINATOR_PROMPT", () => {
 describe("formatSubtaskPromptV2", () => {
   test("substitutes all placeholders correctly", async () => {
     const result = await formatSubtaskPromptV2({
-      cell_id: "test-project-abc123-bead456",
+      cell_id: "test-project-abc123-cell456",
       epic_id: "test-project-abc123-epic789",
       subtask_title: "Test Subtask",
       subtask_description: "Do the test thing",
@@ -187,7 +187,7 @@ describe("formatSubtaskPromptV2", () => {
       project_path: "/path/to/project",
     });
 
-    expect(result).toContain("test-project-abc123-bead456");
+    expect(result).toContain("test-project-abc123-cell456");
     expect(result).toContain("test-project-abc123-epic789");
     expect(result).toContain("Test Subtask");
     expect(result).toContain("Do the test thing");

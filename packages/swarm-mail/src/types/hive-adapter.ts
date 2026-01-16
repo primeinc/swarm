@@ -15,8 +15,8 @@
  * - HiveAdapter: High-level hive operations (uses DatabaseAdapter internally)
  * - Plugin tools: Type-safe Zod-validated wrappers (use HiveAdapter)
  *
- * ## Relationship to steveyegge/beads
- * This is a TypeScript rewrite of steveyegge/beads internal/storage/storage.go
+ * ## Relationship to steveyegge/cells
+ * This is a TypeScript rewrite of steveyegge/cells internal/storage/storage.go
  * interface, adapted for event sourcing and shared libSQL database.
  */
 
@@ -48,7 +48,7 @@ export type DependencyRelationship =
 	| "supersedes";
 
 // ============================================================================
-// Core Bead Operations
+// Core cell Operations
 // ============================================================================
 
 /**
@@ -72,6 +72,7 @@ export interface Cell {
 	deleted_by: string | null;
 	delete_reason: string | null;
 	created_by: string | null;
+	metadata?: Record<string, unknown>;
 }
 
 /**
@@ -97,6 +98,7 @@ export interface UpdateCellOptions {
 	priority?: number;
 	assignee?: string;
 	updated_by?: string;
+	metadata?: Record<string, unknown>;
 }
 
 /**
@@ -118,9 +120,9 @@ export interface QueryCellsOptions {
 
 export interface CellAdapter {
 	/**
-	 * Create a new bead
+	 * Create a new cell
 	 *
-	 * Emits: bead_created event
+	 * Emits: cell_created event
 	 */
 	createCell(
 		projectKey: string,
@@ -149,7 +151,7 @@ export interface CellAdapter {
 	/**
 	 * Update cell fields
 	 *
-	 * Emits: bead_updated event
+	 * Emits: cell_updated event
 	 */
 	updateCell(
 		projectKey: string,
@@ -161,7 +163,7 @@ export interface CellAdapter {
 	/**
 	 * Change cell status
 	 *
-	 * Emits: bead_status_changed event
+	 * Emits: cell_status_changed event
 	 */
 	changeCellStatus(
 		projectKey: string,
@@ -175,9 +177,9 @@ export interface CellAdapter {
 	): Promise<Cell>;
 
 	/**
-	 * Close a bead
+	 * Close a cell
 	 *
-	 * Emits: bead_closed event
+	 * Emits: cell_closed event
 	 */
 	closeCell(
 		projectKey: string,
@@ -192,9 +194,9 @@ export interface CellAdapter {
 	): Promise<Cell>;
 
 	/**
-	 * Reopen a closed bead
+	 * Reopen a closed cell
 	 *
-	 * Emits: bead_reopened event
+	 * Emits: cell_reopened event
 	 */
 	reopenCell(
 		projectKey: string,
@@ -209,7 +211,7 @@ export interface CellAdapter {
 	/**
 	 * Delete a cell (soft delete)
 	 *
-	 * Emits: bead_deleted event
+	 * Emits: cell_deleted event
 	 */
 	deleteCell(
 		projectKey: string,
@@ -241,7 +243,7 @@ export interface DependencyAdapter {
 	/**
 	 * Add a dependency between cells
 	 *
-	 * Emits: bead_dependency_added event
+	 * Emits: cell_dependency_added event
 	 */
 	addDependency(
 		projectKey: string,
@@ -258,7 +260,7 @@ export interface DependencyAdapter {
 	/**
 	 * Remove a dependency
 	 *
-	 * Emits: bead_dependency_removed event
+	 * Emits: cell_dependency_removed event
 	 */
 	removeDependency(
 		projectKey: string,
@@ -282,7 +284,7 @@ export interface DependencyAdapter {
 	): Promise<CellDependency[]>;
 
 	/**
-	 * Get cells that depend on this bead
+	 * Get cells that depend on this cell
 	 */
 	getDependents(
 		projectKey: string,
@@ -328,7 +330,7 @@ export interface LabelAdapter {
 	/**
 	 * Add a label to a cell
 	 *
-	 * Emits: bead_label_added event
+	 * Emits: cell_label_added event
 	 */
 	addLabel(
 		projectKey: string,
@@ -343,7 +345,7 @@ export interface LabelAdapter {
 	/**
 	 * Remove a label from a cell
 	 *
-	 * Emits: bead_label_removed event
+	 * Emits: cell_label_removed event
 	 */
 	removeLabel(
 		projectKey: string,
@@ -395,7 +397,7 @@ export interface CommentAdapter {
 	/**
 	 * Add a comment to a cell
 	 *
-	 * Emits: bead_comment_added event
+	 * Emits: cell_comment_added event
 	 */
 	addComment(
 		projectKey: string,
@@ -412,7 +414,7 @@ export interface CommentAdapter {
 	/**
 	 * Update a comment
 	 *
-	 * Emits: bead_comment_updated event
+	 * Emits: cell_comment_updated event
 	 */
 	updateComment(
 		projectKey: string,
@@ -425,7 +427,7 @@ export interface CommentAdapter {
 	/**
 	 * Delete a comment
 	 *
-	 * Emits: bead_comment_deleted event
+	 * Emits: cell_comment_deleted event
 	 */
 	deleteComment(
 		projectKey: string,
@@ -455,7 +457,7 @@ export interface EpicAdapter {
 	/**
 	 * Add a child cell to an epic
 	 *
-	 * Emits: bead_epic_child_added event
+	 * Emits: cell_epic_child_added event
 	 */
 	addChildToEpic(
 		projectKey: string,
@@ -471,7 +473,7 @@ export interface EpicAdapter {
 	/**
 	 * Remove a child from an epic
 	 *
-	 * Emits: bead_epic_child_removed event
+	 * Emits: cell_epic_child_removed event
 	 */
 	removeChildFromEpic(
 		projectKey: string,
@@ -513,7 +515,7 @@ export interface QueryAdapter {
 	/**
 	 * Get next ready cell (unblocked, highest priority)
 	 *
-	 * Implements steveyegge/beads ready_issues view logic
+	 * Implements steveyegge/cells ready_issues view logic
 	 */
 	getNextReadyCell(
 		projectKey: string,
@@ -521,7 +523,7 @@ export interface QueryAdapter {
 	): Promise<Cell | null>;
 
 	/**
-	 * Get all in-progress beads
+	 * Get all in-progress cells
 	 */
 	getInProgressCells(projectKey: string, projectPath?: string): Promise<Cell[]>;
 
@@ -646,7 +648,7 @@ export interface SessionAdapter {
 
 export interface HiveSchemaAdapter {
 	/**
-	 * Run beads-specific migrations
+	 * Run cells-specific migrations
 	 *
 	 * Adds cells tables to shared libSQL database
 	 */
@@ -741,64 +743,64 @@ export type HiveAdapterFactory = (config: {
 /**
  * @deprecated Use Cell instead
  */
-export type Bead = Cell;
+export type cell = Cell;
 
 /**
  * @deprecated Use CellAdapter instead
  */
-export type BeadAdapter = CellAdapter;
+export type cellAdapter = CellAdapter;
 
 /**
  * @deprecated Use CellComment instead
  */
-export type BeadComment = CellComment;
+export type cellComment = CellComment;
 
 /**
  * @deprecated Use CellDependency instead
  */
-export type BeadDependency = CellDependency;
+export type cellDependency = CellDependency;
 
 /**
  * @deprecated Use CellLabel instead
  */
-export type BeadLabel = CellLabel;
+export type cellLabel = CellLabel;
 
 /**
  * @deprecated Use HiveAdapter instead
  */
-export type BeadsAdapter = HiveAdapter;
+export type cellsAdapter = HiveAdapter;
 
 /**
  * @deprecated Use HiveAdapterFactory instead
  */
-export type BeadsAdapterFactory = HiveAdapterFactory;
+export type cellsAdapterFactory = HiveAdapterFactory;
 
 /**
  * @deprecated Use HiveSchemaAdapter instead
  */
-export type BeadsSchemaAdapter = HiveSchemaAdapter;
+export type cellsSchemaAdapter = HiveSchemaAdapter;
 
 /**
  * @deprecated Use CellStatus instead
  */
-export type BeadStatus = CellStatus;
+export type cellStatus = CellStatus;
 
 /**
  * @deprecated Use CellType instead
  */
-export type BeadType = CellType;
+export type cellType = CellType;
 
 /**
  * @deprecated Use CreateCellOptions instead
  */
-export type CreateBeadOptions = CreateCellOptions;
+export type CreatecellOptions = CreateCellOptions;
 
 /**
  * @deprecated Use UpdateCellOptions instead
  */
-export type UpdateBeadOptions = UpdateCellOptions;
+export type UpdatecellOptions = UpdateCellOptions;
 
 /**
  * @deprecated Use QueryCellsOptions instead
  */
-export type QueryBeadsOptions = QueryCellsOptions;
+export type QuerycellsOptions = QueryCellsOptions;

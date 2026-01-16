@@ -26,12 +26,12 @@ import {
   setHiveWorkingDirectory,
   getHiveWorkingDirectory,
   // Legacy aliases for backward compatibility tests
-  beads_link_thread,
-  BeadError,
-  getBeadsAdapter,
-  setBeadsWorkingDirectory,
+  cells_link_thread,
+  cellError,
+  getcellsAdapter,
+  setcellsWorkingDirectory,
 } from "./hive";
-import type { Cell, Bead, EpicCreateResult } from "./schemas";
+import type { Cell, cell, EpicCreateResult } from "./schemas";
 import type { HiveAdapter } from "swarm-mail";
 
 /**
@@ -56,14 +56,14 @@ function parseResponse<T>(response: string): T {
 }
 
 /**
- * Track created beads for cleanup
+ * Track created cells for cleanup
  */
-const createdBeadIds: string[] = [];
+const createdcellIds: string[] = [];
 
 /**
  * Test project key - use temp directory to isolate tests
  */
-const TEST_PROJECT_KEY = join(tmpdir(), `beads-integration-test-${Date.now()}`);
+const TEST_PROJECT_KEY = join(tmpdir(), `cells-integration-test-${Date.now()}`);
 
 /**
  * Adapter instance for verification
@@ -71,55 +71,55 @@ const TEST_PROJECT_KEY = join(tmpdir(), `beads-integration-test-${Date.now()}`);
 let adapter: HiveAdapter;
 
 /**
- * Cleanup helper - close all created beads after tests
+ * Cleanup helper - close all created cells after tests
  */
-async function cleanupBeads() {
-  for (const id of createdBeadIds) {
+async function cleanupcells() {
+  for (const id of createdcellIds) {
     try {
       await hive_close.execute({ id, reason: "Test cleanup" }, mockContext);
     } catch {
-      // Ignore cleanup errors - bead may already be closed
+      // Ignore cleanup errors - cell may already be closed
     }
   }
-  createdBeadIds.length = 0;
+  createdcellIds.length = 0;
 }
 
-describe("beads integration", () => {
+describe("cells integration", () => {
   // Initialize adapter before running tests
   beforeAll(async () => {
     // Clear cached adapters from previous test runs
     clearHiveAdapterCache();
     
-    // Set working directory for beads commands
-    setBeadsWorkingDirectory(TEST_PROJECT_KEY);
+    // Set working directory for cells commands
+    setcellsWorkingDirectory(TEST_PROJECT_KEY);
     
     // Get adapter instance for verification
-    adapter = await getBeadsAdapter(TEST_PROJECT_KEY);
+    adapter = await getcellsAdapter(TEST_PROJECT_KEY);
   });
 
   afterAll(async () => {
-    await cleanupBeads();
+    await cleanupcells();
     clearHiveAdapterCache();
   });
 
   describe("hive_create", () => {
-    it("creates a bead with minimal args (title only)", async () => {
+    it("creates a cell with minimal args (title only)", async () => {
       const result = await hive_create.execute(
-        { title: "Test bead minimal" },
+        { title: "Test cell minimal" },
         mockContext,
       );
 
-      const bead = parseResponse<Bead>(result);
-      createdBeadIds.push(bead.id);
+      const cell = parseResponse<cell>(result);
+      createdcellIds.push(cell.id);
 
-      expect(bead.title).toBe("Test bead minimal");
-      expect(bead.status).toBe("open");
-      expect(bead.issue_type).toBe("task"); // default
-      expect(bead.priority).toBe(2); // default
-      expect(bead.id).toMatch(/^[a-z0-9-]+-[a-z0-9]+$/);
+      expect(cell.title).toBe("Test cell minimal");
+      expect(cell.status).toBe("open");
+      expect(cell.issue_type).toBe("task"); // default
+      expect(cell.priority).toBe(2); // default
+      expect(cell.id).toMatch(/^[a-z0-9-]+-[a-z0-9]+$/);
     });
 
-    it("creates a bead with all options", async () => {
+    it("creates a cell with all options", async () => {
       const result = await hive_create.execute(
         {
           title: "Test bug with priority",
@@ -130,102 +130,102 @@ describe("beads integration", () => {
         mockContext,
       );
 
-      const bead = parseResponse<Bead>(result);
-      createdBeadIds.push(bead.id);
+      const cell = parseResponse<cell>(result);
+      createdcellIds.push(cell.id);
 
-      expect(bead.title).toBe("Test bug with priority");
-      expect(bead.issue_type).toBe("bug");
-      expect(bead.priority).toBe(0);
-      expect(bead.description).toContain("critical bug");
+      expect(cell.title).toBe("Test bug with priority");
+      expect(cell.issue_type).toBe("bug");
+      expect(cell.priority).toBe(0);
+      expect(cell.description).toContain("critical bug");
     });
 
-    it("creates a feature type bead", async () => {
+    it("creates a feature type cell", async () => {
       const result = await hive_create.execute(
         { title: "New feature request", type: "feature", priority: 1 },
         mockContext,
       );
 
-      const bead = parseResponse<Bead>(result);
-      createdBeadIds.push(bead.id);
+      const cell = parseResponse<cell>(result);
+      createdcellIds.push(cell.id);
 
-      expect(bead.issue_type).toBe("feature");
-      expect(bead.priority).toBe(1);
+      expect(cell.issue_type).toBe("feature");
+      expect(cell.priority).toBe(1);
     });
 
-    it("creates a chore type bead", async () => {
+    it("creates a chore type cell", async () => {
       const result = await hive_create.execute(
         { title: "Cleanup task", type: "chore", priority: 3 },
         mockContext,
       );
 
-      const bead = parseResponse<Bead>(result);
-      createdBeadIds.push(bead.id);
+      const cell = parseResponse<cell>(result);
+      createdcellIds.push(cell.id);
 
-      expect(bead.issue_type).toBe("chore");
-      expect(bead.priority).toBe(3);
+      expect(cell.issue_type).toBe("chore");
+      expect(cell.priority).toBe(3);
     });
   });
 
   describe("hive_query", () => {
-    let testBeadId: string;
+    let testcellId: string;
 
     beforeEach(async () => {
-      // Create a test bead for query tests
+      // Create a test cell for query tests
       const result = await hive_create.execute(
-        { title: "Query test bead", type: "task" },
+        { title: "Query test cell", type: "task" },
         mockContext,
       );
-      const bead = parseResponse<Bead>(result);
-      testBeadId = bead.id;
-      createdBeadIds.push(testBeadId);
+      const cell = parseResponse<cell>(result);
+      testcellId = cell.id;
+      createdcellIds.push(testcellId);
     });
 
-    it("queries all open beads", async () => {
+    it("queries all open cells", async () => {
       const result = await hive_query.execute({ status: "open" }, mockContext);
 
-      const beads = parseResponse<Bead[]>(result);
+      const cells = parseResponse<cell[]>(result);
 
-      expect(Array.isArray(beads)).toBe(true);
-      expect(beads.length).toBeGreaterThan(0);
-      expect(beads.every((b) => b.status === "open")).toBe(true);
+      expect(Array.isArray(cells)).toBe(true);
+      expect(cells.length).toBeGreaterThan(0);
+      expect(cells.every((b) => b.status === "open")).toBe(true);
     });
 
-    it("queries beads by type", async () => {
+    it("queries cells by type", async () => {
       const result = await hive_query.execute({ type: "task" }, mockContext);
 
-      const beads = parseResponse<Bead[]>(result);
+      const cells = parseResponse<cell[]>(result);
 
-      expect(Array.isArray(beads)).toBe(true);
-      expect(beads.every((b) => b.issue_type === "task")).toBe(true);
+      expect(Array.isArray(cells)).toBe(true);
+      expect(cells.every((b) => b.issue_type === "task")).toBe(true);
     });
 
-    it("queries ready beads (unblocked)", async () => {
+    it("queries ready cells (unblocked)", async () => {
       const result = await hive_query.execute({ ready: true }, mockContext);
 
-      const beads = parseResponse<Bead[]>(result);
+      const cells = parseResponse<cell[]>(result);
 
-      expect(Array.isArray(beads)).toBe(true);
-      // Ready beads should be open (not closed, not blocked)
-      for (const bead of beads) {
-        expect(["open", "in_progress"]).toContain(bead.status);
+      expect(Array.isArray(cells)).toBe(true);
+      // Ready cells should be open (not closed, not blocked)
+      for (const cell of cells) {
+        expect(["open", "in_progress"]).toContain(cell.status);
       }
     });
 
     it("limits results", async () => {
-      // Create multiple beads first
+      // Create multiple cells first
       for (let i = 0; i < 5; i++) {
         const result = await hive_create.execute(
-          { title: `Limit test bead ${i}` },
+          { title: `Limit test cell ${i}` },
           mockContext,
         );
-        const bead = parseResponse<Bead>(result);
-        createdBeadIds.push(bead.id);
+        const cell = parseResponse<cell>(result);
+        createdcellIds.push(cell.id);
       }
 
       const result = await hive_query.execute({ limit: 3 }, mockContext);
 
-      const beads = parseResponse<Bead[]>(result);
-      expect(beads.length).toBeLessThanOrEqual(3);
+      const cells = parseResponse<cell[]>(result);
+      expect(cells.length).toBeLessThanOrEqual(3);
     });
 
     it("combines filters", async () => {
@@ -234,64 +234,64 @@ describe("beads integration", () => {
         mockContext,
       );
 
-      const beads = parseResponse<Bead[]>(result);
+      const cells = parseResponse<cell[]>(result);
 
-      expect(Array.isArray(beads)).toBe(true);
-      expect(beads.length).toBeLessThanOrEqual(5);
-      for (const bead of beads) {
-        expect(bead.status).toBe("open");
-        expect(bead.issue_type).toBe("task");
+      expect(Array.isArray(cells)).toBe(true);
+      expect(cells.length).toBeLessThanOrEqual(5);
+      for (const cell of cells) {
+        expect(cell.status).toBe("open");
+        expect(cell.issue_type).toBe("task");
       }
     });
   });
 
   describe("hive_update", () => {
-    let testBeadId: string;
+    let testcellId: string;
 
     beforeEach(async () => {
       const result = await hive_create.execute(
-        { title: "Update test bead", description: "Original description" },
+        { title: "Update test cell", description: "Original description" },
         mockContext,
       );
-      const bead = parseResponse<Bead>(result);
-      testBeadId = bead.id;
-      createdBeadIds.push(testBeadId);
+      const cell = parseResponse<cell>(result);
+      testcellId = cell.id;
+      createdcellIds.push(testcellId);
     });
 
-    it("updates bead status", async () => {
+    it("updates cell status", async () => {
       const result = await hive_update.execute(
-        { id: testBeadId, status: "in_progress" },
+        { id: testcellId, status: "in_progress" },
         mockContext,
       );
 
-      const bead = parseResponse<Bead>(result);
-      expect(bead.status).toBe("in_progress");
+      const cell = parseResponse<cell>(result);
+      expect(cell.status).toBe("in_progress");
     });
 
-    it("updates bead description", async () => {
+    it("updates cell description", async () => {
       const result = await hive_update.execute(
-        { id: testBeadId, description: "Updated description" },
+        { id: testcellId, description: "Updated description" },
         mockContext,
       );
 
-      const bead = parseResponse<Bead>(result);
-      expect(bead.description).toContain("Updated description");
+      const cell = parseResponse<cell>(result);
+      expect(cell.description).toContain("Updated description");
     });
 
-    it("updates bead priority", async () => {
+    it("updates cell priority", async () => {
       const result = await hive_update.execute(
-        { id: testBeadId, priority: 0 },
+        { id: testcellId, priority: 0 },
         mockContext,
       );
 
-      const bead = parseResponse<Bead>(result);
-      expect(bead.priority).toBe(0);
+      const cell = parseResponse<cell>(result);
+      expect(cell.priority).toBe(0);
     });
 
     it("updates multiple fields at once", async () => {
       const result = await hive_update.execute(
         {
-          id: testBeadId,
+          id: testcellId,
           status: "blocked",
           description: "Blocked on dependency",
           priority: 1,
@@ -299,19 +299,19 @@ describe("beads integration", () => {
         mockContext,
       );
 
-      const bead = parseResponse<Bead>(result);
-      expect(bead.status).toBe("blocked");
-      expect(bead.description).toContain("Blocked on dependency");
-      expect(bead.priority).toBe(1);
+      const cell = parseResponse<cell>(result);
+      expect(cell.status).toBe("blocked");
+      expect(cell.description).toContain("Blocked on dependency");
+      expect(cell.priority).toBe(1);
     });
 
-    it("throws BeadError for invalid bead ID", async () => {
+    it("throws cellError for invalid cell ID", async () => {
       await expect(
         hive_update.execute(
-          { id: "nonexistent-bead-xyz", status: "closed" },
+          { id: "nonexistent-cell-xyz", status: "closed" },
           mockContext,
         ),
-      ).rejects.toThrow(BeadError);
+      ).rejects.toThrow(cellError);
     });
   });
 
@@ -335,9 +335,9 @@ describe("beads integration", () => {
       expect(epic.subtasks.length).toBe(3);
 
       // Track for cleanup
-      createdBeadIds.push(epic.epic.id);
+      createdcellIds.push(epic.epic.id);
       for (const st of epic.subtasks) {
-        createdBeadIds.push(st.id);
+        createdcellIds.push(st.id);
       }
 
       // Query children via hive_cells
@@ -348,13 +348,13 @@ describe("beads integration", () => {
   });
 
   describe("hive_close", () => {
-    it("closes a bead with reason", async () => {
-      // Create a fresh bead to close
+    it("closes a cell with reason", async () => {
+      // Create a fresh cell to close
       const createResult = await hive_create.execute(
-        { title: "Bead to close" },
+        { title: "cell to close" },
         mockContext,
       );
-      const created = parseResponse<Bead>(createResult);
+      const created = parseResponse<cell>(createResult);
       // Don't add to cleanup since we're closing it
 
       const result = await hive_close.execute(
@@ -366,30 +366,30 @@ describe("beads integration", () => {
       expect(result).toContain(created.id);
 
       // Verify it's actually closed using adapter
-      const closedBead = await adapter.getCell(TEST_PROJECT_KEY, created.id);
-      expect(closedBead).toBeDefined();
-      expect(closedBead!.status).toBe("closed");
+      const closedcell = await adapter.getCell(TEST_PROJECT_KEY, created.id);
+      expect(closedcell).toBeDefined();
+      expect(closedcell!.status).toBe("closed");
     });
 
-    it("throws BeadError for invalid bead ID", async () => {
+    it("throws cellError for invalid cell ID", async () => {
       await expect(
         hive_close.execute(
-          { id: "nonexistent-bead-xyz", reason: "Test" },
+          { id: "nonexistent-cell-xyz", reason: "Test" },
           mockContext,
         ),
-      ).rejects.toThrow(BeadError);
+      ).rejects.toThrow(cellError);
     });
   });
 
   describe("hive_start", () => {
-    it("marks a bead as in_progress", async () => {
-      // Create a fresh bead
+    it("marks a cell as in_progress", async () => {
+      // Create a fresh cell
       const createResult = await hive_create.execute(
-        { title: "Bead to start" },
+        { title: "cell to start" },
         mockContext,
       );
-      const created = parseResponse<Bead>(createResult);
-      createdBeadIds.push(created.id);
+      const created = parseResponse<cell>(createResult);
+      createdcellIds.push(created.id);
 
       expect(created.status).toBe("open");
 
@@ -399,51 +399,51 @@ describe("beads integration", () => {
       expect(result).toContain(created.id);
 
       // Verify status changed using adapter
-      const startedBead = await adapter.getCell(TEST_PROJECT_KEY, created.id);
-      expect(startedBead).toBeDefined();
-      expect(startedBead!.status).toBe("in_progress");
+      const startedcell = await adapter.getCell(TEST_PROJECT_KEY, created.id);
+      expect(startedcell).toBeDefined();
+      expect(startedcell!.status).toBe("in_progress");
     });
 
-    it("throws BeadError for invalid bead ID", async () => {
+    it("throws cellError for invalid cell ID", async () => {
       await expect(
-        hive_start.execute({ id: "nonexistent-bead-xyz" }, mockContext),
-      ).rejects.toThrow(BeadError);
+        hive_start.execute({ id: "nonexistent-cell-xyz" }, mockContext),
+      ).rejects.toThrow(cellError);
     });
   });
 
   describe("hive_ready", () => {
-    it("returns the highest priority unblocked bead", async () => {
-      // Create a high priority bead
+    it("returns the highest priority unblocked cell", async () => {
+      // Create a high priority cell
       const createResult = await hive_create.execute(
-        { title: "High priority ready bead", priority: 0 },
+        { title: "High priority ready cell", priority: 0 },
         mockContext,
       );
-      const created = parseResponse<Bead>(createResult);
-      createdBeadIds.push(created.id);
+      const created = parseResponse<cell>(createResult);
+      createdcellIds.push(created.id);
 
       const result = await hive_ready.execute({}, mockContext);
 
-      // Should return a bead (or "No ready beads" message)
-      if (result !== "No ready beads") {
-        const bead = parseResponse<Bead>(result);
-        expect(bead.id).toBeDefined();
-        expect(bead.status).not.toBe("closed");
-        expect(bead.status).not.toBe("blocked");
+      // Should return a cell (or "No ready cells" message)
+      if (result !== "No ready cells") {
+        const cell = parseResponse<cell>(result);
+        expect(cell.id).toBeDefined();
+        expect(cell.status).not.toBe("closed");
+        expect(cell.status).not.toBe("blocked");
       }
     });
 
-    it("returns no ready beads message when all are closed", async () => {
-      // This test depends on the state of the beads database
-      // It may return a bead if there are open ones
+    it("returns no ready cells message when all are closed", async () => {
+      // This test depends on the state of the cells database
+      // It may return a cell if there are open ones
       const result = await hive_ready.execute({}, mockContext);
 
       expect(typeof result).toBe("string");
-      // Either a JSON bead or "No ready beads"
-      if (result === "No ready beads") {
-        expect(result).toBe("No ready beads");
+      // Either a JSON cell or "No ready cells"
+      if (result === "No ready cells") {
+        expect(result).toBe("No ready cells");
       } else {
-        const bead = parseResponse<Bead>(result);
-        expect(bead.id).toBeDefined();
+        const cell = parseResponse<cell>(result);
+        expect(cell.id).toBeDefined();
       }
     });
   });
@@ -464,9 +464,9 @@ describe("beads integration", () => {
       );
 
       const epicResult = parseResponse<EpicCreateResult>(result);
-      createdBeadIds.push(epicResult.epic.id);
+      createdcellIds.push(epicResult.epic.id);
       for (const subtask of epicResult.subtasks) {
-        createdBeadIds.push(subtask.id);
+        createdcellIds.push(subtask.id);
       }
 
       expect(epicResult.success).toBe(true);
@@ -477,9 +477,9 @@ describe("beads integration", () => {
       // Subtasks should have parent_id pointing to epic
       // Verify via adapter since parent_id may not be in the output schema
       for (const subtask of epicResult.subtasks) {
-        const subtaskBead = await adapter.getCell(TEST_PROJECT_KEY, subtask.id);
-        expect(subtaskBead).toBeDefined();
-        expect(subtaskBead!.parent_id).toBe(epicResult.epic.id);
+        const subtaskcell = await adapter.getCell(TEST_PROJECT_KEY, subtask.id);
+        expect(subtaskcell).toBeDefined();
+        expect(subtaskcell!.parent_id).toBe(epicResult.epic.id);
       }
       
       // NEW TEST: Verify cells are synced to JSONL immediately
@@ -522,9 +522,9 @@ describe("beads integration", () => {
       );
 
       const epicResult = parseResponse<EpicCreateResult>(result);
-      createdBeadIds.push(epicResult.epic.id);
+      createdcellIds.push(epicResult.epic.id);
       for (const subtask of epicResult.subtasks) {
-        createdBeadIds.push(subtask.id);
+        createdcellIds.push(subtask.id);
       }
 
       expect(epicResult.success).toBe(true);
@@ -541,8 +541,8 @@ describe("beads integration", () => {
       );
 
       const epicResult = parseResponse<EpicCreateResult>(result);
-      createdBeadIds.push(epicResult.epic.id);
-      createdBeadIds.push(epicResult.subtasks[0].id);
+      createdcellIds.push(epicResult.epic.id);
+      createdcellIds.push(epicResult.subtasks[0].id);
 
       expect(epicResult.success).toBe(true);
       expect(epicResult.subtasks).toHaveLength(1);
@@ -559,9 +559,9 @@ describe("beads integration", () => {
       );
 
       const epicResult = parseResponse<EpicCreateResult>(result);
-      createdBeadIds.push(epicResult.epic.id);
+      createdcellIds.push(epicResult.epic.id);
       for (const subtask of epicResult.subtasks) {
-        createdBeadIds.push(subtask.id);
+        createdcellIds.push(subtask.id);
       }
 
       expect(epicResult.success).toBe(true);
@@ -572,48 +572,48 @@ describe("beads integration", () => {
     });
   });
 
-  describe("beads_link_thread", () => {
-    let testBeadId: string;
+  describe("cells_link_thread", () => {
+    let testcellId: string;
 
     beforeEach(async () => {
       const result = await hive_create.execute(
-        { title: "Thread link test bead" },
+        { title: "Thread link test cell" },
         mockContext,
       );
-      const bead = parseResponse<Bead>(result);
-      testBeadId = bead.id;
-      createdBeadIds.push(testBeadId);
+      const cell = parseResponse<cell>(result);
+      testcellId = cell.id;
+      createdcellIds.push(testcellId);
     });
 
-    it("links a bead to an Agent Mail thread", async () => {
+    it("links a cell to an Agent Mail thread", async () => {
       const threadId = "test-thread-123";
-      const result = await beads_link_thread.execute(
-        { cell_id: testBeadId, thread_id: threadId },
+      const result = await cells_link_thread.execute(
+        { cell_id: testcellId, thread_id: threadId },
         mockContext,
       );
 
       expect(result).toContain("Linked");
-      expect(result).toContain(testBeadId);
+      expect(result).toContain(testcellId);
       expect(result).toContain(threadId);
 
       // Verify the thread marker is in the description using adapter
-      const linkedBead = await adapter.getCell(TEST_PROJECT_KEY, testBeadId);
-      expect(linkedBead).toBeDefined();
-      expect(linkedBead!.description).toContain(`[thread:${threadId}]`);
+      const linkedcell = await adapter.getCell(TEST_PROJECT_KEY, testcellId);
+      expect(linkedcell).toBeDefined();
+      expect(linkedcell!.description).toContain(`[thread:${threadId}]`);
     });
 
     it("returns message if thread already linked", async () => {
       const threadId = "test-thread-456";
 
       // Link once
-      await beads_link_thread.execute(
-        { cell_id: testBeadId, thread_id: threadId },
+      await cells_link_thread.execute(
+        { cell_id: testcellId, thread_id: threadId },
         mockContext,
       );
 
       // Try to link again
-      const result = await beads_link_thread.execute(
-        { cell_id: testBeadId, thread_id: threadId },
+      const result = await cells_link_thread.execute(
+        { cell_id: testcellId, thread_id: threadId },
         mockContext,
       );
 
@@ -621,47 +621,47 @@ describe("beads integration", () => {
     });
 
     it("preserves existing description when linking", async () => {
-      // Update bead with a description first
+      // Update cell with a description first
       await hive_update.execute(
-        { id: testBeadId, description: "Important context here" },
+        { id: testcellId, description: "Important context here" },
         mockContext,
       );
 
       const threadId = "test-thread-789";
-      await beads_link_thread.execute(
-        { cell_id: testBeadId, thread_id: threadId },
+      await cells_link_thread.execute(
+        { cell_id: testcellId, thread_id: threadId },
         mockContext,
       );
 
       // Verify both original description and thread marker exist using adapter
-      const linkedBead = await adapter.getCell(TEST_PROJECT_KEY, testBeadId);
-      expect(linkedBead).toBeDefined();
-      expect(linkedBead!.description).toContain("Important context here");
-      expect(linkedBead!.description).toContain(`[thread:${threadId}]`);
+      const linkedcell = await adapter.getCell(TEST_PROJECT_KEY, testcellId);
+      expect(linkedcell).toBeDefined();
+      expect(linkedcell!.description).toContain("Important context here");
+      expect(linkedcell!.description).toContain(`[thread:${threadId}]`);
     });
 
-    it("throws BeadError for invalid bead ID", async () => {
+    it("throws cellError for invalid cell ID", async () => {
       await expect(
-        beads_link_thread.execute(
-          { cell_id: "nonexistent-bead-xyz", thread_id: "thread-123" },
+        cells_link_thread.execute(
+          { cell_id: "nonexistent-cell-xyz", thread_id: "thread-123" },
           mockContext,
         ),
-      ).rejects.toThrow(BeadError);
+      ).rejects.toThrow(cellError);
     });
   });
 
   describe("error handling", () => {
-    it("throws BeadError with command info on adapter failure", async () => {
+    it("throws cellError with command info on adapter failure", async () => {
       try {
         await hive_update.execute(
-          { id: "definitely-not-a-real-bead-id", status: "closed" },
+          { id: "definitely-not-a-real-cell-id", status: "closed" },
           mockContext,
         );
         expect.fail("Should have thrown");
       } catch (error) {
-        expect(error).toBeInstanceOf(BeadError);
-        const beadError = error as InstanceType<typeof BeadError>;
-        expect(beadError.command).toBeDefined();
+        expect(error).toBeInstanceOf(cellError);
+        const cellError = error as InstanceType<typeof cellError>;
+        expect(cellError.command).toBeDefined();
       }
     });
   });
@@ -678,7 +678,7 @@ describe("beads integration", () => {
       );
       const cell = parseResponse<Cell>(result);
       fullId = cell.id;
-      createdBeadIds.push(fullId);
+      createdcellIds.push(fullId);
 
       // Extract hash from ID (format: {prefix}-{hash}-{timestamp}{random})
       // The last segment is always timestamp+random (11 chars)
@@ -875,41 +875,41 @@ describe("beads integration", () => {
   });
 
   describe("workflow integration", () => {
-    it("complete bead lifecycle: create -> start -> update -> close", async () => {
+    it("complete cell lifecycle: create -> start -> update -> close", async () => {
       // 1. Create
       const createResult = await hive_create.execute(
-        { title: "Lifecycle test bead", type: "task", priority: 2 },
+        { title: "Lifecycle test cell", type: "task", priority: 2 },
         mockContext,
       );
-      const bead = parseResponse<Bead>(createResult);
-      expect(bead.status).toBe("open");
+      const cell = parseResponse<cell>(createResult);
+      expect(cell.status).toBe("open");
 
       // 2. Start (in_progress)
       const startResult = await hive_start.execute(
-        { id: bead.id },
+        { id: cell.id },
         mockContext,
       );
       expect(startResult).toContain("Started");
 
       // 3. Update (add progress note)
       const updateResult = await hive_update.execute(
-        { id: bead.id, description: "50% complete" },
+        { id: cell.id, description: "50% complete" },
         mockContext,
       );
-      const updated = parseResponse<Bead>(updateResult);
+      const updated = parseResponse<cell>(updateResult);
       expect(updated.description).toContain("50%");
 
       // 4. Close
       const closeResult = await hive_close.execute(
-        { id: bead.id, reason: "Completed successfully" },
+        { id: cell.id, reason: "Completed successfully" },
         mockContext,
       );
       expect(closeResult).toContain("Closed");
 
       // Verify final state using adapter
-      const finalBead = await adapter.getCell(TEST_PROJECT_KEY, bead.id);
-      expect(finalBead).toBeDefined();
-      expect(finalBead!.status).toBe("closed");
+      const finalcell = await adapter.getCell(TEST_PROJECT_KEY, cell.id);
+      expect(finalcell).toBeDefined();
+      expect(finalcell!.status).toBe("closed");
     });
 
     it("epic workflow: create epic -> start subtasks -> close subtasks -> close epic", async () => {
@@ -960,33 +960,33 @@ describe("beads integration", () => {
     });
   });
 
-  describe("Directory Migration (.beads → .hive)", () => {
-    it("checkBeadsMigrationNeeded detects .beads without .hive", async () => {
-      const { checkBeadsMigrationNeeded } = await import("./hive");
+  describe("Directory Migration (.cells → .hive)", () => {
+    it("checkcellsMigrationNeeded detects .cells without .hive", async () => {
+      const { checkcellsMigrationNeeded } = await import("./hive");
       const { mkdirSync, rmSync, writeFileSync } = await import("node:fs");
       const { join } = await import("node:path");
       const { tmpdir } = await import("node:os");
       const { normalize: normalizePath } = await import("swarm-cross-path");
 
-      // Create temp project with .beads directory only
+      // Create temp project with .cells directory only
       const tempProject = join(tmpdir(), `hive-migration-test-${Date.now()}`);
-      const beadsDir = join(tempProject, ".beads");
+      const cellsDir = join(tempProject, ".cells");
 
-      mkdirSync(beadsDir, { recursive: true });
-      writeFileSync(join(beadsDir, "issues.jsonl"), '{"id":"bd-test","title":"Test"}');
+      mkdirSync(cellsDir, { recursive: true });
+      writeFileSync(join(cellsDir, "issues.jsonl"), '{"id":"bd-test","title":"Test"}');
 
-      const result = checkBeadsMigrationNeeded(tempProject);
+      const result = checkcellsMigrationNeeded(tempProject);
 
       expect(result.needed).toBe(true);
-      // Normalize both paths since checkBeadsMigrationNeeded returns normalized paths
-      expect(normalizePath(result.beadsPath!)).toBe(normalizePath(beadsDir));
+      // Normalize both paths since checkcellsMigrationNeeded returns normalized paths
+      expect(normalizePath(result.cellsPath!)).toBe(normalizePath(cellsDir));
       
       // Cleanup
       rmSync(tempProject, { recursive: true, force: true });
     });
 
-    it("checkBeadsMigrationNeeded returns false if .hive exists", async () => {
-      const { checkBeadsMigrationNeeded } = await import("./hive");
+    it("checkcellsMigrationNeeded returns false if .hive exists", async () => {
+      const { checkcellsMigrationNeeded } = await import("./hive");
       const { mkdirSync, rmSync } = await import("node:fs");
       const { join } = await import("node:path");
       const { tmpdir } = await import("node:os");
@@ -997,7 +997,7 @@ describe("beads integration", () => {
       
       mkdirSync(hiveDir, { recursive: true });
       
-      const result = checkBeadsMigrationNeeded(tempProject);
+      const result = checkcellsMigrationNeeded(tempProject);
       
       expect(result.needed).toBe(false);
       
@@ -1005,28 +1005,28 @@ describe("beads integration", () => {
       rmSync(tempProject, { recursive: true, force: true });
     });
 
-    it("migrateBeadsToHive renames .beads to .hive", async () => {
-      const { migrateBeadsToHive } = await import("./hive");
+    it("migratecellsToHive renames .cells to .hive", async () => {
+      const { migratecellsToHive } = await import("./hive");
       const { mkdirSync, existsSync, rmSync, writeFileSync } = await import("node:fs");
       const { join } = await import("node:path");
       const { tmpdir } = await import("node:os");
       
-      // Create temp project with .beads directory
+      // Create temp project with .cells directory
       const tempProject = join(tmpdir(), `hive-migration-test-${Date.now()}`);
-      const beadsDir = join(tempProject, ".beads");
+      const cellsDir = join(tempProject, ".cells");
       const hiveDir = join(tempProject, ".hive");
       
-      mkdirSync(beadsDir, { recursive: true });
-      writeFileSync(join(beadsDir, "issues.jsonl"), '{"id":"bd-test","title":"Test"}');
-      writeFileSync(join(beadsDir, "config.yaml"), "version: 1");
+      mkdirSync(cellsDir, { recursive: true });
+      writeFileSync(join(cellsDir, "issues.jsonl"), '{"id":"bd-test","title":"Test"}');
+      writeFileSync(join(cellsDir, "config.yaml"), "version: 1");
       
       // Run migration (called after user confirms in CLI)
-      const result = await migrateBeadsToHive(tempProject);
+      const result = await migratecellsToHive(tempProject);
       
-      // Verify .beads renamed to .hive
+      // Verify .cells renamed to .hive
       expect(result.migrated).toBe(true);
       expect(existsSync(hiveDir)).toBe(true);
-      expect(existsSync(beadsDir)).toBe(false);
+      expect(existsSync(cellsDir)).toBe(false);
       expect(existsSync(join(hiveDir, "issues.jsonl"))).toBe(true);
       expect(existsSync(join(hiveDir, "config.yaml"))).toBe(true);
       
@@ -1034,29 +1034,29 @@ describe("beads integration", () => {
       rmSync(tempProject, { recursive: true, force: true });
     });
 
-    it("migrateBeadsToHive skips if .hive already exists", async () => {
-      const { migrateBeadsToHive } = await import("./hive");
+    it("migratecellsToHive skips if .hive already exists", async () => {
+      const { migratecellsToHive } = await import("./hive");
       const { mkdirSync, existsSync, rmSync, writeFileSync } = await import("node:fs");
       const { join } = await import("node:path");
       const { tmpdir } = await import("node:os");
       
-      // Create temp project with BOTH .beads and .hive
+      // Create temp project with BOTH .cells and .hive
       const tempProject = join(tmpdir(), `hive-migration-test-${Date.now()}`);
-      const beadsDir = join(tempProject, ".beads");
+      const cellsDir = join(tempProject, ".cells");
       const hiveDir = join(tempProject, ".hive");
       
-      mkdirSync(beadsDir, { recursive: true });
+      mkdirSync(cellsDir, { recursive: true });
       mkdirSync(hiveDir, { recursive: true });
-      writeFileSync(join(beadsDir, "issues.jsonl"), '{"id":"bd-old"}');
+      writeFileSync(join(cellsDir, "issues.jsonl"), '{"id":"bd-old"}');
       writeFileSync(join(hiveDir, "issues.jsonl"), '{"id":"bd-new"}');
       
       // Run migration - should skip
-      const result = await migrateBeadsToHive(tempProject);
+      const result = await migratecellsToHive(tempProject);
       
       // Verify both still exist (no migration)
       expect(result.migrated).toBe(false);
       expect(result.reason).toContain("already exists");
-      expect(existsSync(beadsDir)).toBe(true);
+      expect(existsSync(cellsDir)).toBe(true);
       expect(existsSync(hiveDir)).toBe(true);
       
       // Cleanup
@@ -1615,9 +1615,9 @@ describe("beads integration", () => {
     });
   });
 
-  describe("mergeHistoricBeads", () => {
+  describe("mergeHistoriccells", () => {
     it("merges empty base file - no changes", async () => {
-      const { mergeHistoricBeads } = await import("./hive");
+      const { mergeHistoriccells } = await import("./hive");
       const { mkdirSync, rmSync, writeFileSync } = await import("node:fs");
       const { join } = await import("node:path");
       const { tmpdir } = await import("node:os");
@@ -1628,13 +1628,13 @@ describe("beads integration", () => {
       mkdirSync(hiveDir, { recursive: true });
       
       // Create empty base file
-      writeFileSync(join(hiveDir, "beads.base.jsonl"), "");
+      writeFileSync(join(hiveDir, "cells.base.jsonl"), "");
       
-      // Create issues.jsonl with one bead
-      const existingBead = { id: "bd-existing", title: "Existing bead" };
-      writeFileSync(join(hiveDir, "issues.jsonl"), JSON.stringify(existingBead) + "\n");
+      // Create issues.jsonl with one cell
+      const existingcell = { id: "bd-existing", title: "Existing cell" };
+      writeFileSync(join(hiveDir, "issues.jsonl"), JSON.stringify(existingcell) + "\n");
       
-      const result = await mergeHistoricBeads(tempProject);
+      const result = await mergeHistoriccells(tempProject);
       
       expect(result.merged).toBe(0);
       expect(result.skipped).toBe(0);
@@ -1644,7 +1644,7 @@ describe("beads integration", () => {
     });
 
     it("merges empty issues file - all base records imported", async () => {
-      const { mergeHistoricBeads } = await import("./hive");
+      const { mergeHistoriccells } = await import("./hive");
       const { mkdirSync, rmSync, writeFileSync, readFileSync } = await import("node:fs");
       const { join } = await import("node:path");
       const { tmpdir } = await import("node:os");
@@ -1654,37 +1654,37 @@ describe("beads integration", () => {
       const hiveDir = join(tempProject, ".hive");
       mkdirSync(hiveDir, { recursive: true });
       
-      // Create base file with 2 beads
-      const baseBead1 = { id: "bd-base-1", title: "Historic bead 1" };
-      const baseBead2 = { id: "bd-base-2", title: "Historic bead 2" };
+      // Create base file with 2 cells
+      const basecell1 = { id: "bd-base-1", title: "Historic cell 1" };
+      const basecell2 = { id: "bd-base-2", title: "Historic cell 2" };
       writeFileSync(
-        join(hiveDir, "beads.base.jsonl"),
-        JSON.stringify(baseBead1) + "\n" + JSON.stringify(baseBead2) + "\n"
+        join(hiveDir, "cells.base.jsonl"),
+        JSON.stringify(basecell1) + "\n" + JSON.stringify(basecell2) + "\n"
       );
       
       // Empty issues file
       writeFileSync(join(hiveDir, "issues.jsonl"), "");
       
-      const result = await mergeHistoricBeads(tempProject);
+      const result = await mergeHistoriccells(tempProject);
       
       expect(result.merged).toBe(2);
       expect(result.skipped).toBe(0);
       
-      // Verify issues.jsonl now has both beads
+      // Verify issues.jsonl now has both cells
       const issuesContent = readFileSync(join(hiveDir, "issues.jsonl"), "utf-8");
       const lines = issuesContent.trim().split("\n").filter(l => l);
       expect(lines).toHaveLength(2);
       
-      const beads = lines.map(line => JSON.parse(line));
-      expect(beads.find(b => b.id === "bd-base-1")).toBeDefined();
-      expect(beads.find(b => b.id === "bd-base-2")).toBeDefined();
+      const cells = lines.map(line => JSON.parse(line));
+      expect(cells.find(b => b.id === "bd-base-1")).toBeDefined();
+      expect(cells.find(b => b.id === "bd-base-2")).toBeDefined();
       
       // Cleanup
       rmSync(tempProject, { recursive: true, force: true });
     });
 
     it("overlapping IDs - issues.jsonl wins (more recent)", async () => {
-      const { mergeHistoricBeads } = await import("./hive");
+      const { mergeHistoriccells } = await import("./hive");
       const { mkdirSync, rmSync, writeFileSync, readFileSync } = await import("node:fs");
       const { join } = await import("node:path");
       const { tmpdir } = await import("node:os");
@@ -1697,7 +1697,7 @@ describe("beads integration", () => {
       // Base has old version of bd-overlap
       const baseOldVersion = { id: "bd-overlap", title: "Old title", status: "open" };
       writeFileSync(
-        join(hiveDir, "beads.base.jsonl"),
+        join(hiveDir, "cells.base.jsonl"),
         JSON.stringify(baseOldVersion) + "\n"
       );
       
@@ -1708,23 +1708,23 @@ describe("beads integration", () => {
         JSON.stringify(issuesNewVersion) + "\n"
       );
       
-      const result = await mergeHistoricBeads(tempProject);
+      const result = await mergeHistoriccells(tempProject);
       
       expect(result.merged).toBe(0); // Nothing new to merge
       expect(result.skipped).toBe(1); // Skipped the old version
       
       // Verify issues.jsonl still has new version (unchanged)
       const issuesContent = readFileSync(join(hiveDir, "issues.jsonl"), "utf-8");
-      const bead = JSON.parse(issuesContent.trim());
-      expect(bead.title).toBe("New title");
-      expect(bead.status).toBe("closed");
+      const cell = JSON.parse(issuesContent.trim());
+      expect(cell.title).toBe("New title");
+      expect(cell.status).toBe("closed");
       
       // Cleanup
       rmSync(tempProject, { recursive: true, force: true });
     });
 
     it("no overlap - all records combined", async () => {
-      const { mergeHistoricBeads } = await import("./hive");
+      const { mergeHistoriccells } = await import("./hive");
       const { mkdirSync, rmSync, writeFileSync, readFileSync } = await import("node:fs");
       const { join } = await import("node:path");
       const { tmpdir } = await import("node:os");
@@ -1734,44 +1734,44 @@ describe("beads integration", () => {
       const hiveDir = join(tempProject, ".hive");
       mkdirSync(hiveDir, { recursive: true });
       
-      // Base has 2 beads
-      const baseBead1 = { id: "bd-base-1", title: "Historic 1" };
-      const baseBead2 = { id: "bd-base-2", title: "Historic 2" };
+      // Base has 2 cells
+      const basecell1 = { id: "bd-base-1", title: "Historic 1" };
+      const basecell2 = { id: "bd-base-2", title: "Historic 2" };
       writeFileSync(
-        join(hiveDir, "beads.base.jsonl"),
-        JSON.stringify(baseBead1) + "\n" + JSON.stringify(baseBead2) + "\n"
+        join(hiveDir, "cells.base.jsonl"),
+        JSON.stringify(basecell1) + "\n" + JSON.stringify(basecell2) + "\n"
       );
       
-      // Issues has 2 different beads
-      const issuesBead1 = { id: "bd-current-1", title: "Current 1" };
-      const issuesBead2 = { id: "bd-current-2", title: "Current 2" };
+      // Issues has 2 different cells
+      const issuescell1 = { id: "bd-current-1", title: "Current 1" };
+      const issuescell2 = { id: "bd-current-2", title: "Current 2" };
       writeFileSync(
         join(hiveDir, "issues.jsonl"),
-        JSON.stringify(issuesBead1) + "\n" + JSON.stringify(issuesBead2) + "\n"
+        JSON.stringify(issuescell1) + "\n" + JSON.stringify(issuescell2) + "\n"
       );
       
-      const result = await mergeHistoricBeads(tempProject);
+      const result = await mergeHistoriccells(tempProject);
       
       expect(result.merged).toBe(2); // Added 2 from base
       expect(result.skipped).toBe(0);
       
-      // Verify issues.jsonl now has all 4 beads
+      // Verify issues.jsonl now has all 4 cells
       const issuesContent = readFileSync(join(hiveDir, "issues.jsonl"), "utf-8");
       const lines = issuesContent.trim().split("\n").filter(l => l);
       expect(lines).toHaveLength(4);
       
-      const beads = lines.map(line => JSON.parse(line));
-      expect(beads.find(b => b.id === "bd-base-1")).toBeDefined();
-      expect(beads.find(b => b.id === "bd-base-2")).toBeDefined();
-      expect(beads.find(b => b.id === "bd-current-1")).toBeDefined();
-      expect(beads.find(b => b.id === "bd-current-2")).toBeDefined();
+      const cells = lines.map(line => JSON.parse(line));
+      expect(cells.find(b => b.id === "bd-base-1")).toBeDefined();
+      expect(cells.find(b => b.id === "bd-base-2")).toBeDefined();
+      expect(cells.find(b => b.id === "bd-current-1")).toBeDefined();
+      expect(cells.find(b => b.id === "bd-current-2")).toBeDefined();
       
       // Cleanup
       rmSync(tempProject, { recursive: true, force: true });
     });
 
     it("missing base file - graceful handling", async () => {
-      const { mergeHistoricBeads } = await import("./hive");
+      const { mergeHistoriccells } = await import("./hive");
       const { mkdirSync, rmSync, writeFileSync } = await import("node:fs");
       const { join } = await import("node:path");
       const { tmpdir } = await import("node:os");
@@ -1782,10 +1782,10 @@ describe("beads integration", () => {
       mkdirSync(hiveDir, { recursive: true });
       
       // Issues exists, base doesn't
-      const issuesBead = { id: "bd-current", title: "Current" };
-      writeFileSync(join(hiveDir, "issues.jsonl"), JSON.stringify(issuesBead) + "\n");
+      const issuescell = { id: "bd-current", title: "Current" };
+      writeFileSync(join(hiveDir, "issues.jsonl"), JSON.stringify(issuescell) + "\n");
       
-      const result = await mergeHistoricBeads(tempProject);
+      const result = await mergeHistoriccells(tempProject);
       
       // Should return zeros, not throw
       expect(result.merged).toBe(0);
@@ -1796,7 +1796,7 @@ describe("beads integration", () => {
     });
 
     it("missing issues file - creates it from base", async () => {
-      const { mergeHistoricBeads } = await import("./hive");
+      const { mergeHistoriccells } = await import("./hive");
       const { mkdirSync, rmSync, writeFileSync, readFileSync, existsSync } = await import("node:fs");
       const { join } = await import("node:path");
       const { tmpdir } = await import("node:os");
@@ -1807,16 +1807,16 @@ describe("beads integration", () => {
       mkdirSync(hiveDir, { recursive: true });
       
       // Base exists, issues doesn't
-      const baseBead = { id: "bd-base", title: "Historic" };
+      const basecell = { id: "bd-base", title: "Historic" };
       writeFileSync(
-        join(hiveDir, "beads.base.jsonl"),
-        JSON.stringify(baseBead) + "\n"
+        join(hiveDir, "cells.base.jsonl"),
+        JSON.stringify(basecell) + "\n"
       );
       
       const issuesPath = join(hiveDir, "issues.jsonl");
       expect(existsSync(issuesPath)).toBe(false);
       
-      const result = await mergeHistoricBeads(tempProject);
+      const result = await mergeHistoriccells(tempProject);
       
       expect(result.merged).toBe(1);
       expect(result.skipped).toBe(0);
@@ -1824,8 +1824,8 @@ describe("beads integration", () => {
       // Verify issues.jsonl was created
       expect(existsSync(issuesPath)).toBe(true);
       const content = readFileSync(issuesPath, "utf-8");
-      const bead = JSON.parse(content.trim());
-      expect(bead.id).toBe("bd-base");
+      const cell = JSON.parse(content.trim());
+      expect(cell.id).toBe("bd-base");
       
       // Cleanup
       rmSync(tempProject, { recursive: true, force: true });
@@ -1975,7 +1975,7 @@ describe("beads integration", () => {
       );
       const cell = parseResponse<Cell>(result);
       testCellId = cell.id;
-      createdBeadIds.push(testCellId);
+      createdcellIds.push(testCellId);
     });
 
     it("lists all cells with no filters", async () => {
@@ -2007,7 +2007,7 @@ describe("beads integration", () => {
         mockContext,
       );
       const bug = parseResponse<Cell>(bugResult);
-      createdBeadIds.push(bug.id);
+      createdcellIds.push(bug.id);
 
       const result = await hive_cells.execute({ type: "bug" }, mockContext);
       const cells = parseResponse<Cell[]>(result);
@@ -2089,7 +2089,7 @@ describe("beads integration", () => {
           mockContext,
         );
         const c = parseResponse<Cell>(r);
-        createdBeadIds.push(c.id);
+        createdcellIds.push(c.id);
       }
 
       const result = await hive_cells.execute(

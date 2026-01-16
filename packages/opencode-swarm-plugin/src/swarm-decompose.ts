@@ -40,17 +40,17 @@ const DECOMPOSITION_PROMPT = `You are decomposing a task into parallelizable sub
 
 {context_section}
 
-## MANDATORY: Beads Issue Tracking
+## MANDATORY: cells Issue Tracking
 
-**Every subtask MUST become a bead.** This is non-negotiable.
+**Every subtask MUST become a cell.** This is non-negotiable.
 
 After decomposition, the coordinator will:
-1. Create an epic bead for the overall task
+1. Create an epic cell for the overall task
 2. Create child cells for each subtask
-3. Track progress through bead status updates
+3. Track progress through cell status updates
 4. Close cells with summaries when complete
 
-Agents MUST update their bead status as they work. No silent progress.
+Agents MUST update their cell status as they work. No silent progress.
 
 ## Requirements
 
@@ -117,17 +117,17 @@ const STRATEGY_DECOMPOSITION_PROMPT = `You are decomposing a task into paralleli
 
 {skills_context}
 
-## MANDATORY: Beads Issue Tracking
+## MANDATORY: cells Issue Tracking
 
-**Every subtask MUST become a bead.** This is non-negotiable.
+**Every subtask MUST become a cell.** This is non-negotiable.
 
 After decomposition, the coordinator will:
-1. Create an epic bead for the overall task
+1. Create an epic cell for the overall task
 2. Create child cells for each subtask
-3. Track progress through bead status updates
+3. Track progress through cell status updates
 4. Close cells with summaries when complete
 
-Agents MUST update their bead status as they work. No silent progress.
+Agents MUST update their cell status as they work. No silent progress.
 
 ## Requirements
 
@@ -289,7 +289,7 @@ export function detectInstructionConflicts(
 }
 
 /**
- * Detect file conflicts in a bead tree
+ * Detect file conflicts in a cell tree
  *
  * @param subtasks - Array of subtasks with file assignments
  * @returns Array of files that appear in multiple subtasks
@@ -424,7 +424,7 @@ function formatCassHistoryForPrompt(history: CassSearchResult): string {
 // ============================================================================
 
 /**
- * Decompose a task into a bead tree
+ * Decompose a task into a cell tree
  *
  * This is a PROMPT tool - it returns a prompt for the agent to respond to.
  * The agent's response (JSON) should be validated with CellTreeSchema.
@@ -519,7 +519,7 @@ export const swarm_decompose = tool({
           ],
         },
         validation_note:
-          "Parse agent response as JSON and validate with CellTreeSchema from schemas/bead.ts",
+          "Parse agent response as JSON and validate with CellTreeSchema from schemas/cell.ts",
         cass_history: cassResultInfo,
         // Add semantic-memory query instruction
         memory_query: formatMemoryQueryForDecomposition(args.task, 3),

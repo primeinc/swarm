@@ -18,7 +18,7 @@ import { createHiveAdapter } from "./adapter.js";
 import { FlushManager } from "./flush-manager.js";
 import { parseJSONL } from "./jsonl.js";
 import {
-	beadsMigrationLibSQL,
+	cellsMigrationLibSQL,
 	cellsViewMigrationLibSQL,
 } from "./migrations.js";
 
@@ -88,8 +88,8 @@ describe("FlushManager", () => {
       )
     `);
 
-		// Run hive migrations directly (beads tables, cells view)
-		await db.exec(beadsMigrationLibSQL.up);
+		// Run hive migrations directly (cells tables, cells view)
+		await db.exec(cellsMigrationLibSQL.up);
 		await db.exec(cellsViewMigrationLibSQL.up);
 
 		adapter = createHiveAdapter(db, projectKey);

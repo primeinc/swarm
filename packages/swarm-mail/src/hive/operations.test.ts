@@ -15,7 +15,7 @@ import {
 	deleteCell,
 	getCell,
 	reopenCell,
-	searchBeads,
+	searchcells,
 	updateCell,
 } from "./operations.js";
 
@@ -29,8 +29,8 @@ describe("operations", () => {
 	});
 
 	describe("createCell", () => {
-		it("creates a bead with all fields", async () => {
-			const bead = await createCell(adapter, projectKey, {
+		it("creates a cell with all fields", async () => {
+			const cell = await createCell(adapter, projectKey, {
 				title: "Fix the bug",
 				type: "bug",
 				priority: 0,
@@ -39,27 +39,27 @@ describe("operations", () => {
 				created_by: "creator@example.com",
 			});
 
-			expect(bead).toBeDefined();
-			expect(bead.title).toBe("Fix the bug");
-			expect(bead.type).toBe("bug");
-			expect(bead.priority).toBe(0);
-			expect(bead.description).toBe("Details here");
-			expect(bead.assignee).toBe("user@example.com");
-			expect(bead.status).toBe("open");
+			expect(cell).toBeDefined();
+			expect(cell.title).toBe("Fix the bug");
+			expect(cell.type).toBe("bug");
+			expect(cell.priority).toBe(0);
+			expect(cell.description).toBe("Details here");
+			expect(cell.assignee).toBe("user@example.com");
+			expect(cell.status).toBe("open");
 		});
 
-		it("creates a bead with minimal fields", async () => {
-			const bead = await createCell(adapter, projectKey, {
+		it("creates a cell with minimal fields", async () => {
+			const cell = await createCell(adapter, projectKey, {
 				title: "Task",
 				type: "task",
 				priority: 2,
 			});
 
-			expect(bead.title).toBe("Task");
-			expect(bead.type).toBe("task");
-			expect(bead.priority).toBe(2);
-			expect(bead.description).toBeNull();
-			expect(bead.assignee).toBeNull();
+			expect(cell.title).toBe("Task");
+			expect(cell.type).toBe("task");
+			expect(cell.priority).toBe(2);
+			expect(cell.description).toBeNull();
+			expect(cell.assignee).toBeNull();
 		});
 
 		it("throws on empty title", async () => {
@@ -104,12 +104,12 @@ describe("operations", () => {
 	});
 
 	describe("getCell", () => {
-		it("returns null for non-existent bead", async () => {
-			const bead = await getCell(adapter, projectKey, "non-existent");
-			expect(bead).toBeNull();
+		it("returns null for non-existent cell", async () => {
+			const cell = await getCell(adapter, projectKey, "non-existent");
+			expect(cell).toBeNull();
 		});
 
-		it("returns bead by ID", async () => {
+		it("returns cell by ID", async () => {
 			const created = await createCell(adapter, projectKey, {
 				title: "Task",
 				type: "task",
@@ -210,17 +210,17 @@ describe("operations", () => {
 			).rejects.toThrow("priority must be between 0 and 4");
 		});
 
-		it("throws on non-existent bead", async () => {
+		it("throws on non-existent cell", async () => {
 			await expect(
 				updateCell(adapter, projectKey, "non-existent", {
 					title: "New title",
 				}),
-			).rejects.toThrow("Bead not found");
+			).rejects.toThrow("cell not found");
 		});
 	});
 
 	describe("closeCell", () => {
-		it("closes an open bead", async () => {
+		it("closes an open cell", async () => {
 			const created = await createCell(adapter, projectKey, {
 				title: "Task",
 				type: "task",
@@ -240,7 +240,7 @@ describe("operations", () => {
 			expect(closed.closed_reason).toBe("Done");
 		});
 
-		it("closes an in_progress bead", async () => {
+		it("closes an in_progress cell", async () => {
 			const created = await createCell(adapter, projectKey, {
 				title: "Task",
 				type: "task",
@@ -260,15 +260,15 @@ describe("operations", () => {
 			expect(closed.status).toBe("closed");
 		});
 
-		it("throws on non-existent bead", async () => {
+		it("throws on non-existent cell", async () => {
 			await expect(
 				closeCell(adapter, projectKey, "non-existent", "Done"),
-			).rejects.toThrow("Bead not found");
+			).rejects.toThrow("cell not found");
 		});
 	});
 
 	describe("reopenCell", () => {
-		it("reopens a closed bead", async () => {
+		it("reopens a closed cell", async () => {
 			const created = await createCell(adapter, projectKey, {
 				title: "Task",
 				type: "task",
@@ -286,15 +286,15 @@ describe("operations", () => {
 			expect(reopened.closed_reason).toBeNull();
 		});
 
-		it("throws on non-existent bead", async () => {
+		it("throws on non-existent cell", async () => {
 			await expect(
 				reopenCell(adapter, projectKey, "non-existent"),
-			).rejects.toThrow("Bead not found");
+			).rejects.toThrow("cell not found");
 		});
 	});
 
 	describe("deleteCell", () => {
-		it("deletes a bead (creates tombstone)", async () => {
+		it("deletes a cell (creates tombstone)", async () => {
 			const created = await createCell(adapter, projectKey, {
 				title: "Task",
 				type: "task",
@@ -309,19 +309,19 @@ describe("operations", () => {
 				"user@example.com",
 			);
 
-			// Bead should be tombstone
+			// cell should be tombstone
 			const fetched = await getCell(adapter, projectKey, created.id);
 			expect(fetched).toBeNull(); // tombstones excluded by default
 		});
 
-		it("throws on non-existent bead", async () => {
+		it("throws on non-existent cell", async () => {
 			await expect(
 				deleteCell(adapter, projectKey, "non-existent", "Gone"),
-			).rejects.toThrow("Bead not found");
+			).rejects.toThrow("cell not found");
 		});
 	});
 
-	describe("searchBeads", () => {
+	describe("searchcells", () => {
 		it("searches by title", async () => {
 			await createCell(adapter, projectKey, {
 				title: "Fix authentication bug",
@@ -335,7 +335,7 @@ describe("operations", () => {
 				priority: 2,
 			});
 
-			const results = await searchBeads(adapter, projectKey, "authentication");
+			const results = await searchcells(adapter, projectKey, "authentication");
 
 			expect(results.length).toBe(1);
 			expect(results[0].title).toBe("Fix authentication bug");
@@ -348,31 +348,31 @@ describe("operations", () => {
 				priority: 2,
 			});
 
-			const results = await searchBeads(adapter, projectKey, "nonexistent");
+			const results = await searchcells(adapter, projectKey, "nonexistent");
 			expect(results).toEqual([]);
 		});
 
 		it("filters by status", async () => {
-			const bead1 = await createCell(adapter, projectKey, {
+			const cell1 = await createCell(adapter, projectKey, {
 				title: "Open task",
 				type: "task",
 				priority: 2,
 			});
 
-			const bead2 = await createCell(adapter, projectKey, {
+			const cell2 = await createCell(adapter, projectKey, {
 				title: "Closed task",
 				type: "task",
 				priority: 2,
 			});
 
-			await closeCell(adapter, projectKey, bead2.id, "Done");
+			await closeCell(adapter, projectKey, cell2.id, "Done");
 
-			const results = await searchBeads(adapter, projectKey, "task", {
+			const results = await searchcells(adapter, projectKey, "task", {
 				status: "open",
 			});
 
 			expect(results.length).toBe(1);
-			expect(results[0].id).toBe(bead1.id);
+			expect(results[0].id).toBe(cell1.id);
 		});
 
 		it("filters by type", async () => {
@@ -388,7 +388,7 @@ describe("operations", () => {
 				priority: 2,
 			});
 
-			const results = await searchBeads(adapter, projectKey, "", {
+			const results = await searchcells(adapter, projectKey, "", {
 				type: "bug",
 			});
 
@@ -411,7 +411,7 @@ describe("operations", () => {
 			expect(dirtyCells).toContain(cell.id);
 		});
 
-		it("syncs created cell to JSONL via exportDirtyBeads", async () => {
+		it("syncs created cell to JSONL via exportDirtycells", async () => {
 			// Create a cell
 			const cell = await createCell(adapter, projectKey, {
 				title: "Test sync",
@@ -420,11 +420,11 @@ describe("operations", () => {
 				description: "Should appear in JSONL",
 			});
 
-			// Import exportDirtyBeads
-			const { exportDirtyBeads } = await import("./jsonl.js");
+			// Import exportDirtycells
+			const { exportDirtycells } = await import("./jsonl.js");
 
-			// Export dirty beads to JSONL
-			const { jsonl, cellIds } = await exportDirtyBeads(adapter, projectKey);
+			// Export dirty cells to JSONL
+			const { jsonl, cellIds } = await exportDirtycells(adapter, projectKey);
 
 			// Should have exported the cell
 			expect(cellIds).toContain(cell.id);
@@ -449,8 +449,8 @@ describe("operations", () => {
 			});
 
 			// Import and export first time
-			const { exportDirtyBeads } = await import("./jsonl.js");
-			await exportDirtyBeads(adapter, projectKey);
+			const { exportDirtycells } = await import("./jsonl.js");
+			await exportDirtycells(adapter, projectKey);
 
 			// Clear dirty flag
 			await adapter.clearDirty(projectKey, cell.id);
@@ -465,7 +465,7 @@ describe("operations", () => {
 			expect(dirtyCells).toContain(cell.id);
 
 			// Export should include the updated cell
-			const { jsonl } = await exportDirtyBeads(adapter, projectKey);
+			const { jsonl } = await exportDirtycells(adapter, projectKey);
 			expect(jsonl).toContain("Updated");
 			expect(jsonl).not.toContain("Original");
 		});
@@ -481,8 +481,8 @@ describe("operations", () => {
 			await closeCell(adapter, projectKey, cell.id, "Done");
 
 			// Export
-			const { exportDirtyBeads } = await import("./jsonl.js");
-			const { jsonl } = await exportDirtyBeads(adapter, projectKey);
+			const { exportDirtycells } = await import("./jsonl.js");
+			const { jsonl } = await exportDirtycells(adapter, projectKey);
 
 			// Parse and verify status
 			const { parseJSONL } = await import("./jsonl.js");

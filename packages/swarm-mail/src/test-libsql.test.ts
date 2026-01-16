@@ -26,8 +26,8 @@ describe("createTestLibSQLDb", () => {
 		expect(tableNames).toContain("reservations");
 
 		// Check hive tables
-		expect(tableNames).toContain("beads");
-		expect(tableNames).toContain("bead_dependencies");
+		expect(tableNames).toContain("cells");
+		expect(tableNames).toContain("cell_dependencies");
 
 		// Check memory tables
 		expect(tableNames).toContain("memories");
@@ -77,11 +77,11 @@ describe("createTestLibSQLDb", () => {
 describe("convertPlaceholders", () => {
 	test("converts PostgreSQL $N to SQLite ?", () => {
 		const result = convertPlaceholders(
-			"SELECT * FROM beads WHERE id = $1 AND status = $2",
+			"SELECT * FROM cells WHERE id = $1 AND status = $2",
 			["bd-123", "open"],
 		);
 
-		expect(result.sql).toBe("SELECT * FROM beads WHERE id = ? AND status = ?");
+		expect(result.sql).toBe("SELECT * FROM cells WHERE id = ? AND status = ?");
 		expect(result.params).toEqual(["bd-123", "open"]);
 	});
 

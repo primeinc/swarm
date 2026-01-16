@@ -265,7 +265,7 @@ Track pattern outcomes to accumulate success/failure counts:
 recordPatternObservation(
   pattern,
   success: true,  // or false
-  beadId: "bd-123.1",
+  cellId: "bd-123.1",
 )
 
 // Returns:
@@ -344,7 +344,7 @@ type ErrorType =
 
 ```typescript
 errorAccumulator.recordError(
-  beadId: "bd-123.1",
+  cellId: "bd-123.1",
   errorType: "validation",
   message: "Type error in src/auth.ts",
   options: {
@@ -361,7 +361,7 @@ Format accumulated errors for retry prompts:
 
 ```typescript
 const context = await errorAccumulator.getErrorContext(
-  beadId: "bd-123.1",
+  cellId: "bd-123.1",
   includeResolved: false,
 )
 ```
@@ -592,7 +592,7 @@ Persist feedback events for criterion weight calculation:
 interface FeedbackStorage {
   store(event: FeedbackEvent): Promise<void>;
   getByCriterion(criterion: string): Promise<FeedbackEvent[]>;
-  getByBead(beadId: string): Promise<FeedbackEvent[]>;
+  getBycell(cellId: string): Promise<FeedbackEvent[]>;
   getAll(): Promise<FeedbackEvent[]>;
 }
 ```
@@ -604,8 +604,8 @@ Persist errors for retry prompts:
 ```typescript
 interface ErrorStorage {
   store(entry: ErrorEntry): Promise<void>;
-  getByBead(beadId: string): Promise<ErrorEntry[]>;
-  getUnresolvedByBead(beadId: string): Promise<ErrorEntry[]>;
+  getBycell(cellId: string): Promise<ErrorEntry[]>;
+  getUnresolvedBycell(cellId: string): Promise<ErrorEntry[]>;
   markResolved(id: string): Promise<void>;
   getAll(): Promise<ErrorEntry[]>;
 }

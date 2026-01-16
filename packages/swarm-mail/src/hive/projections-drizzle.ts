@@ -16,11 +16,11 @@
 import { and, eq, inArray } from "drizzle-orm";
 import type { SwarmDb } from "../db/client.js";
 import {
-	beadComments,
-	beadDependencies,
-	beadLabels,
-	beads,
-	dirtyBeads,
+	cellComments,
+	cellDependencies,
+	cellLabels,
+	cells,
+	dirtycells,
 } from "../db/schema/hive.js";
 
 // ============================================================================
@@ -51,22 +51,22 @@ export async function updateProjectionsDrizzle(
 ): Promise<void> {
 	switch (event.type) {
 		case "cell_created":
-			await handleBeadCreatedDrizzle(db, event);
+			await handlecellCreatedDrizzle(db, event);
 			break;
 		case "cell_updated":
-			await handleBeadUpdatedDrizzle(db, event);
+			await handlecellUpdatedDrizzle(db, event);
 			break;
 		case "cell_status_changed":
 			await handleCellStatusChangedDrizzle(db, event);
 			break;
 		case "cell_closed":
-			await handleBeadClosedDrizzle(db, event);
+			await handlecellClosedDrizzle(db, event);
 			break;
 		case "cell_reopened":
-			await handleBeadReopenedDrizzle(db, event);
+			await handlecellReopenedDrizzle(db, event);
 			break;
 		case "cell_deleted":
-			await handleBeadDeletedDrizzle(db, event);
+			await handlecellDeletedDrizzle(db, event);
 			break;
 		case "cell_dependency_added":
 			await handleDependencyAddedDrizzle(db, event);
@@ -96,38 +96,38 @@ export async function updateProjectionsDrizzle(
 			await handleEpicChildRemovedDrizzle(db, event);
 			break;
 		case "cell_assigned":
-			await handleBeadAssignedDrizzle(db, event);
+			await handlecellAssignedDrizzle(db, event);
 			break;
 		case "cell_work_started":
 			await handleWorkStartedDrizzle(db, event);
 			break;
 		default:
-			console.warn(`[beads/projections] Unknown event type: ${event.type}`);
+			console.warn(`[cells/projections] Unknown event type: ${event.type}`);
 	}
 
-	// Mark bead as dirty for JSONL export
-	await markBeadDirtyDrizzle(db, event.project_key, event.cell_id);
+	// Mark cell as dirty for JSONL export
+	await markcellDirtyDrizzle(db, event.project_key, event.cell_id);
 }
 
 // ============================================================================
 // Event Handlers - Individual handlers for each event type
 // ============================================================================
 
-async function handleBeadCreatedDrizzle(
+async function handlecellCreatedDrizzle(
 	db: SwarmDb,
 	event: CellEvent,
 ): Promise<void> {
-	// GUARD: Validate bead ID is not null/empty
+	// GUARD: Validate cell ID is not null/empty
 	// This prevents the root cause of NULL ID records from migration failures
 	if (!event.cell_id || event.cell_id.trim() === "") {
 		throw new Error(
-			`[Hive] Bead ID cannot be null or empty. ` +
-				`Attempted to create bead with title="${event.title}" in project="${event.project_key}". ` +
-				`This indicates a bug in ID generation (generateBeadId).`,
+			`[Hive] cell ID cannot be null or empty. ` +
+				`Attempted to create cell with title="${event.title}" in project="${event.project_key}". ` +
+				`This indicates a bug in ID generation (generatecellId).`,
 		);
 	}
 
-	await db.insert(beads).values({
+	await db.insert(cells).values({
 		id: event.cell_id,
 		project_key: event.project_key,
 		type: event.issue_type as string,
@@ -148,7 +148,7 @@ async function handleBeadCreatedDrizzle(
 	});
 }
 
-async function handleBeadUpdatedDrizzle(
+async function handlecellUpdatedDrizzle(
 	db: SwarmDb,
 	event: CellEvent,
 ): Promise<void> {
@@ -156,7 +156,7 @@ async function handleBeadUpdatedDrizzle(
 		string,
 		{ old: unknown; new: unknown }
 	>;
-	const updates: Partial<typeof beads.$inferInsert> = {};
+	const updates: Partial<typeof cells.$inferInsert> = {};
 
 	if (changes.title) {
 		updates.title = changes.title.new as string;
@@ -174,7 +174,7 @@ async function handleBeadUpdatedDrizzle(
 	if (Object.keys(updates).length > 0) {
 		updates.updated_at = event.timestamp;
 
-		await db.update(beads).set(updates).where(eq(beads.id, event.cell_id));
+		await db.update(cells).set(updates).where(eq(cells.id, event.cell_id));
 	}
 }
 
@@ -183,7 +183,7 @@ async function handleCellStatusChangedDrizzle(
 	event: CellEvent,
 ): Promise<void> {
 	const toStatus = event.to_status as string;
-	const updates: Partial<typeof beads.$inferInsert> = {
+	const updates: Partial<typeof cells.$inferInsert> = {
 		status: toStatus,
 		updated_at: event.timestamp,
 	};
@@ -199,58 +199,58 @@ async function handleCellStatusChangedDrizzle(
 		updates.closed_reason = null;
 	}
 
-	await db.update(beads).set(updates).where(eq(beads.id, event.cell_id));
+	await db.update(cells).set(updates).where(eq(cells.id, event.cell_id));
 }
 
-async function handleBeadClosedDrizzle(
+async function handlecellClosedDrizzle(
 	db: SwarmDb,
 	event: CellEvent,
 ): Promise<void> {
 	await db
-		.update(beads)
+		.update(cells)
 		.set({
 			status: "closed",
 			closed_at: event.timestamp,
 			closed_reason: event.reason as string,
 			updated_at: event.timestamp,
 		})
-		.where(eq(beads.id, event.cell_id));
+		.where(eq(cells.id, event.cell_id));
 
-	// Invalidate blocked cache for dependents (beads that were blocked by this one)
+	// Invalidate blocked cache for dependents (cells that were blocked by this one)
 	const { invalidateBlockedCacheDrizzle } = await import(
 		"./dependencies-drizzle.js"
 	);
 	await invalidateBlockedCacheDrizzle(db, event.project_key, event.cell_id);
 }
 
-async function handleBeadReopenedDrizzle(
+async function handlecellReopenedDrizzle(
 	db: SwarmDb,
 	event: CellEvent,
 ): Promise<void> {
 	await db
-		.update(beads)
+		.update(cells)
 		.set({
 			status: "open",
 			closed_at: null,
 			closed_reason: null,
 			updated_at: event.timestamp,
 		})
-		.where(eq(beads.id, event.cell_id));
+		.where(eq(cells.id, event.cell_id));
 }
 
-async function handleBeadDeletedDrizzle(
+async function handlecellDeletedDrizzle(
 	db: SwarmDb,
 	event: CellEvent,
 ): Promise<void> {
 	await db
-		.update(beads)
+		.update(cells)
 		.set({
 			deleted_at: event.timestamp,
 			deleted_by: (event.deleted_by as string | null | undefined) ?? null,
 			delete_reason: (event.reason as string | null | undefined) ?? null,
 			updated_at: event.timestamp,
 		})
-		.where(eq(beads.id, event.cell_id));
+		.where(eq(cells.id, event.cell_id));
 }
 
 async function handleDependencyAddedDrizzle(
@@ -260,7 +260,7 @@ async function handleDependencyAddedDrizzle(
 	const dep = event.dependency as { target: string; type: string };
 
 	await db
-		.insert(beadDependencies)
+		.insert(cellDependencies)
 		.values({
 			cell_id: event.cell_id,
 			depends_on_id: dep.target,
@@ -284,12 +284,12 @@ async function handleDependencyRemovedDrizzle(
 	const dep = event.dependency as { target: string; type: string };
 
 	await db
-		.delete(beadDependencies)
+		.delete(cellDependencies)
 		.where(
 			and(
-				eq(beadDependencies.cell_id, event.cell_id),
-				eq(beadDependencies.depends_on_id, dep.target),
-				eq(beadDependencies.relationship, dep.type),
+				eq(cellDependencies.cell_id, event.cell_id),
+				eq(cellDependencies.depends_on_id, dep.target),
+				eq(cellDependencies.relationship, dep.type),
 			),
 		);
 
@@ -305,7 +305,7 @@ async function handleLabelAddedDrizzle(
 	event: CellEvent,
 ): Promise<void> {
 	await db
-		.insert(beadLabels)
+		.insert(cellLabels)
 		.values({
 			cell_id: event.cell_id,
 			label: event.label as string,
@@ -319,11 +319,11 @@ async function handleLabelRemovedDrizzle(
 	event: CellEvent,
 ): Promise<void> {
 	await db
-		.delete(beadLabels)
+		.delete(cellLabels)
 		.where(
 			and(
-				eq(beadLabels.cell_id, event.cell_id),
-				eq(beadLabels.label, event.label as string),
+				eq(cellLabels.cell_id, event.cell_id),
+				eq(cellLabels.label, event.label as string),
 			),
 		);
 }
@@ -332,7 +332,7 @@ async function handleCommentAddedDrizzle(
 	db: SwarmDb,
 	event: CellEvent,
 ): Promise<void> {
-	await db.insert(beadComments).values({
+	await db.insert(cellComments).values({
 		cell_id: event.cell_id,
 		author: event.author as string,
 		body: event.body as string,
@@ -347,12 +347,12 @@ async function handleCommentUpdatedDrizzle(
 	event: CellEvent,
 ): Promise<void> {
 	await db
-		.update(beadComments)
+		.update(cellComments)
 		.set({
 			body: event.new_body as string,
 			updated_at: event.timestamp,
 		})
-		.where(eq(beadComments.id, event.comment_id as number));
+		.where(eq(cellComments.id, event.comment_id as number));
 }
 
 async function handleCommentDeletedDrizzle(
@@ -360,49 +360,49 @@ async function handleCommentDeletedDrizzle(
 	event: CellEvent,
 ): Promise<void> {
 	await db
-		.delete(beadComments)
-		.where(eq(beadComments.id, event.comment_id as number));
+		.delete(cellComments)
+		.where(eq(cellComments.id, event.comment_id as number));
 }
 
 async function handleEpicChildAddedDrizzle(
 	db: SwarmDb,
 	event: CellEvent,
 ): Promise<void> {
-	// Update parent_id on child bead
+	// Update parent_id on child cell
 	await db
-		.update(beads)
+		.update(cells)
 		.set({
 			parent_id: event.cell_id,
 			updated_at: event.timestamp,
 		})
-		.where(eq(beads.id, event.child_id as string));
+		.where(eq(cells.id, event.child_id as string));
 }
 
 async function handleEpicChildRemovedDrizzle(
 	db: SwarmDb,
 	event: CellEvent,
 ): Promise<void> {
-	// Clear parent_id on child bead
+	// Clear parent_id on child cell
 	await db
-		.update(beads)
+		.update(cells)
 		.set({
 			parent_id: null,
 			updated_at: event.timestamp,
 		})
-		.where(eq(beads.id, event.child_id as string));
+		.where(eq(cells.id, event.child_id as string));
 }
 
-async function handleBeadAssignedDrizzle(
+async function handlecellAssignedDrizzle(
 	db: SwarmDb,
 	event: CellEvent,
 ): Promise<void> {
 	await db
-		.update(beads)
+		.update(cells)
 		.set({
 			assignee: event.assignee as string,
 			updated_at: event.timestamp,
 		})
-		.where(eq(beads.id, event.cell_id));
+		.where(eq(cells.id, event.cell_id));
 }
 
 async function handleWorkStartedDrizzle(
@@ -410,12 +410,12 @@ async function handleWorkStartedDrizzle(
 	event: CellEvent,
 ): Promise<void> {
 	await db
-		.update(beads)
+		.update(cells)
 		.set({
 			status: "in_progress",
 			updated_at: event.timestamp,
 		})
-		.where(eq(beads.id, event.cell_id));
+		.where(eq(cells.id, event.cell_id));
 }
 
 // ============================================================================
@@ -423,21 +423,21 @@ async function handleWorkStartedDrizzle(
 // ============================================================================
 
 /**
- * Mark bead as dirty for JSONL export using Drizzle
+ * Mark cell as dirty for JSONL export using Drizzle
  */
-export async function markBeadDirtyDrizzle(
+export async function markcellDirtyDrizzle(
 	db: SwarmDb,
 	projectKey: string,
 	cellId: string,
 ): Promise<void> {
 	await db
-		.insert(dirtyBeads)
+		.insert(dirtycells)
 		.values({
 			cell_id: cellId,
 			marked_at: Date.now(),
 		})
 		.onConflictDoUpdate({
-			target: dirtyBeads.cell_id,
+			target: dirtycells.cell_id,
 			set: {
 				marked_at: Date.now(),
 			},
@@ -447,32 +447,32 @@ export async function markBeadDirtyDrizzle(
 /**
  * Clear dirty flag after export using Drizzle
  */
-export async function clearDirtyBeadDrizzle(
+export async function clearDirtycellDrizzle(
 	db: SwarmDb,
 	projectKey: string,
 	cellId: string,
 ): Promise<void> {
-	await db.delete(dirtyBeads).where(eq(dirtyBeads.cell_id, cellId));
+	await db.delete(dirtycells).where(eq(dirtycells.cell_id, cellId));
 }
 
 /**
  * Clear all dirty flags using Drizzle
  */
-export async function clearAllDirtyBeadsDrizzle(
+export async function clearAllDirtycellsDrizzle(
 	db: SwarmDb,
 	projectKey: string,
 ): Promise<void> {
 	// Get all cell IDs for the project
-	const cells = await db
-		.select({ id: beads.id })
-		.from(beads)
-		.where(eq(beads.project_key, projectKey));
+	const projectCells = await db
+		.select({ id: cells.id })
+		.from(cells)
+		.where(eq(cells.project_key, projectKey));
 
-	const cellIds = cells.map((c) => c.id);
+	const cellIds = projectCells.map((c: any) => c.id);
 
 	if (cellIds.length === 0) {
 		return;
 	}
 
-	await db.delete(dirtyBeads).where(inArray(dirtyBeads.cell_id, cellIds));
+	await db.delete(dirtycells).where(inArray(dirtycells.cell_id, cellIds));
 }

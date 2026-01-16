@@ -742,7 +742,7 @@ Add tests to existing structure.
 - [ ] `bin/commands/doctor.test.ts`
 - [ ] `bin/commands/init.ts` - Initialize swarm in project
 - [ ] `bin/commands/init.test.ts`
-- [ ] `bin/commands/migrate.ts` - PGLite→libSQL, beads→hive migrations
+- [ ] `bin/commands/migrate.ts` - PGLite→libSQL, cells→hive migrations
 - [ ] `bin/commands/migrate.test.ts`
 
 #### Database Commands

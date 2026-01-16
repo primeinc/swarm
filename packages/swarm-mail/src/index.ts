@@ -366,7 +366,7 @@ export type { SessionViewerOpts } from "./sessions/session-viewer";
 export { viewSessionLine } from "./sessions/session-viewer";
 
 // ============================================================================
-// Legacy Hive Schema Migration (issues → beads)
+// Legacy Hive Schema Migration (issues → cells)
 // ============================================================================
 
 export {

@@ -1,13 +1,13 @@
-# Git Sync and Distributed Coordination Analysis: steveyegge/beads
+# Git Sync and Distributed Coordination Analysis: steveyegge/cells
 
 **Date:** 2025-12-15  
-**Bead:** opencode-swarm-plugin-5cvcc.4  
+**cell:** opencode-swarm-plugin-5cvcc.4  
 **Epic:** opencode-swarm-plugin-5cvcc  
-**Repository:** https://github.com/steveyegge/beads
+**Repository:** https://github.com/steveyegge/cells
 
 ## Executive Summary
 
-steveyegge/beads achieves distributed sync via git using:
+steveyegge/cells achieves distributed sync via git using:
 1. **JSONL append-only format** with incremental dirty tracking
 2. **Field-level 3-way merge** algorithm (vendored from @neongreen)
 3. **Content-based hash IDs** with collision-resistant adaptive scaling
@@ -92,12 +92,12 @@ CREATE TABLE dirty_issues (
 
 **Configured during `bd init`:**
 ```bash
-git config merge.beads.driver "bd merge %A %O %A %B"
-git config merge.beads.name "bd JSONL merge driver"
-echo ".beads/issues.jsonl merge=beads" >> .gitattributes
+git config merge.cells.driver "bd merge %A %O %A %B"
+git config merge.cells.name "bd JSONL merge driver"
+echo ".cells/issues.jsonl merge=cells" >> .gitattributes
 ```
 
-**Algorithm (from @neongreen/beads-merge, vendored into bd):**
+**Algorithm (from @neongreen/cells-merge, vendored into bd):**
 
 ```
 merge3Way(base, left, right):
@@ -199,7 +199,7 @@ Where N = 36^length (alphanumeric: [a-z0-9])
 
 ### Architectural Differences
 
-**beads (current):**
+**cells (current):**
 ```
 SQLite (source of truth)
    ↓
@@ -227,25 +227,25 @@ git (sync medium)
 
 **1. What would JSONL represent?**
 - **Option A:** Export projection snapshots (issues table)
-  - Pros: Same schema as beads, compatible merge driver
+  - Pros: Same schema as cells, compatible merge driver
   - Cons: Loses event history, not true event sourcing
 - **Option B:** Export raw events (event_log entries)
   - Pros: Full history preserved
   - Cons: Merge conflicts nightmarish (event reordering, causality)
 
 **2. How to handle distributed event ordering?**
-- **beads approach:** Timestamps + deterministic merge rules
+- **cells approach:** Timestamps + deterministic merge rules
 - **event sourcing approach:** Vector clocks? Lamport timestamps? Hybrid logical clocks?
 - **Problem:** Git merge doesn't understand causality
 
 **3. Incremental export from event store?**
-- **beads:** Dirty tracking table + `marked_at` timestamp
+- **cells:** Dirty tracking table + `marked_at` timestamp
 - **event sourcing:** Cursor/watermark on event_log?
   - `SELECT * FROM event_log WHERE id > last_exported_id`
   - Store cursor in metadata table
 
 **4. Conflict resolution for events?**
-- **beads:** Field-level 3-way merge on snapshots
+- **cells:** Field-level 3-way merge on snapshots
 - **event sourcing:** Can't merge events - must resolve at projection level
   - Export projections, not events?
   - Or accept out-of-order events and rebuild projections?
@@ -254,7 +254,7 @@ git (sync medium)
 
 **✅ Can work IF:**
 - Export projection snapshots (issues table), not raw events
-- Use same JSONL schema and merge driver as beads
+- Use same JSONL schema and merge driver as cells
 - Event store is local-only (not synced via git)
 - Git syncs projection state, not event log
 
@@ -277,13 +277,13 @@ git (sync medium)
 ┌─────────────────────────────────────┐
 │  Materialized Projections           │
 │  - issues table (snapshot)          │
-│  - dirty tracking (like beads)      │
+│  - dirty tracking (like cells)      │
 └─────────────────────────────────────┘
            ↓ (export)
 ┌─────────────────────────────────────┐
 │  JSONL Snapshot (git-friendly)      │
-│  - Same schema as beads             │
-│  - Uses beads merge driver          │
+│  - Same schema as cells             │
+│  - Uses cells merge driver          │
 └─────────────────────────────────────┘
            ↓ (sync)
 ┌─────────────────────────────────────┐
@@ -295,8 +295,8 @@ git (sync medium)
 
 **Benefits:**
 - Local event sourcing for audit/replay
-- Git-friendly snapshot sync (proven by beads)
-- Compatible with existing beads merge driver
+- Git-friendly snapshot sync (proven by cells)
+- Compatible with existing cells merge driver
 - No distributed event log complexity
 
 **Trade-offs:**
@@ -308,10 +308,10 @@ git (sync medium)
 
 ### For opencode-swarm-plugin
 
-**If adopting beads' git sync:**
+**If adopting cells' git sync:**
 
 1. **Reuse merge driver:** Vendor `internal/merge/merge.go` (MIT licensed)
-2. **JSONL schema:** Match beads format for compatibility
+2. **JSONL schema:** Match cells format for compatibility
 3. **Dirty tracking:** Implement in PGLite:
    ```sql
    CREATE TABLE dirty_issues (
@@ -344,13 +344,13 @@ const issuesProjection = eventStore.project('issues', (event) => {
 // Export projection as JSONL
 const dirtyIssues = await issuesProjection.getDirty();
 const jsonl = dirtyIssues.map(issue => JSON.stringify(issue)).join('\n');
-await fs.writeFile('.beads/issues.jsonl', jsonl);
+await fs.writeFile('.cells/issues.jsonl', jsonl);
 ```
 
 **Import updates event log:**
 ```typescript
 // Import JSONL snapshot
-const issues = parseJSONL(await fs.readFile('.beads/issues.jsonl'));
+const issues = parseJSONL(await fs.readFile('.cells/issues.jsonl'));
 
 // Generate "imported" events
 for (const issue of issues) {
@@ -384,7 +384,7 @@ const issues = await issuesProjection.get(affectedIssueIds);
 
 ## 6. Conclusion
 
-**beads' git sync is production-ready and battle-tested.** Key strengths:
+**cells' git sync is production-ready and battle-tested.** Key strengths:
 - Simple JSONL format (git-friendly, human-readable)
 - Robust merge driver (field-level 3-way merge)
 - Collision-resistant hash IDs (adaptive scaling)
@@ -393,16 +393,16 @@ const issues = await issuesProjection.get(affectedIssueIds);
 **For event sourcing compatibility:**
 - Export projections, not events
 - Treat JSONL as snapshot sync, event log as local audit trail
-- Reuse beads merge driver and JSONL schema
+- Reuse cells merge driver and JSONL schema
 - Accept event history doesn't sync (rebuild from JSONL on import)
 
-**This is the right architecture.** Don't reinvent git sync - adopt beads' proven approach.
+**This is the right architecture.** Don't reinvent git sync - adopt cells' proven approach.
 
 ---
 
 ## References
 
-- **Repository:** https://github.com/steveyegge/beads
+- **Repository:** https://github.com/steveyegge/cells
 - **Merge algorithm:** `internal/merge/merge.go` (MIT license, @neongreen)
 - **Docs:** `docs/GIT_INTEGRATION.md`, `docs/INTERNALS.md`, `docs/COLLISION_MATH.md`
 - **License:** MIT - vendoring permitted with attribution

@@ -596,7 +596,7 @@ async function testActiveCellTracking(): Promise<TestResult> {
 		// Use case: Next agent knows exactly which cell to resume
 		
 		const windowsNotes = [
-			'active_cell_id links session to specific task/bead',
+			'active_cell_id links session to specific task/cell',
 			'Enables resuming work on specific cell',
 			'Stored in session metadata',
 			'Useful for coordinator to track which agent works on what',

@@ -1076,7 +1076,7 @@ describe("Enhanced SwarmCheckpointedEvent", () => {
 	const baseCheckpoint = {
 		project_key: "/test",
 		epic_id: "epic-123",
-		cell_id: "bead-456",
+		cell_id: "cell-456",
 		strategy: "file-based" as const,
 		files: ["a.ts"],
 		dependencies: [],
@@ -1156,7 +1156,7 @@ describe("Enhanced SwarmRecoveredEvent", () => {
 	const baseRecovery = {
 		project_key: "/test",
 		epic_id: "epic-123",
-		cell_id: "bead-456",
+		cell_id: "cell-456",
 		recovered_from_checkpoint: Date.now() - 60000,
 	};
 
@@ -1206,7 +1206,7 @@ describe("CheckpointCreatedEvent", () => {
 		const event = createEvent("checkpoint_created", {
 			project_key: "/test",
 			epic_id: "epic-123",
-			cell_id: "bead-456",
+			cell_id: "cell-456",
 			agent_name: "TestAgent",
 			checkpoint_id: "ckpt-789",
 			trigger: "manual",
@@ -1233,7 +1233,7 @@ describe("CheckpointCreatedEvent", () => {
 				createEvent("checkpoint_created", {
 					project_key: "/test",
 					epic_id: "epic-123",
-					cell_id: "bead-456",
+					cell_id: "cell-456",
 					agent_name: "TestAgent",
 					checkpoint_id: "ckpt-789",
 					trigger,
@@ -1251,7 +1251,7 @@ describe("CheckpointCreatedEvent", () => {
 				project_key: "/test",
 				timestamp: Date.now(),
 				epic_id: "epic-123",
-				cell_id: "bead-456",
+				cell_id: "cell-456",
 				agent_name: "TestAgent",
 				checkpoint_id: "ckpt-789",
 				trigger: "invalid",
@@ -1265,7 +1265,7 @@ describe("CheckpointCreatedEvent", () => {
 		const base = {
 			project_key: "/test",
 			epic_id: "epic-123",
-			cell_id: "bead-456",
+			cell_id: "cell-456",
 			agent_name: "TestAgent",
 			checkpoint_id: "ckpt-789",
 			trigger: "auto" as const,
@@ -1328,7 +1328,7 @@ describe("ContextCompactedEvent", () => {
 		const event = createEvent("context_compacted", {
 			project_key: "/test",
 			epic_id: "epic-123",
-			cell_id: "bead-456",
+			cell_id: "cell-456",
 			agent_name: "TestAgent",
 			tokens_before: 60000,
 			tokens_after: 30000,
@@ -1337,7 +1337,7 @@ describe("ContextCompactedEvent", () => {
 		});
 
 		expect(event.epic_id).toBe("epic-123");
-		expect(event.cell_id).toBe("bead-456");
+		expect(event.cell_id).toBe("cell-456");
 	});
 
 	it("validates tokens are non-negative", () => {

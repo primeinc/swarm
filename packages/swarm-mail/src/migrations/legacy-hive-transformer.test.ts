@@ -16,10 +16,10 @@
  * - `dependencies` table with issue_id references
  *
  * **New Schema (in global swarm.db):**
- * - `beads` table with epoch milliseconds timestamps (BIGINT)
+ * - `cells` table with epoch milliseconds timestamps (BIGINT)
  * - Requires project_key, has created_by, deleted_at fields
  * - `cell_events` table with cell_id reference
- * - `bead_dependencies` table with cell_id references
+ * - `cell_dependencies` table with cell_id references
  *
  * ## Test Strategy
  * These are unit tests for the transformation functions. Integration tests for the

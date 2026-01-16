@@ -21,9 +21,9 @@ const BANNERS = {
 │  Event-Sourced Agent Coordination   │
 └─────────────────────────────────────┘
 `,
-	beads: `
+	cells: `
 ┌─────────────────────────────────────┐
-│  🔮  BEADS                          │
+│  🔮  cellS                          │
 │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │
 │  Git-Backed Issue Tracking          │
 └─────────────────────────────────────┘
@@ -47,7 +47,7 @@ const BANNERS = {
 │                     SWARM TOOLS STACK                       │
 ├─────────────────────────────────────────────────────────────┤
 │  TIER 3: ORCHESTRATION                                      │
-│  └── OpenCode Plugin (beads, swarm, skills, learning)      │
+│  └── OpenCode Plugin (cells, swarm, skills, learning)      │
 │                                                             │
 │  TIER 2: COORDINATION                                       │
 │  ├── DurableMailbox - Actor inbox with typed envelopes     │

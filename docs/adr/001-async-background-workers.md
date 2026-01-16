@@ -245,7 +245,7 @@ IMPORTANT: Each worker gets its own git worktree for file isolation.`,
     dependencies: z
       .array(z.string())
       .optional()
-      .describe("Bead IDs that must complete first"),
+      .describe("cell IDs that must complete first"),
     shared_context: z
       .string()
       .optional()
@@ -469,7 +469,7 @@ Checks both swarm-mail events AND OpenCode session status.`,
 
     for (const worker of epicWorkers) {
       const sessionId = worker.session_id;
-      const beadId = worker.cell_id;
+      const cellId = worker.cell_id;
 
       // Check if we have a completion event
       const completionEvent = completedEvents.find(
@@ -486,7 +486,7 @@ Checks both swarm-mail events AND OpenCode session status.`,
 
         results[status].push({
           session_id: sessionId,
-          cell_id: beadId,
+          cell_id: cellId,
           status,
           summary: completionEvent.summary || completionEvent.error,
           files_touched: completionEvent.files_touched,
@@ -507,7 +507,7 @@ Checks both swarm-mail events AND OpenCode session status.`,
           // Mark as completed but flag for review
           results.completed.push({
             session_id: sessionId,
-            cell_id: beadId,
+            cell_id: cellId,
             status: "completed",
             summary: "Session idle (no explicit completion)",
             needs_review: true,
@@ -516,7 +516,7 @@ Checks both swarm-mail events AND OpenCode session status.`,
           // Still running
           results.in_progress.push({
             session_id: sessionId,
-            cell_id: beadId,
+            cell_id: cellId,
             status: "in_progress",
             started_at: worker.timestamp,
           });
@@ -525,7 +525,7 @@ Checks both swarm-mail events AND OpenCode session status.`,
         // Session may not exist anymore
         results.failed.push({
           session_id: sessionId,
-          cell_id: beadId,
+          cell_id: cellId,
           status: "failed",
           error: `Session not found: ${error}`,
         });
@@ -638,7 +638,7 @@ async execute(args, ctx) {
     type: "worker_completed",
     session_id: getCurrentSessionId(), // Need to track this
     cell_id: args.cell_id,
-    epic_id: await getEpicIdForBead(args.cell_id),
+    epic_id: await getEpicIdForcell(args.cell_id),
     status: verificationPassed ? "success" : "failed",
     summary: args.summary,
     files_touched: args.files_touched || [],

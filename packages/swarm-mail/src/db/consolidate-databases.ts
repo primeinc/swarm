@@ -174,7 +174,7 @@ function detectSchemaVersion(tables: string[]): SchemaVersion {
 		tableSet.has("messages")
 	)
 		return "modern";
-	if (tableSet.has("bead_events")) return "legacy";
+	if (tableSet.has("cell_events")) return "legacy";
 	return "unknown";
 }
 
@@ -193,14 +193,14 @@ const TABLE_COLUMNS: Record<string, string> = {
 		"project_key, agent_name, path_pattern, exclusive, reason, created_at, expires_at, released_at, lock_holder_id",
 	cursors: "stream, checkpoint, position, updated_at",
 	locks: "resource, holder, seq, acquired_at, expires_at",
-	beads:
+	cells:
 		"project_key, type, status, title, description, priority, parent_id, assignee, created_at, updated_at, closed_at, closed_reason, deleted_at, deleted_by, delete_reason, created_by",
-	bead_dependencies:
+	cell_dependencies:
 		"cell_id, depends_on_id, relationship, created_at, created_by",
-	bead_labels: "cell_id, label, created_at",
-	bead_comments: "cell_id, author, body, parent_id, created_at, updated_at",
-	blocked_beads_cache: "cell_id, blocker_ids, updated_at",
-	dirty_beads: "cell_id, marked_at",
+	cell_labels: "cell_id, label, created_at",
+	cell_comments: "cell_id, author, body, parent_id, created_at, updated_at",
+	blocked_cells_cache: "cell_id, blocker_ids, updated_at",
+	dirty_cells: "cell_id, marked_at",
 	eval_records:
 		"project_key, task, context, strategy, epic_title, subtasks, outcomes, overall_success, total_duration_ms, total_errors, human_accepted, human_modified, human_notes, file_overlap_count, scope_accuracy, time_balance_ratio, created_at, updated_at",
 	swarm_contexts:

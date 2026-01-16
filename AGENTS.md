@@ -81,7 +81,7 @@ await adapter.closeCell(cellId, "Done");
 
 ### Why Single Database?
 
-1. **No stray data** - All events, beads, messages in one place
+1. **No stray data** - All events, cells, messages in one place
 2. **Cross-project visibility** - `swarm stats` shows everything
 3. **Simpler debugging** - One database to inspect
 4. **No migration headaches** - Data doesn't get lost in project-local DBs
@@ -428,7 +428,7 @@ We use bee/hive metaphors consistently across the project. This isn't just brand
 **Naming rules:**
 - New features should fit the hive/swarm metaphor when possible
 - Avoid generic names (tasks, issues, tickets) - use the domain language
-- CLI commands: `swarm`, `hive` (not `beads`, `tasks`)
+- CLI commands: `swarm`, `hive` (not `cells`, `tasks`)
 - Tool prefixes: `hive_*`, `swarm_*`, `swarmmail_*`
 
 **Why bees?**
@@ -448,7 +448,7 @@ Event sourcing primitives for multi-agent coordination:
 - `Projections` - materialized views (agents, messages, reservations)
 - Effect-TS durable primitives (mailbox, cursor, lock, deferred)
 - `DatabaseAdapter` interface for dependency injection
-- **Hive** - git-synced work item tracking (formerly "beads")
+- **Hive** - git-synced work item tracking (formerly "cells")
 
 **Database:** Uses libSQL (SQLite-compatible) as the primary database. PGLite support exists only for migrating legacy databases.
 
@@ -633,14 +633,14 @@ Cell IDs finally know where they came from. Instead of anonymous `bd-xxx` prefix
 new cells proudly display their project name: `swarm-mail-lf2p4u-abc123`.
 
 **What changed:**
-- `generateBeadId()` reads `package.json` name field
+- `generatecellId()` reads `package.json` name field
 - Slugifies project name (lowercase, dashes for special chars)
 - Falls back to `cell-` prefix if no package.json
 
 **Why it matters:**
 - Cells identifiable at a glance in multi-project workspaces
 - Easier filtering/searching across projects
-- Removes legacy "bead" terminology from user-facing IDs
+- Removes legacy "cell" terminology from user-facing IDs
 
 **Backward compatible:** Existing `bd-*` IDs still work fine.
 ```

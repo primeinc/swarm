@@ -246,7 +246,7 @@ async function getSubtaskFilesOwned(
 			return null;
 		}
 
-		// Extract subtask index from subtask ID (e.g., "bd-abc123.0" -> 0)
+		// Extract subtask index from subtask ID (e.g., "cell-abc123.0" -> 0)
 		// Subtask IDs follow pattern: epicId.index
 		const subtaskMatch = subtaskId.match(/\.(\d+)$/);
 		if (!subtaskMatch) {

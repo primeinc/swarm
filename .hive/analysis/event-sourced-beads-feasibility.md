@@ -1,4 +1,4 @@
-# Engineering Design Review: Event-Sourced Beads with Effect-TS
+# Engineering Design Review: Event-Sourced cells with Effect-TS
 
 **Date:** 2025-12-15  
 **Epic:** opencode-swarm-plugin-5cvcc  
@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-**Question:** How crazy would it be to rebuild steveyegge/beads using Effect-TS durable streams and event sourcing?
+**Question:** How crazy would it be to rebuild steveyegge/cells using Effect-TS durable streams and event sourcing?
 
 **Answer:** Not crazy at all. **Recommended: Hybrid approach with 75% infrastructure reuse.**
 
@@ -27,20 +27,20 @@
 ### Current State
 
 We have two separate systems:
-1. **steveyegge/beads** (Go) - Battle-tested issue tracker with git sync
+1. **steveyegge/cells** (Go) - Battle-tested issue tracker with git sync
 2. **swarm-mail** (TypeScript/Effect) - Event sourcing primitives for agent coordination
 
 ### Desired State
 
 A unified TypeScript implementation that:
-- Maintains beads' proven git sync mechanism
+- Maintains cells' proven git sync mechanism
 - Leverages swarm-mail's event sourcing infrastructure
-- Integrates with our existing `beads_*` plugin tools
-- Enables learning from bead lifecycle patterns
+- Integrates with our existing `cells_*` plugin tools
+- Enables learning from cell lifecycle patterns
 
 ### Why Event Sourcing?
 
-| Benefit | Value for Beads |
+| Benefit | Value for cells |
 |---------|-----------------|
 | **Full audit trail** | Debug distributed swarm operations |
 | **Time travel** | Reconstruct historical state for analysis |
@@ -52,11 +52,11 @@ A unified TypeScript implementation that:
 
 ## 2. Architecture Analysis
 
-### 2.1 steveyegge/beads Architecture
+### 2.1 steveyegge/cells Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    steveyegge/beads                          │
+│                    steveyegge/cells                          │
 ├─────────────────────────────────────────────────────────────┤
 │  CLI (bd)                                                    │
 │    └── 50+ subcommands                                       │
@@ -80,7 +80,7 @@ A unified TypeScript implementation that:
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**Key Insight:** beads is **NOT event-sourced**. It's hybrid CRUD + event audit trail.
+**Key Insight:** cells is **NOT event-sourced**. It's hybrid CRUD + event audit trail.
 - Events are for audit only, not replayed for state reconstruction
 - Current state lives in mutable `issues` table
 - JSONL exports snapshots, not events
@@ -120,27 +120,27 @@ A unified TypeScript implementation that:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                 Event-Sourced Beads                          │
+│                 Event-Sourced cells                          │
 ├─────────────────────────────────────────────────────────────┤
-│  Plugin Tools (beads_*)                                      │
+│  Plugin Tools (cells_*)                                      │
 │    └── Existing API preserved                                │
 ├─────────────────────────────────────────────────────────────┤
 │  Event Store (swarm-mail)                                    │
-│    ├── BeadEvent types (20 event types)                      │
+│    ├── cellEvent types (20 event types)                      │
 │    ├── Append-only log (local audit trail)                   │
 │    └── NOT synced via git                                    │
 ├─────────────────────────────────────────────────────────────┤
 │  Projections (swarm-mail pattern)                            │
-│    ├── beads table (current state)                           │
-│    ├── bead_dependencies table                               │
-│    ├── bead_labels table                                     │
-│    ├── bead_comments table                                   │
-│    ├── blocked_beads_cache (derived)                         │
-│    └── dirty_beads table (change tracking)                   │
+│    ├── cells table (current state)                           │
+│    ├── cell_dependencies table                               │
+│    ├── cell_labels table                                     │
+│    ├── cell_comments table                                   │
+│    ├── blocked_cells_cache (derived)                         │
+│    └── dirty_cells table (change tracking)                   │
 ├─────────────────────────────────────────────────────────────┤
-│  Git Sync (beads pattern)                                    │
+│  Git Sync (cells pattern)                                    │
 │    ├── JSONL export FROM PROJECTIONS                         │
-│    ├── Reuse beads merge driver (MIT)                        │
+│    ├── Reuse cells merge driver (MIT)                        │
 │    └── Hash-based IDs                                        │
 ├─────────────────────────────────────────────────────────────┤
 │  Effect-TS Primitives                                        │
@@ -152,9 +152,9 @@ A unified TypeScript implementation that:
 **Key Design Decisions:**
 
 1. **Events stay local** - Not synced via git (too complex)
-2. **JSONL exports projections** - Same format as beads for merge driver compatibility
+2. **JSONL exports projections** - Same format as cells for merge driver compatibility
 3. **Hybrid model** - Events for audit/learning, projections for queries
-4. **Reuse beads merge driver** - MIT licensed, battle-tested
+4. **Reuse cells merge driver** - MIT licensed, battle-tested
 
 ---
 
@@ -164,17 +164,17 @@ A unified TypeScript implementation that:
 
 | Component | Reuse | Notes |
 |-----------|-------|-------|
-| Event Store | 80% | Add bead event types |
+| Event Store | 80% | Add cell event types |
 | Projection Pattern | 95% | Add new `updateMaterializedViews` cases |
 | DatabaseAdapter | 100% | Perfect as-is |
 | DurableCursor | 90% | For replay and incremental sync |
 | DurableLock | 90% | **CRITICAL** for concurrent updates |
 | DurableMailbox | 30% | Over-engineered for CRUD |
 | DurableDeferred | 20% | Not needed |
-| Migrations | 100% | Add bead tables |
+| Migrations | 100% | Add cell tables |
 | LRU Cache | 100% | Multi-repo support |
 
-### 3.2 From steveyegge/beads (vendor/port)
+### 3.2 From steveyegge/cells (vendor/port)
 
 | Component | Action | License |
 |-----------|--------|---------|
@@ -189,8 +189,8 @@ A unified TypeScript implementation that:
 
 | Component | Effort | Priority |
 |-----------|--------|----------|
-| Bead event types | ✅ Done | - |
-| Bead projections | 2-3 days | P0 |
+| cell event types | ✅ Done | - |
+| cell projections | 2-3 days | P0 |
 | Dirty tracking | 1 day | P0 |
 | JSONL export | 2 days | P0 |
 | JSONL import | 2 days | P0 |
@@ -206,49 +206,49 @@ A unified TypeScript implementation that:
 
 ### 4.1 Event Types (20 total)
 
-**Already implemented** in `src/schemas/bead-events.ts`:
+**Already implemented** in `src/schemas/cell-events.ts`:
 
 ```typescript
-type BeadEvent =
+type cellEvent =
   // Lifecycle (6)
-  | BeadCreatedEvent
-  | BeadUpdatedEvent
-  | BeadStatusChangedEvent
-  | BeadClosedEvent
-  | BeadReopenedEvent
-  | BeadDeletedEvent
+  | cellCreatedEvent
+  | cellUpdatedEvent
+  | cellStatusChangedEvent
+  | cellClosedEvent
+  | cellReopenedEvent
+  | cellDeletedEvent
   
   // Dependencies (2)
-  | BeadDependencyAddedEvent
-  | BeadDependencyRemovedEvent
+  | cellDependencyAddedEvent
+  | cellDependencyRemovedEvent
   
   // Labels (2)
-  | BeadLabelAddedEvent
-  | BeadLabelRemovedEvent
+  | cellLabelAddedEvent
+  | cellLabelRemovedEvent
   
   // Comments (3)
-  | BeadCommentAddedEvent
-  | BeadCommentUpdatedEvent
-  | BeadCommentDeletedEvent
+  | cellCommentAddedEvent
+  | cellCommentUpdatedEvent
+  | cellCommentDeletedEvent
   
   // Epic (3)
-  | BeadEpicChildAddedEvent
-  | BeadEpicChildRemovedEvent
-  | BeadEpicClosureEligibleEvent
+  | cellEpicChildAddedEvent
+  | cellEpicChildRemovedEvent
+  | cellEpicClosureEligibleEvent
   
   // Swarm Integration (2)
-  | BeadAssignedEvent
-  | BeadWorkStartedEvent
+  | cellAssignedEvent
+  | cellWorkStartedEvent
   
   // Maintenance (1)
-  | BeadCompactedEvent
+  | cellCompactedEvent
 ```
 
 ### 4.2 Projection Schema
 
 ```sql
--- Migration v5: Bead projections
-CREATE TABLE beads (
+-- Migration v5: cell projections
+CREATE TABLE cells (
   id TEXT PRIMARY KEY,
   project_key TEXT NOT NULL,
   type TEXT NOT NULL CHECK (type IN ('bug', 'feature', 'task', 'epic', 'chore')),
@@ -256,7 +256,7 @@ CREATE TABLE beads (
   title TEXT NOT NULL,
   description TEXT,
   priority INTEGER NOT NULL DEFAULT 2 CHECK (priority BETWEEN 0 AND 3),
-  parent_id TEXT REFERENCES beads(id),
+  parent_id TEXT REFERENCES cells(id),
   created_at BIGINT NOT NULL,
   updated_at BIGINT NOT NULL,
   closed_at BIGINT,
@@ -265,47 +265,47 @@ CREATE TABLE beads (
   CONSTRAINT valid_parent CHECK (parent_id IS NULL OR parent_id != id)
 );
 
-CREATE INDEX idx_beads_project ON beads(project_key);
-CREATE INDEX idx_beads_status ON beads(status) WHERE status != 'closed';
-CREATE INDEX idx_beads_parent ON beads(parent_id) WHERE parent_id IS NOT NULL;
-CREATE INDEX idx_beads_priority ON beads(priority, created_at);
+CREATE INDEX idx_cells_project ON cells(project_key);
+CREATE INDEX idx_cells_status ON cells(status) WHERE status != 'closed';
+CREATE INDEX idx_cells_parent ON cells(parent_id) WHERE parent_id IS NOT NULL;
+CREATE INDEX idx_cells_priority ON cells(priority, created_at);
 
-CREATE TABLE bead_dependencies (
-  cell_id TEXT NOT NULL REFERENCES beads(id) ON DELETE CASCADE,
-  depends_on_id TEXT NOT NULL REFERENCES beads(id) ON DELETE CASCADE,
+CREATE TABLE cell_dependencies (
+  cell_id TEXT NOT NULL REFERENCES cells(id) ON DELETE CASCADE,
+  depends_on_id TEXT NOT NULL REFERENCES cells(id) ON DELETE CASCADE,
   relationship TEXT NOT NULL CHECK (relationship IN ('blocks', 'blocked-by', 'related', 'discovered-from')),
   created_at BIGINT NOT NULL,
   created_by TEXT,
   PRIMARY KEY (cell_id, depends_on_id, relationship)
 );
 
-CREATE TABLE bead_labels (
-  cell_id TEXT NOT NULL REFERENCES beads(id) ON DELETE CASCADE,
+CREATE TABLE cell_labels (
+  cell_id TEXT NOT NULL REFERENCES cells(id) ON DELETE CASCADE,
   label TEXT NOT NULL,
   created_at BIGINT NOT NULL,
   PRIMARY KEY (cell_id, label)
 );
 
-CREATE TABLE bead_comments (
+CREATE TABLE cell_comments (
   id SERIAL PRIMARY KEY,
-  cell_id TEXT NOT NULL REFERENCES beads(id) ON DELETE CASCADE,
+  cell_id TEXT NOT NULL REFERENCES cells(id) ON DELETE CASCADE,
   author TEXT NOT NULL,
   body TEXT NOT NULL,
-  parent_id INTEGER REFERENCES bead_comments(id),
+  parent_id INTEGER REFERENCES cell_comments(id),
   created_at BIGINT NOT NULL,
   updated_at BIGINT
 );
 
-CREATE INDEX idx_bead_comments_bead ON bead_comments(cell_id, created_at);
+CREATE INDEX idx_cell_comments_cell ON cell_comments(cell_id, created_at);
 
 -- Derived views
-CREATE TABLE blocked_beads_cache (
-  cell_id TEXT PRIMARY KEY REFERENCES beads(id) ON DELETE CASCADE,
-  blocker_ids TEXT[] NOT NULL,  -- Array of blocking bead IDs
+CREATE TABLE blocked_cells_cache (
+  cell_id TEXT PRIMARY KEY REFERENCES cells(id) ON DELETE CASCADE,
+  blocker_ids TEXT[] NOT NULL,  -- Array of blocking cell IDs
   updated_at BIGINT NOT NULL
 );
 
-CREATE TABLE dirty_beads (
+CREATE TABLE dirty_cells (
   cell_id TEXT PRIMARY KEY,
   marked_at BIGINT NOT NULL
 );
@@ -322,11 +322,11 @@ Event Appended
     ↓
 updateMaterializedViews() [inline, same tx]
     ↓
-Mark bead dirty (INSERT INTO dirty_beads)
+Mark cell dirty (INSERT INTO dirty_cells)
     ↓
 FlushManager debounce (30s)
     ↓
-Export dirty beads to JSONL
+Export dirty cells to JSONL
     ↓
 Clear dirty flags
     ↓
@@ -345,23 +345,23 @@ For each issue:
   - ID exists? Update projection
   - New ID? Insert projection
     ↓
-Emit "bead_imported" events (for audit)
+Emit "cell_imported" events (for audit)
     ↓
-Rebuild blocked_beads_cache
+Rebuild blocked_cells_cache
 ```
 
 ### 5.3 Merge Driver Integration
 
 ```bash
 # .gitattributes
-.beads/issues.jsonl merge=beads
+.cells/issues.jsonl merge=cells
 
 # git config (set during init)
-git config merge.beads.driver "npx swarm-beads merge %A %O %A %B"
-git config merge.beads.name "swarm-beads JSONL merge driver"
+git config merge.cells.driver "npx swarm-cells merge %A %O %A %B"
+git config merge.cells.name "swarm-cells JSONL merge driver"
 ```
 
-**Merge driver implementation:** Port beads' Go merge driver to TypeScript or shell out to `bd merge` if installed.
+**Merge driver implementation:** Port cells' Go merge driver to TypeScript or shell out to `bd merge` if installed.
 
 ---
 
@@ -381,7 +381,7 @@ git config merge.beads.name "swarm-beads JSONL merge driver"
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
-| Breaking existing beads_* tools | Medium | High | Adapter layer, gradual migration |
+| Breaking existing cells_* tools | Medium | High | Adapter layer, gradual migration |
 | Data loss during migration | Low | Critical | Backup, dry-run mode |
 | Git history pollution | Low | Low | Single migration commit |
 
@@ -399,9 +399,9 @@ git config merge.beads.name "swarm-beads JSONL merge driver"
 
 ### Phase 1: Foundation (Week 1)
 
-- [ ] Add bead projections migration (v5)
-- [ ] Implement `updateMaterializedViews` for bead events
-- [ ] Port dirty tracking from beads
+- [ ] Add cell projections migration (v5)
+- [ ] Implement `updateMaterializedViews` for cell events
+- [ ] Port dirty tracking from cells
 - [ ] Basic JSONL export from projections
 
 ### Phase 2: Git Sync (Week 2)
@@ -420,7 +420,7 @@ git config merge.beads.name "swarm-beads JSONL merge driver"
 
 ### Phase 4: Plugin Migration (Week 4)
 
-- [ ] Migrate beads_* tools to new backend
+- [ ] Migrate cells_* tools to new backend
 - [ ] Backward compatibility layer
 - [ ] Integration tests
 - [ ] Documentation
@@ -430,7 +430,7 @@ git config merge.beads.name "swarm-beads JSONL merge driver"
 - [ ] Performance optimization
 - [ ] Error handling
 - [ ] Monitoring/observability
-- [ ] Migration tooling for existing .beads data
+- [ ] Migration tooling for existing .cells data
 
 ---
 
@@ -443,18 +443,18 @@ git config merge.beads.name "swarm-beads JSONL merge driver"
 **Why rejected:**
 - Merge conflicts become nightmarish (event reordering)
 - Git doesn't understand causality
-- Beads' proven approach works better
+- cells' proven approach works better
 
 ### 8.2 Keep Separate Systems (Rejected)
 
-**Approach:** Don't integrate, keep beads Go CLI separate.
+**Approach:** Don't integrate, keep cells Go CLI separate.
 
 **Why rejected:**
 - Duplicated infrastructure
-- No learning from bead patterns
+- No learning from cell patterns
 - Context switching between tools
 
-### 8.3 Fork steveyegge/beads (Considered)
+### 8.3 Fork steveyegge/cells (Considered)
 
 **Approach:** Fork and modify Go implementation.
 
@@ -465,7 +465,7 @@ git config merge.beads.name "swarm-beads JSONL merge driver"
 
 ### 8.4 Hybrid Approach (Selected)
 
-**Approach:** TypeScript rewrite using swarm-mail primitives, beads patterns.
+**Approach:** TypeScript rewrite using swarm-mail primitives, cells patterns.
 
 **Why selected:**
 - Best of both worlds
@@ -479,10 +479,10 @@ git config merge.beads.name "swarm-beads JSONL merge driver"
 
 ### MVP (4 weeks)
 
-- [ ] All beads_* plugin tools work with new backend
+- [ ] All cells_* plugin tools work with new backend
 - [ ] Git sync works (export, import, merge)
 - [ ] Ready work and blocked queries functional
-- [ ] No data loss from existing .beads directories
+- [ ] No data loss from existing .cells directories
 
 ### Full Parity (6 weeks)
 
@@ -494,8 +494,8 @@ git config merge.beads.name "swarm-beads JSONL merge driver"
 ### Stretch Goals
 
 - [ ] Real-time sync via Agent Mail
-- [ ] Web UI for bead visualization
-- [ ] AI-powered bead suggestions
+- [ ] Web UI for cell visualization
+- [ ] AI-powered cell suggestions
 
 ---
 
@@ -512,7 +512,7 @@ The hybrid approach is sound:
 ### Next Steps
 
 1. **Approve this EDR** - Stakeholder sign-off
-2. **Create implementation epic** - Break into beads (meta!)
+2. **Create implementation epic** - Break into cells (meta!)
 3. **Start Phase 1** - Foundation work
 4. **Weekly check-ins** - Track progress, adjust scope
 
@@ -522,13 +522,13 @@ The hybrid approach is sound:
 
 | Document | Location |
 |----------|----------|
-| Git Sync Analysis | `.beads/analysis/git-sync-distributed-coordination.md` |
-| Bead Event Schemas | `packages/opencode-swarm-plugin/src/schemas/bead-events.ts` |
-| Bead Event Tests | `packages/opencode-swarm-plugin/src/schemas/bead-events.test.ts` |
+| Git Sync Analysis | `.cells/analysis/git-sync-distributed-coordination.md` |
+| cell Event Schemas | `packages/opencode-swarm-plugin/src/schemas/cell-events.ts` |
+| cell Event Tests | `packages/opencode-swarm-plugin/src/schemas/cell-events.test.ts` |
 
 ## Appendix B: Reference Implementation
 
-### steveyegge/beads Key Files
+### steveyegge/cells Key Files
 
 | File | Purpose |
 |------|---------|
@@ -551,11 +551,11 @@ The hybrid approach is sound:
 
 | Term | Definition |
 |------|------------|
-| **Bead** | An issue/task in the tracker |
-| **Epic** | A bead with child beads |
+| **cell** | An issue/task in the tracker |
+| **Epic** | A cell with child cells |
 | **Projection** | Materialized view derived from events |
 | **JSONL** | JSON Lines format (one object per line) |
-| **Dirty tracking** | Recording which beads changed since last export |
+| **Dirty tracking** | Recording which cells changed since last export |
 | **Hash ID** | Content-based identifier (e.g., `bd-a3f2dd`) |
 | **DurableCursor** | Checkpointed event stream reader |
 | **DurableLock** | Distributed mutex via CAS |

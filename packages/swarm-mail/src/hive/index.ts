@@ -1,5 +1,5 @@
 /**
- * Beads Module - Event-sourced issue tracking
+ * cells Module - Event-sourced issue tracking
  *
  * Exports:
  * - HiveAdapter interface and types
@@ -8,22 +8,22 @@
  * - Store operations (append, read, replay)
  * - Event type definitions
  *
- * @module beads
+ * @module cells
  */
 
 // Types
 export type {
 	// Backward compatibility aliases
-	Bead,
-	BeadAdapter,
-	BeadComment,
-	BeadDependency,
-	BeadLabel,
-	BeadStatus,
-	BeadsAdapter,
-	BeadsAdapterFactory,
-	BeadsSchemaAdapter,
-	BeadType,
+	cell,
+	cellAdapter,
+	cellComment,
+	cellDependency,
+	cellLabel,
+	cellStatus,
+	cellsAdapter,
+	cellsAdapterFactory,
+	cellsSchemaAdapter,
+	cellType,
 	Cell,
 	CellAdapter,
 	CellComment,
@@ -32,7 +32,7 @@ export type {
 	CellStatus,
 	CellType,
 	CommentAdapter,
-	CreateBeadOptions,
+	CreatecellOptions,
 	CreateCellOptions,
 	DependencyAdapter,
 	DependencyRelationship,
@@ -42,16 +42,16 @@ export type {
 	HiveSchemaAdapter,
 	LabelAdapter,
 	QueryAdapter,
-	QueryBeadsOptions,
+	QuerycellsOptions,
 	QueryCellsOptions,
-	UpdateBeadOptions,
+	UpdatecellOptions,
 	UpdateCellOptions,
 } from "../types/hive-adapter.js";
 // Adapter factory
 // Backward compatibility alias
 export {
 	createHiveAdapter,
-	createHiveAdapter as createBeadsAdapter,
+	createHiveAdapter as createcellsAdapter,
 } from "./adapter.js";
 // Comment operations
 export {
@@ -63,7 +63,7 @@ export {
 	getOpenBlockers,
 	invalidateBlockedCache,
 	rebuildAllBlockedCaches,
-	rebuildBeadBlockedCache,
+	rebuildcellBlockedCache,
 	wouldCreateCycle,
 } from "./dependencies.js";
 // Event types
@@ -101,7 +101,7 @@ export {
 	type CellExport,
 	computeContentHash,
 	type ExportOptions,
-	exportDirtyBeads,
+	exportDirtycells,
 	exportToJSONL,
 	type ImportOptions,
 	type ImportResult,
@@ -131,15 +131,15 @@ export {
 } from "./merge.js";
 // Migrations
 export {
-	beadsMigration,
-	beadsMigrations,
+	cellsMigration,
+	cellsMigrations,
 	cellsViewMigration,
 	hiveMigrations,
 } from "./migrations.js";
 // Projections
 export {
-	clearAllDirtyBeads,
-	clearDirtyBead,
+	clearAllDirtycells,
+	clearDirtycell,
 	getBlockedCells,
 	getBlockers,
 	getCell,
@@ -151,7 +151,7 @@ export {
 	getLabels,
 	getNextReadyCell,
 	isBlocked,
-	markBeadDirty,
+	markcellDirty,
 	queryCells,
 	updateProjections,
 } from "./projections.js";

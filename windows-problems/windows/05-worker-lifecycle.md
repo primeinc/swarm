@@ -607,7 +607,7 @@ async function safeProgress(params: ProgressParams, retries = 3): Promise<void> 
 **Required:**
 - `project_key: string` - Project path (Windows absolute)
 - `agent_name: string` - Worker agent name
-- `cell_id: string` - Task bead ID
+- `cell_id: string` - Task cell ID
 - `status: "in_progress" | "blocked" | "completed" | "failed"`
 
 **Optional:**
@@ -621,7 +621,7 @@ async function safeProgress(params: ProgressParams, retries = 3): Promise<void> 
 **Required:**
 - `project_key: string` - Project path
 - `agent_name: string` - Worker agent name
-- `cell_id: string` - Task bead ID
+- `cell_id: string` - Task cell ID
 - `summary: string` - What was accomplished
 
 **Optional:**
@@ -633,7 +633,7 @@ async function safeProgress(params: ProgressParams, retries = 3): Promise<void> 
 ### swarm_spawn_subtask
 
 **Required (Coordinator Only):**
-- `cell_id: string` - Subtask bead ID
+- `cell_id: string` - Subtask cell ID
 - `epic_id: string` - Parent epic ID
 - `subtask_title: string` - Short description
 - `files: string[]` - Assigned files (Windows paths)
@@ -647,7 +647,7 @@ async function safeProgress(params: ProgressParams, retries = 3): Promise<void> 
 ### swarm_complete_subtask
 
 **Required (Coordinator Only):**
-- `cell_id: string` - Subtask bead ID
+- `cell_id: string` - Subtask cell ID
 - `task_result: string` - Full worker output
 
 **Optional:**

@@ -1,13 +1,13 @@
 /**
  * Dependency Graph Operations
  *
- * Provides dependency management with cycle detection and blocked bead tracking.
+ * Provides dependency management with cycle detection and blocked cell tracking.
  *
  * ## Dependency Types
  * - **blocks**: Hard dependency - target must be closed before source can start
  * - **blocked-by**: Inverse of blocks (computed, not stored)
  * - **related**: Soft relationship - doesn't affect ready state
- * - **discovered-from**: Tracking relationship - found while working on another bead
+ * - **discovered-from**: Tracking relationship - found while working on another cell
  *
  * ## Cycle Prevention
  * All dependency types are checked for cycles to maintain a DAG (Directed Acyclic Graph).
@@ -16,9 +16,9 @@
  * - Dependency traversal doesn't loop
  * - Semantic clarity (no circular dependencies)
  *
- * Reference: steveyegge/beads/internal/storage/sqlite/dependencies.go
+ * Reference: steveyegge/cells/internal/storage/sqlite/dependencies.go
  *
- * @module beads/dependencies
+ * @module cells/dependencies
  */
 
 import type { DatabaseAdapter } from "../types/database.js";
@@ -44,7 +44,7 @@ export async function wouldCreateCycle(
          cell_id,
          depends_on_id,
          1 as depth
-       FROM bead_dependencies
+       FROM cell_dependencies
        WHERE cell_id = $2
        
        UNION
@@ -54,7 +54,7 @@ export async function wouldCreateCycle(
          bd.cell_id,
          bd.depends_on_id,
          p.depth + 1
-       FROM bead_dependencies bd
+       FROM cell_dependencies bd
        JOIN paths p ON bd.cell_id = p.depends_on_id
        WHERE p.depth < $3
      )
@@ -66,9 +66,9 @@ export async function wouldCreateCycle(
 }
 
 /**
- * Get all open blockers for a bead (including transitive)
+ * Get all open blockers for a cell (including transitive)
  *
- * Returns bead IDs of all beads blocking this one that aren't closed.
+ * Returns cell IDs of all cells blocking this one that aren't closed.
  * Only considers "blocks" relationship type.
  */
 export async function getOpenBlockers(
@@ -80,21 +80,21 @@ export async function getOpenBlockers(
 		`WITH RECURSIVE blockers AS (
        -- Direct blockers
        SELECT depends_on_id as blocker_id, 1 as depth
-       FROM bead_dependencies
+       FROM cell_dependencies
        WHERE cell_id = $1 AND relationship = 'blocks'
        
        UNION
        
        -- Transitive blockers
        SELECT bd.depends_on_id, b.depth + 1
-       FROM bead_dependencies bd
+       FROM cell_dependencies bd
        JOIN blockers b ON bd.cell_id = b.blocker_id
        WHERE bd.relationship = 'blocks' AND b.depth < $3
      )
      SELECT DISTINCT b.blocker_id
      FROM blockers b
-     JOIN beads bead ON b.blocker_id = bead.id
-     WHERE bead.project_key = $2 AND bead.status != 'closed' AND bead.deleted_at IS NULL`,
+     JOIN cells cell ON b.blocker_id = cell.id
+     WHERE cell.project_key = $2 AND cell.status != 'closed' AND cell.deleted_at IS NULL`,
 		[cellId, projectKey, MAX_DEPENDENCY_DEPTH],
 	);
 
@@ -102,12 +102,12 @@ export async function getOpenBlockers(
 }
 
 /**
- * Rebuild blocked cache for a specific bead
+ * Rebuild blocked cache for a specific cell
  *
  * Finds all open blockers and updates the cache.
- * If no open blockers, removes from cache (bead is unblocked).
+ * If no open blockers, removes from cache (cell is unblocked).
  */
-export async function rebuildBeadBlockedCache(
+export async function rebuildcellBlockedCache(
 	db: DatabaseAdapter,
 	projectKey: string,
 	cellId: string,
@@ -119,7 +119,7 @@ export async function rebuildBeadBlockedCache(
 		// SQLite: serialize array as JSON string
 		const blockerIdsJson = JSON.stringify(blockerIds);
 		await db.query(
-			`INSERT INTO blocked_beads_cache (cell_id, blocker_ids, updated_at)
+			`INSERT INTO blocked_cells_cache (cell_id, blocker_ids, updated_at)
        VALUES ($1, $2, $3)
        ON CONFLICT (cell_id) 
        DO UPDATE SET blocker_ids = $2, updated_at = $3`,
@@ -127,14 +127,14 @@ export async function rebuildBeadBlockedCache(
 		);
 	} else {
 		// No open blockers - remove from cache
-		await db.query(`DELETE FROM blocked_beads_cache WHERE cell_id = $1`, [
+		await db.query(`DELETE FROM blocked_cells_cache WHERE cell_id = $1`, [
 			cellId,
 		]);
 	}
 }
 
 /**
- * Rebuild blocked cache for all beads in a project
+ * Rebuild blocked cache for all cells in a project
  *
  * Used after bulk operations or status changes that affect blocking.
  */
@@ -142,24 +142,24 @@ export async function rebuildAllBlockedCaches(
 	db: DatabaseAdapter,
 	projectKey: string,
 ): Promise<void> {
-	// Get all beads with blocking dependencies
+	// Get all cells with blocking dependencies
 	const result = await db.query<{ id: string }>(
-		`SELECT DISTINCT b.id FROM beads b
-     JOIN bead_dependencies bd ON b.id = bd.cell_id
+		`SELECT DISTINCT b.id FROM cells b
+     JOIN cell_dependencies bd ON b.id = bd.cell_id
      WHERE b.project_key = $1 AND bd.relationship = 'blocks' AND b.deleted_at IS NULL`,
 		[projectKey],
 	);
 
-	// Rebuild cache for each bead
+	// Rebuild cache for each cell
 	for (const row of result.rows) {
-		await rebuildBeadBlockedCache(db, projectKey, row.id);
+		await rebuildcellBlockedCache(db, projectKey, row.id);
 	}
 }
 
 /**
  * Invalidate blocked cache when dependencies change
  *
- * Marks beads as needing cache rebuild.
+ * Marks cells as needing cache rebuild.
  * In this simple implementation, we just rebuild immediately.
  */
 export async function invalidateBlockedCache(
@@ -167,15 +167,15 @@ export async function invalidateBlockedCache(
 	projectKey: string,
 	cellId: string,
 ): Promise<void> {
-	await rebuildBeadBlockedCache(db, projectKey, cellId);
+	await rebuildcellBlockedCache(db, projectKey, cellId);
 
-	// Also invalidate dependents (beads that depend on this one)
+	// Also invalidate dependents (cells that depend on this one)
 	const dependents = await db.query<{ cell_id: string }>(
-		`SELECT cell_id FROM bead_dependencies WHERE depends_on_id = $1`,
+		`SELECT cell_id FROM cell_dependencies WHERE depends_on_id = $1`,
 		[cellId],
 	);
 
 	for (const row of dependents.rows) {
-		await rebuildBeadBlockedCache(db, projectKey, row.cell_id);
+		await rebuildcellBlockedCache(db, projectKey, row.cell_id);
 	}
 }

@@ -469,7 +469,7 @@ Bun.serve({
 // vscode-extension/src/extension.ts
 import * as vscode from "vscode";
 import { getSwarmMailLibSQL } from "swarm-mail";
-import { getHiveAdapter } from "@joelhooks/beads";
+import { getHiveAdapter } from "@joelhooks/cells";
 
 export function activate(context: vscode.ExtensionContext) {
   const swarmProvider = new SwarmTreeDataProvider();

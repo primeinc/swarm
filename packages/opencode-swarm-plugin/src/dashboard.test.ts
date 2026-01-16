@@ -320,13 +320,13 @@ describe("Dashboard Data Layer - RED Phase", () => {
 			const result = await getSubtaskProgress(testProjectPath, "epic-1");
 
 			// Should have epic-1.1, epic-1.2, epic-1.3
-			const beadIds = result.map((s) => s.cell_id);
-			expect(beadIds).toContain("epic-1.1");
-			expect(beadIds).toContain("epic-1.2");
-			expect(beadIds).toContain("epic-1.3");
+			const cellIds = result.map((s) => s.cell_id);
+			expect(cellIds).toContain("epic-1.1");
+			expect(cellIds).toContain("epic-1.2");
+			expect(cellIds).toContain("epic-1.3");
 
 			// Should NOT have epic-2 subtasks
-			expect(beadIds.every((id) => id.startsWith("epic-1"))).toBe(true);
+			expect(cellIds.every((id) => id.startsWith("epic-1"))).toBe(true);
 		});
 
 		test("should derive progress from progress_reported events", async () => {

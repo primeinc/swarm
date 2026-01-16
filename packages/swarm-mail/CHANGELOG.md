@@ -500,7 +500,7 @@
   Migrates all subsystems:
 
   - **Streams:** events, agents, messages, message_recipients, reservations, cursors, locks
-  - **Hive:** beads, bead_dependencies, bead_labels, bead_comments, blocked_beads_cache, dirty_beads
+  - **Hive:** cells, cell_dependencies, cell_labels, cell_comments, blocked_cells_cache, dirty_cells
   - **Learning:** eval_records, swarm_contexts, deferred
 
   **Manual migration:**
@@ -1842,7 +1842,7 @@
 
   **swarm-mail:**
 
-  - `generateBeadId()` now reads `package.json` name field from project directory
+  - `generatecellId()` now reads `package.json` name field from project directory
   - Added `slugifyProjectName()` for safe ID generation (lowercase, special chars → dashes)
   - Falls back to `cell-` prefix if no package.json or no name field
 
@@ -1864,7 +1864,7 @@
 
   - **Identifiable at a glance** - Know which project a cell belongs to without looking it up
   - **Multi-project workspaces** - Filter/search cells by project prefix
-  - **Terminology cleanup** - Removes legacy "bead" (`bd-`) from user-facing IDs
+  - **Terminology cleanup** - Removes legacy "cell" (`bd-`) from user-facing IDs
 
   ### Backward Compatible
 
@@ -1889,18 +1889,18 @@
 
 - [`90409ef`](https://github.com/joelhooks/swarm-tools/commit/90409ef4f353844b25fe04221bc80d6f930eced2) Thanks [@joelhooks](https://github.com/joelhooks)! - Fix table name mismatches and SQL alias typo in hive module
 
-  - jsonl.ts: Fixed DELETE queries using wrong table names (cell*\* → bead*\*)
+  - jsonl.ts: Fixed DELETE queries using wrong table names (cell*\* → cell*\*)
   - projections.ts: Fixed SQL alias typo (bcc.cell_id → bbc.cell_id)
 
 ## 0.3.3
 
 ### Patch Changes
 
-- [`ec23d25`](https://github.com/joelhooks/swarm-tools/commit/ec23d25aeca667c0294a6255fecf11dd7d7fd6b3) Thanks [@joelhooks](https://github.com/joelhooks)! - Add .beads → .hive directory migration support
+- [`ec23d25`](https://github.com/joelhooks/swarm-tools/commit/ec23d25aeca667c0294a6255fecf11dd7d7fd6b3) Thanks [@joelhooks](https://github.com/joelhooks)! - Add .cells → .hive directory migration support
 
-  - Fix migration version collision: beadsMigration now v7, cellsViewMigration now v8 (was conflicting with streams v6)
-  - Add `checkBeadsMigrationNeeded()` to detect legacy .beads directories
-  - Add `migrateBeadsToHive()` to rename .beads to .hive
+  - Fix migration version collision: cellsMigration now v7, cellsViewMigration now v8 (was conflicting with streams v6)
+  - Add `checkcellsMigrationNeeded()` to detect legacy .cells directories
+  - Add `migratecellsToHive()` to rename .cells to .hive
   - Add `ensureHiveDirectory()` to create .hive if missing (called by hive_sync)
   - Update hive_sync to ensure .hive directory exists before writing
   - Add migration prompt to `swarm setup` CLI flow
@@ -1921,10 +1921,10 @@
 
 ### Minor Changes
 
-- [`26fd2ef`](https://github.com/joelhooks/swarm-tools/commit/26fd2ef27562edc39f7db7a9cdbed399a465200d) Thanks [@joelhooks](https://github.com/joelhooks)! - Rename beads → hive across the codebase
+- [`26fd2ef`](https://github.com/joelhooks/swarm-tools/commit/26fd2ef27562edc39f7db7a9cdbed399a465200d) Thanks [@joelhooks](https://github.com/joelhooks)! - Rename cells → hive across the codebase
 
-  - `createBeadsAdapter` → `createHiveAdapter` (old name still exported as alias)
-  - `BeadsAdapter` type → `HiveAdapter` type
+  - `createcellsAdapter` → `createHiveAdapter` (old name still exported as alias)
+  - `cellsAdapter` type → `HiveAdapter` type
   - All internal references updated to use hive terminology
   - Backward compatible: old exports still work but are deprecated
 
@@ -1932,12 +1932,12 @@
 
 ### Patch Changes
 
-- [`b2d4a84`](https://github.com/joelhooks/swarm-tools/commit/b2d4a84748cdef4b9dbca7666dd3d313b6cd2b24) Thanks [@joelhooks](https://github.com/joelhooks)! - Add automatic JSONL migration for beads on first use
+- [`b2d4a84`](https://github.com/joelhooks/swarm-tools/commit/b2d4a84748cdef4b9dbca7666dd3d313b6cd2b24) Thanks [@joelhooks](https://github.com/joelhooks)! - Add automatic JSONL migration for cells on first use
 
-  - Auto-migrate from `.beads/issues.jsonl` when database is empty
+  - Auto-migrate from `.cells/issues.jsonl` when database is empty
   - Fix import to handle missing dependencies/labels/comments arrays
-  - Fix closed bead import to satisfy check constraint (status + closed_at)
-  - Migrates 500+ historical beads seamlessly on first adapter initialization
+  - Fix closed cell import to satisfy check constraint (status + closed_at)
+  - Migrates 500+ historical cells seamlessly on first adapter initialization
 
 ## 0.2.0
 

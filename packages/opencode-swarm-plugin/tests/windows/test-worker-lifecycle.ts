@@ -51,13 +51,13 @@ async function testBasicProgressReporting(): Promise<TestResult> {
 	try {
 		const projectKey = process.cwd();
 		const agentName = 'test-worker-lifecycle';
-		const beadId = 'swarm-tools--test-cell-id';
+		const cellId = 'swarm-tools--test-cell-id';
 		
 		// Expected behavior when calling:
 		// swarm_progress({
 		//   project_key: projectKey,
 		//   agent_name: agentName,
-		//   cell_id: beadId,
+		//   cell_id: cellId,
 		//   status: "in_progress",
 		//   progress_percent: 50,
 		//   message: "Halfway through implementation",
@@ -276,20 +276,20 @@ async function testBasicCompletion(): Promise<TestResult> {
 	try {
 		const projectKey = process.cwd();
 		const agentName = 'test-worker';
-		const beadId = 'swarm-tools--test-cell';
+		const cellId = 'swarm-tools--test-cell';
 		
 		// Expected behavior when calling:
 		// swarm_complete({
 		//   project_key: projectKey,
 		//   agent_name: agentName,
-		//   cell_id: beadId,
+		//   cell_id: cellId,
 		//   summary: "Implemented feature X with tests",
 		//   files_touched: ["src/feature.ts", "tests/feature.test.ts"],
 		//   evaluation: "All tests passing, type-safe implementation"
 		// })
 		//
 		// Should:
-		// 1. Mark bead as completed in hive
+		// 1. Mark cell as completed in hive
 		// 2. Release ALL file reservations for this agent
 		// 3. Run verification gates (typecheck, tests) if skip_verification=false
 		// 4. Return success with completion details
@@ -487,7 +487,7 @@ async function testSubtaskCompletion(): Promise<TestResult> {
 		// Should:
 		// 1. Parse worker result for success/failure
 		// 2. Extract learnings or errors
-		// 3. Update subtask bead status
+		// 3. Update subtask cell status
 		// 4. Check if all sibling subtasks complete -> mark epic complete
 		// 5. Return aggregated status
 		
@@ -537,7 +537,7 @@ async function testCompleteLifecycle(): Promise<TestResult> {
 		// COORDINATOR FLOW:
 		const coordinatorFlow = [
 			'1. swarm_decompose() - Break task into subtasks',
-			'2. hive_create_epic() - Create epic + subtask beads',
+			'2. hive_create_epic() - Create epic + subtask cells',
 			'3. FOR EACH subtask:',
 			'   a. swarm_spawn_subtask() - Generate worker prompt',
 			'   b. background_task() - Spawn worker',

@@ -9,6 +9,6 @@
 		"adr-004-message-queue",
 		"adr-005-devtools",
 		"adr-006-swarm-pty",
-		"edr-event-sourced-beads"
+		"edr-event-sourced-cells"
 	]
 }

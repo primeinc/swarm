@@ -21,12 +21,12 @@ export interface MigrationStats {
 	reservations: number;
 	cursors: number;
 	locks: number;
-	beads: number;
-	beadDependencies: number;
-	beadLabels: number;
-	beadComments: number;
-	blockedBeadsCache: number;
-	dirtyBeads: number;
+	cells: number;
+	cellDependencies: number;
+	cellLabels: number;
+	cellComments: number;
+	blockedcellsCache: number;
+	dirtycells: number;
 	evalRecords: number;
 	swarmContexts: number;
 	deferred: number;
@@ -115,12 +115,12 @@ export async function migrateLibSQLToGlobal(
 		reservations: 0,
 		cursors: 0,
 		locks: 0,
-		beads: 0,
-		beadDependencies: 0,
-		beadLabels: 0,
-		beadComments: 0,
-		blockedBeadsCache: 0,
-		dirtyBeads: 0,
+		cells: 0,
+		cellDependencies: 0,
+		cellLabels: 0,
+		cellComments: 0,
+		blockedcellsCache: 0,
+		dirtycells: 0,
 		evalRecords: 0,
 		swarmContexts: 0,
 		deferred: 0,
@@ -148,15 +148,15 @@ export async function migrateLibSQLToGlobal(
 			"id, project_key, agent_name, path_pattern, exclusive, reason, created_at, expires_at, released_at, lock_holder_id",
 		cursors: "id, stream, checkpoint, position, updated_at",
 		locks: "resource, holder, seq, acquired_at, expires_at",
-		beads:
+		cells:
 			"id, project_key, type, status, title, description, priority, parent_id, assignee, created_at, updated_at, closed_at, closed_reason, deleted_at, deleted_by, delete_reason, created_by",
-		bead_dependencies:
+		cell_dependencies:
 			"cell_id, depends_on_id, relationship, created_at, created_by",
-		bead_labels: "cell_id, label, created_at",
-		bead_comments:
+		cell_labels: "cell_id, label, created_at",
+		cell_comments:
 			"id, cell_id, author, body, parent_id, created_at, updated_at",
-		blocked_beads_cache: "cell_id, blocker_ids, updated_at",
-		dirty_beads: "cell_id, marked_at",
+		blocked_cells_cache: "cell_id, blocker_ids, updated_at",
+		dirty_cells: "cell_id, marked_at",
 		eval_records:
 			"id, project_key, task, context, strategy, epic_title, subtasks, outcomes, overall_success, total_duration_ms, total_errors, human_accepted, human_modified, human_notes, file_overlap_count, scope_accuracy, time_balance_ratio, created_at, updated_at",
 		swarm_contexts:
@@ -172,12 +172,12 @@ export async function migrateLibSQLToGlobal(
 		reservations: "reservations",
 		cursors: "cursors",
 		locks: "locks",
-		beads: "beads",
-		bead_dependencies: "beadDependencies",
-		bead_labels: "beadLabels",
-		bead_comments: "beadComments",
-		blocked_beads_cache: "blockedBeadsCache",
-		dirty_beads: "dirtyBeads",
+		cells: "cells",
+		cell_dependencies: "cellDependencies",
+		cell_labels: "cellLabels",
+		cell_comments: "cellComments",
+		blocked_cells_cache: "blockedcellsCache",
+		dirty_cells: "dirtycells",
 		eval_records: "evalRecords",
 		swarm_contexts: "swarmContexts",
 		deferred: "deferred",
@@ -217,12 +217,12 @@ export async function migrateLocalDbToGlobal(
 		reservations: 0,
 		cursors: 0,
 		locks: 0,
-		beads: 0,
-		beadDependencies: 0,
-		beadLabels: 0,
-		beadComments: 0,
-		blockedBeadsCache: 0,
-		dirtyBeads: 0,
+		cells: 0,
+		cellDependencies: 0,
+		cellLabels: 0,
+		cellComments: 0,
+		blockedcellsCache: 0,
+		dirtycells: 0,
 		evalRecords: 0,
 		swarmContexts: 0,
 		deferred: 0,
@@ -257,15 +257,15 @@ export async function migrateLocalDbToGlobal(
 			"id, project_key, agent_name, path_pattern, exclusive, reason, created_at, expires_at, released_at, lock_holder_id",
 		cursors: "id, stream, checkpoint, position, updated_at",
 		locks: "resource, holder, seq, acquired_at, expires_at",
-		beads:
+		cells:
 			"id, project_key, type, status, title, description, priority, parent_id, assignee, created_at, updated_at, closed_at, closed_reason, deleted_at, deleted_by, delete_reason, created_by",
-		bead_dependencies:
+		cell_dependencies:
 			"cell_id, depends_on_id, relationship, created_at, created_by",
-		bead_labels: "cell_id, label, created_at",
-		bead_comments:
+		cell_labels: "cell_id, label, created_at",
+		cell_comments:
 			"id, cell_id, author, body, parent_id, created_at, updated_at",
-		blocked_beads_cache: "cell_id, blocker_ids, updated_at",
-		dirty_beads: "cell_id, marked_at",
+		blocked_cells_cache: "cell_id, blocker_ids, updated_at",
+		dirty_cells: "cell_id, marked_at",
 		eval_records:
 			"id, project_key, task, context, strategy, epic_title, subtasks, outcomes, overall_success, total_duration_ms, total_errors, human_accepted, human_modified, human_notes, file_overlap_count, scope_accuracy, time_balance_ratio, created_at, updated_at",
 		swarm_contexts:
@@ -281,12 +281,12 @@ export async function migrateLocalDbToGlobal(
 		reservations: "reservations",
 		cursors: "cursors",
 		locks: "locks",
-		beads: "beads",
-		bead_dependencies: "beadDependencies",
-		bead_labels: "beadLabels",
-		bead_comments: "beadComments",
-		blocked_beads_cache: "blockedBeadsCache",
-		dirty_beads: "dirtyBeads",
+		cells: "cells",
+		cell_dependencies: "cellDependencies",
+		cell_labels: "cellLabels",
+		cell_comments: "cellComments",
+		blocked_cells_cache: "blockedcellsCache",
+		dirty_cells: "dirtycells",
 		eval_records: "evalRecords",
 		swarm_contexts: "swarmContexts",
 		deferred: "deferred",

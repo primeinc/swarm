@@ -312,7 +312,7 @@ async function captureFileAssignmentDecision(
   swarmMail: SwarmMailAdapter,
   context: {
     epicId: string;
-    beadId: string;
+    cellId: string;
     agentName: string;
     files: string[];
     rationale: string;
@@ -322,7 +322,7 @@ async function captureFileAssignmentDecision(
   const trace = await createDecisionTrace(swarmMail, {
     decision_type: "file_assignment",
     epic_id: context.epicId,
-    cell_id: context.beadId,
+    cell_id: context.cellId,
     agent_name: context.agentName,
     project_key: context.projectKey,
     
@@ -365,7 +365,7 @@ async function captureReviewDecision(
   swarmMail: SwarmMailAdapter,
   context: {
     epicId: string;
-    beadId: string;
+    cellId: string;
     reviewerAgent: string;
     status: "approved" | "needs_changes";
     issues: Array<{ file: string; line: number; issue: string }>;
@@ -375,7 +375,7 @@ async function captureReviewDecision(
   const trace = await createDecisionTrace(swarmMail, {
     decision_type: "review_approval",
     epic_id: context.epicId,
-    cell_id: context.beadId,
+    cell_id: context.cellId,
     agent_name: context.reviewerAgent,
     project_key: context.projectKey,
     

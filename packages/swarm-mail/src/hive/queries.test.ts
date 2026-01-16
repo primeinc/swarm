@@ -1,7 +1,7 @@
 /**
- * Tests for beads query functions
+ * Tests for cells query functions
  *
- * @module beads/queries.test
+ * @module cells/queries.test
  */
 
 import { beforeEach, describe, expect, test } from "bun:test";
@@ -18,9 +18,9 @@ import {
 	resolvePartialId,
 } from "./queries.js";
 
-describe("beads/queries", () => {
+describe("cells/queries", () => {
 	let db: DatabaseAdapter;
-	let beads: HiveAdapter;
+	let cells: HiveAdapter;
 	const projectKey = "/test/project";
 
 	beforeEach(async () => {
@@ -28,126 +28,126 @@ describe("beads/queries", () => {
 		const { adapter } = await createTestLibSQLDb();
 		db = adapter;
 
-		// Create beads adapter (no migrations needed - schema already set up)
-		beads = createHiveAdapter(db, projectKey);
+		// Create cells adapter (no migrations needed - schema already set up)
+		cells = createHiveAdapter(db, projectKey);
 	});
 
 	describe("getReadyWork", () => {
-		test("returns empty array when no beads exist", async () => {
-			const ready = await getReadyWork(beads, projectKey);
+		test("returns empty array when no cells exist", async () => {
+			const ready = await getReadyWork(cells, projectKey);
 			expect(ready).toEqual([]);
 		});
 
-		test("returns unblocked open bead", async () => {
-			const bead = await beads.createCell(projectKey, {
+		test("returns unblocked open cell", async () => {
+			const cell = await cells.createCell(projectKey, {
 				title: "Ready task",
 				type: "task",
 				priority: 2,
 			});
 
-			const ready = await getReadyWork(beads, projectKey);
+			const ready = await getReadyWork(cells, projectKey);
 			expect(ready).toHaveLength(1);
-			expect(ready[0].id).toBe(bead.id);
+			expect(ready[0].id).toBe(cell.id);
 		});
 
-		test("excludes blocked beads", async () => {
-			const blocker = await beads.createCell(projectKey, {
+		test("excludes blocked cells", async () => {
+			const blocker = await cells.createCell(projectKey, {
 				title: "Blocker",
 				type: "task",
 				priority: 2,
 			});
 
-			const blocked = await beads.createCell(projectKey, {
+			const blocked = await cells.createCell(projectKey, {
 				title: "Blocked task",
 				type: "task",
 				priority: 2,
 			});
 
-			await beads.addDependency(projectKey, blocked.id, blocker.id, "blocks");
+			await cells.addDependency(projectKey, blocked.id, blocker.id, "blocks");
 
-			const ready = await getReadyWork(beads, projectKey);
+			const ready = await getReadyWork(cells, projectKey);
 			expect(ready).toHaveLength(1);
 			expect(ready[0].id).toBe(blocker.id);
 		});
 
-		test("includes in_progress beads by default", async () => {
-			const openBead = await beads.createCell(projectKey, {
+		test("includes in_progress cells by default", async () => {
+			const opencell = await cells.createCell(projectKey, {
 				title: "Open task",
 				type: "task",
 				priority: 2,
 			});
 
-			const inProgress = await beads.createCell(projectKey, {
+			const inProgress = await cells.createCell(projectKey, {
 				title: "In progress task",
 				type: "task",
 				priority: 2,
 			});
-			await beads.changeCellStatus(projectKey, inProgress.id, "in_progress");
+			await cells.changeCellStatus(projectKey, inProgress.id, "in_progress");
 
-			const ready = await getReadyWork(beads, projectKey);
+			const ready = await getReadyWork(cells, projectKey);
 			expect(ready).toHaveLength(2);
 			expect(ready.map((b) => b.id).sort()).toEqual(
-				[openBead.id, inProgress.id].sort(),
+				[opencell.id, inProgress.id].sort(),
 			);
 		});
 
-		test("excludes closed beads", async () => {
-			const open = await beads.createCell(projectKey, {
+		test("excludes closed cells", async () => {
+			const open = await cells.createCell(projectKey, {
 				title: "Open task",
 				type: "task",
 				priority: 2,
 			});
 
-			const closed = await beads.createCell(projectKey, {
+			const closed = await cells.createCell(projectKey, {
 				title: "Closed task",
 				type: "task",
 				priority: 2,
 			});
-			await beads.closeCell(projectKey, closed.id, "Done");
+			await cells.closeCell(projectKey, closed.id, "Done");
 
-			const ready = await getReadyWork(beads, projectKey);
+			const ready = await getReadyWork(cells, projectKey);
 			expect(ready).toHaveLength(1);
 			expect(ready[0].id).toBe(open.id);
 		});
 
 		test("filters by assignee", async () => {
-			await beads.createCell(projectKey, {
+			await cells.createCell(projectKey, {
 				title: "Task 1",
 				type: "task",
 				priority: 2,
 				assignee: "alice",
 			});
 
-			const bead2 = await beads.createCell(projectKey, {
+			const cell2 = await cells.createCell(projectKey, {
 				title: "Task 2",
 				type: "task",
 				priority: 2,
 				assignee: "bob",
 			});
 
-			const ready = await getReadyWork(beads, projectKey, {
+			const ready = await getReadyWork(cells, projectKey, {
 				assignee: "bob",
 			});
 
 			expect(ready).toHaveLength(1);
-			expect(ready[0].id).toBe(bead2.id);
+			expect(ready[0].id).toBe(cell2.id);
 		});
 
-		test("filters unassigned beads", async () => {
-			const unassigned = await beads.createCell(projectKey, {
+		test("filters unassigned cells", async () => {
+			const unassigned = await cells.createCell(projectKey, {
 				title: "Unassigned task",
 				type: "task",
 				priority: 2,
 			});
 
-			await beads.createCell(projectKey, {
+			await cells.createCell(projectKey, {
 				title: "Assigned task",
 				type: "task",
 				priority: 2,
 				assignee: "alice",
 			});
 
-			const ready = await getReadyWork(beads, projectKey, {
+			const ready = await getReadyWork(cells, projectKey, {
 				unassigned: true,
 			});
 
@@ -156,46 +156,46 @@ describe("beads/queries", () => {
 		});
 
 		test("limits results", async () => {
-			await beads.createCell(projectKey, {
+			await cells.createCell(projectKey, {
 				title: "Task 1",
 				type: "task",
 				priority: 2,
 			});
-			await beads.createCell(projectKey, {
+			await cells.createCell(projectKey, {
 				title: "Task 2",
 				type: "task",
 				priority: 2,
 			});
-			await beads.createCell(projectKey, {
+			await cells.createCell(projectKey, {
 				title: "Task 3",
 				type: "task",
 				priority: 2,
 			});
 
-			const ready = await getReadyWork(beads, projectKey, { limit: 2 });
+			const ready = await getReadyWork(cells, projectKey, { limit: 2 });
 			expect(ready).toHaveLength(2);
 		});
 
 		test("sort policy: priority - highest priority first", async () => {
-			const low = await beads.createCell(projectKey, {
+			const low = await cells.createCell(projectKey, {
 				title: "Low priority",
 				type: "task",
 				priority: 2,
 			});
 
-			const high = await beads.createCell(projectKey, {
+			const high = await cells.createCell(projectKey, {
 				title: "High priority",
 				type: "task",
 				priority: 0,
 			});
 
-			const medium = await beads.createCell(projectKey, {
+			const medium = await cells.createCell(projectKey, {
 				title: "Medium priority",
 				type: "task",
 				priority: 1,
 			});
 
-			const ready = await getReadyWork(beads, projectKey, {
+			const ready = await getReadyWork(cells, projectKey, {
 				sortPolicy: "priority",
 			});
 
@@ -204,7 +204,7 @@ describe("beads/queries", () => {
 
 		test("sort policy: oldest - creation date ascending", async () => {
 			// Sleep to ensure different timestamps
-			const first = await beads.createCell(projectKey, {
+			const first = await cells.createCell(projectKey, {
 				title: "First",
 				type: "task",
 				priority: 2,
@@ -212,7 +212,7 @@ describe("beads/queries", () => {
 
 			await new Promise((resolve) => setTimeout(resolve, 10));
 
-			const second = await beads.createCell(projectKey, {
+			const second = await cells.createCell(projectKey, {
 				title: "Second",
 				type: "task",
 				priority: 2,
@@ -220,13 +220,13 @@ describe("beads/queries", () => {
 
 			await new Promise((resolve) => setTimeout(resolve, 10));
 
-			const third = await beads.createCell(projectKey, {
+			const third = await cells.createCell(projectKey, {
 				title: "Third",
 				type: "task",
 				priority: 2,
 			});
 
-			const ready = await getReadyWork(beads, projectKey, {
+			const ready = await getReadyWork(cells, projectKey, {
 				sortPolicy: "oldest",
 			});
 
@@ -234,8 +234,8 @@ describe("beads/queries", () => {
 		});
 
 		test("sort policy: hybrid - recent by priority, old by age", async () => {
-			// Create old bead (low priority)
-			const old = await beads.createCell(projectKey, {
+			// Create old cell (low priority)
+			const old = await cells.createCell(projectKey, {
 				title: "Old task",
 				type: "task",
 				priority: 2,
@@ -243,24 +243,24 @@ describe("beads/queries", () => {
 
 			// Make it appear old (update created_at directly)
 			await db.query(
-				`UPDATE beads SET created_at = $1 WHERE id = $2`,
+				`UPDATE cells SET created_at = $1 WHERE id = $2`,
 				[Date.now() - 3 * 24 * 60 * 60 * 1000, old.id], // 3 days ago
 			);
 
-			// Create recent beads with different priorities
-			const recentLow = await beads.createCell(projectKey, {
+			// Create recent cells with different priorities
+			const recentLow = await cells.createCell(projectKey, {
 				title: "Recent low",
 				type: "task",
 				priority: 2,
 			});
 
-			const recentHigh = await beads.createCell(projectKey, {
+			const recentHigh = await cells.createCell(projectKey, {
 				title: "Recent high",
 				type: "task",
 				priority: 0,
 			});
 
-			const ready = await getReadyWork(beads, projectKey, {
+			const ready = await getReadyWork(cells, projectKey, {
 				sortPolicy: "hybrid",
 			});
 
@@ -274,126 +274,126 @@ describe("beads/queries", () => {
 	});
 
 	describe("getBlockedIssues", () => {
-		test("returns empty array when no blocked beads", async () => {
-			await beads.createCell(projectKey, {
+		test("returns empty array when no blocked cells", async () => {
+			await cells.createCell(projectKey, {
 				title: "Unblocked",
 				type: "task",
 				priority: 2,
 			});
 
-			const blocked = await getBlockedIssues(beads, projectKey);
+			const blocked = await getBlockedIssues(cells, projectKey);
 			expect(blocked).toEqual([]);
 		});
 
-		test("returns blocked bead with blockers", async () => {
-			const blocker = await beads.createCell(projectKey, {
+		test("returns blocked cell with blockers", async () => {
+			const blocker = await cells.createCell(projectKey, {
 				title: "Blocker",
 				type: "task",
 				priority: 2,
 			});
 
-			const blocked = await beads.createCell(projectKey, {
+			const blocked = await cells.createCell(projectKey, {
 				title: "Blocked task",
 				type: "task",
 				priority: 2,
 			});
 
-			await beads.addDependency(projectKey, blocked.id, blocker.id, "blocks");
+			await cells.addDependency(projectKey, blocked.id, blocker.id, "blocks");
 
-			const result = await getBlockedIssues(beads, projectKey);
+			const result = await getBlockedIssues(cells, projectKey);
 			expect(result).toHaveLength(1);
 			expect(result[0].cell.id).toBe(blocked.id);
 			expect(result[0].blockers).toEqual([blocker.id]);
 		});
 
 		test("includes multiple blockers", async () => {
-			const blocker1 = await beads.createCell(projectKey, {
+			const blocker1 = await cells.createCell(projectKey, {
 				title: "Blocker 1",
 				type: "task",
 				priority: 2,
 			});
 
-			const blocker2 = await beads.createCell(projectKey, {
+			const blocker2 = await cells.createCell(projectKey, {
 				title: "Blocker 2",
 				type: "task",
 				priority: 2,
 			});
 
-			const blocked = await beads.createCell(projectKey, {
+			const blocked = await cells.createCell(projectKey, {
 				title: "Blocked task",
 				type: "task",
 				priority: 2,
 			});
 
-			await beads.addDependency(projectKey, blocked.id, blocker1.id, "blocks");
-			await beads.addDependency(projectKey, blocked.id, blocker2.id, "blocks");
+			await cells.addDependency(projectKey, blocked.id, blocker1.id, "blocks");
+			await cells.addDependency(projectKey, blocked.id, blocker2.id, "blocks");
 
-			const result = await getBlockedIssues(beads, projectKey);
+			const result = await getBlockedIssues(cells, projectKey);
 			expect(result).toHaveLength(1);
 			expect(result[0].blockers.sort()).toEqual(
 				[blocker1.id, blocker2.id].sort(),
 			);
 		});
 
-		test("excludes beads where blockers are closed", async () => {
-			const blocker = await beads.createCell(projectKey, {
+		test("excludes cells where blockers are closed", async () => {
+			const blocker = await cells.createCell(projectKey, {
 				title: "Blocker",
 				type: "task",
 				priority: 2,
 			});
 
-			const blocked = await beads.createCell(projectKey, {
+			const blocked = await cells.createCell(projectKey, {
 				title: "Blocked task",
 				type: "task",
 				priority: 2,
 			});
 
-			await beads.addDependency(projectKey, blocked.id, blocker.id, "blocks");
-			await beads.closeCell(projectKey, blocker.id, "Done");
+			await cells.addDependency(projectKey, blocked.id, blocker.id, "blocks");
+			await cells.closeCell(projectKey, blocker.id, "Done");
 
-			const result = await getBlockedIssues(beads, projectKey);
+			const result = await getBlockedIssues(cells, projectKey);
 			expect(result).toEqual([]);
 		});
 	});
 
 	describe("getEpicsEligibleForClosure", () => {
 		test("returns empty array when no epics", async () => {
-			await beads.createCell(projectKey, {
+			await cells.createCell(projectKey, {
 				title: "Task",
 				type: "task",
 				priority: 2,
 			});
 
-			const eligible = await getEpicsEligibleForClosure(beads, projectKey);
+			const eligible = await getEpicsEligibleForClosure(cells, projectKey);
 			expect(eligible).toEqual([]);
 		});
 
 		test("returns epic when all children closed", async () => {
-			const epic = await beads.createCell(projectKey, {
+			const epic = await cells.createCell(projectKey, {
 				title: "Epic",
 				type: "epic",
 				priority: 2,
 			});
 
-			const child1 = await beads.createCell(projectKey, {
+			const child1 = await cells.createCell(projectKey, {
 				title: "Child 1",
 				type: "task",
 				priority: 2,
 			});
 
-			const child2 = await beads.createCell(projectKey, {
+			const child2 = await cells.createCell(projectKey, {
 				title: "Child 2",
 				type: "task",
 				priority: 2,
 			});
 
-			await beads.addChildToEpic(projectKey, epic.id, child1.id);
-			await beads.addChildToEpic(projectKey, epic.id, child2.id);
+			await cells.addChildToEpic(projectKey, epic.id, child1.id);
+			await cells.addChildToEpic(projectKey, epic.id, child2.id);
 
-			await beads.closeCell(projectKey, child1.id, "Done");
-			await beads.closeCell(projectKey, child2.id, "Done");
+			await cells.closeCell(projectKey, child1.id, "Done");
+			await cells.closeCell(projectKey, child2.id, "Done");
 
-			const eligible = await getEpicsEligibleForClosure(beads, projectKey);
+			const eligible = await getEpicsEligibleForClosure(cells, projectKey);
 			expect(eligible).toHaveLength(1);
 			expect(eligible[0].epic_id).toBe(epic.id);
 			expect(eligible[0].total_children).toBe(2);
@@ -401,126 +401,126 @@ describe("beads/queries", () => {
 		});
 
 		test("excludes epic when children still open", async () => {
-			const epic = await beads.createCell(projectKey, {
+			const epic = await cells.createCell(projectKey, {
 				title: "Epic",
 				type: "epic",
 				priority: 2,
 			});
 
-			const child1 = await beads.createCell(projectKey, {
+			const child1 = await cells.createCell(projectKey, {
 				title: "Child 1",
 				type: "task",
 				priority: 2,
 			});
 
-			const child2 = await beads.createCell(projectKey, {
+			const child2 = await cells.createCell(projectKey, {
 				title: "Child 2",
 				type: "task",
 				priority: 2,
 			});
 
-			await beads.addChildToEpic(projectKey, epic.id, child1.id);
-			await beads.addChildToEpic(projectKey, epic.id, child2.id);
+			await cells.addChildToEpic(projectKey, epic.id, child1.id);
+			await cells.addChildToEpic(projectKey, epic.id, child2.id);
 
-			await beads.closeCell(projectKey, child1.id, "Done");
+			await cells.closeCell(projectKey, child1.id, "Done");
 			// child2 still open
 
-			const eligible = await getEpicsEligibleForClosure(beads, projectKey);
+			const eligible = await getEpicsEligibleForClosure(cells, projectKey);
 			expect(eligible).toEqual([]);
 		});
 
 		test("excludes already closed epics", async () => {
-			const epic = await beads.createCell(projectKey, {
+			const epic = await cells.createCell(projectKey, {
 				title: "Epic",
 				type: "epic",
 				priority: 2,
 			});
 
-			await beads.closeCell(projectKey, epic.id, "Done");
+			await cells.closeCell(projectKey, epic.id, "Done");
 
-			const eligible = await getEpicsEligibleForClosure(beads, projectKey);
+			const eligible = await getEpicsEligibleForClosure(cells, projectKey);
 			expect(eligible).toEqual([]);
 		});
 	});
 
 	describe("getStaleIssues", () => {
 		test("returns empty array when no stale issues", async () => {
-			await beads.createCell(projectKey, {
+			await cells.createCell(projectKey, {
 				title: "Recent",
 				type: "task",
 				priority: 2,
 			});
 
-			const stale = await getStaleIssues(beads, projectKey, 7);
+			const stale = await getStaleIssues(cells, projectKey, 7);
 			expect(stale).toEqual([]);
 		});
 
 		test("returns issues not updated in N days", async () => {
-			const recent = await beads.createCell(projectKey, {
+			const recent = await cells.createCell(projectKey, {
 				title: "Recent",
 				type: "task",
 				priority: 2,
 			});
 
-			const old = await beads.createCell(projectKey, {
+			const old = await cells.createCell(projectKey, {
 				title: "Old",
 				type: "task",
 				priority: 2,
 			});
 
-			// Make old bead appear stale (update updated_at directly)
+			// Make old cell appear stale (update updated_at directly)
 			await db.query(
-				`UPDATE beads SET updated_at = $1 WHERE id = $2`,
+				`UPDATE cells SET updated_at = $1 WHERE id = $2`,
 				[Date.now() - 10 * 24 * 60 * 60 * 1000, old.id], // 10 days ago
 			);
 
-			const stale = await getStaleIssues(beads, projectKey, 7);
+			const stale = await getStaleIssues(cells, projectKey, 7);
 			expect(stale).toHaveLength(1);
 			expect(stale[0].id).toBe(old.id);
 		});
 
 		test("excludes closed issues", async () => {
-			const closedOld = await beads.createCell(projectKey, {
+			const closedOld = await cells.createCell(projectKey, {
 				title: "Closed old",
 				type: "task",
 				priority: 2,
 			});
 
-			await db.query(`UPDATE beads SET updated_at = $1 WHERE id = $2`, [
+			await db.query(`UPDATE cells SET updated_at = $1 WHERE id = $2`, [
 				Date.now() - 10 * 24 * 60 * 60 * 1000,
 				closedOld.id,
 			]);
 
-			await beads.closeCell(projectKey, closedOld.id, "Done");
+			await cells.closeCell(projectKey, closedOld.id, "Done");
 
-			const stale = await getStaleIssues(beads, projectKey, 7);
+			const stale = await getStaleIssues(cells, projectKey, 7);
 			expect(stale).toEqual([]);
 		});
 
 		test("filters by status", async () => {
-			const openOld = await beads.createCell(projectKey, {
+			const openOld = await cells.createCell(projectKey, {
 				title: "Open old",
 				type: "task",
 				priority: 2,
 			});
 
-			const inProgressOld = await beads.createCell(projectKey, {
+			const inProgressOld = await cells.createCell(projectKey, {
 				title: "In progress old",
 				type: "task",
 				priority: 2,
 			});
 
-			await beads.changeCellStatus(projectKey, inProgressOld.id, "in_progress");
+			await cells.changeCellStatus(projectKey, inProgressOld.id, "in_progress");
 
 			// Make both old
 			const oldTimestamp = Date.now() - 10 * 24 * 60 * 60 * 1000;
-			await db.query(`UPDATE beads SET updated_at = $1 WHERE id IN ($2, $3)`, [
+			await db.query(`UPDATE cells SET updated_at = $1 WHERE id IN ($2, $3)`, [
 				oldTimestamp,
 				openOld.id,
 				inProgressOld.id,
 			]);
 
-			const stale = await getStaleIssues(beads, projectKey, 7, {
+			const stale = await getStaleIssues(cells, projectKey, 7, {
 				status: "in_progress",
 			});
 
@@ -529,17 +529,17 @@ describe("beads/queries", () => {
 		});
 
 		test("limits results", async () => {
-			const old1 = await beads.createCell(projectKey, {
+			const old1 = await cells.createCell(projectKey, {
 				title: "Old 1",
 				type: "task",
 				priority: 2,
 			});
-			const old2 = await beads.createCell(projectKey, {
+			const old2 = await cells.createCell(projectKey, {
 				title: "Old 2",
 				type: "task",
 				priority: 2,
 			});
-			const old3 = await beads.createCell(projectKey, {
+			const old3 = await cells.createCell(projectKey, {
 				title: "Old 3",
 				type: "task",
 				priority: 2,
@@ -547,46 +547,46 @@ describe("beads/queries", () => {
 
 			const oldTimestamp = Date.now() - 10 * 24 * 60 * 60 * 1000;
 			await db.query(
-				`UPDATE beads SET updated_at = $1 WHERE id IN ($2, $3, $4)`,
+				`UPDATE cells SET updated_at = $1 WHERE id IN ($2, $3, $4)`,
 				[oldTimestamp, old1.id, old2.id, old3.id],
 			);
 
-			const stale = await getStaleIssues(beads, projectKey, 7, { limit: 2 });
+			const stale = await getStaleIssues(cells, projectKey, 7, { limit: 2 });
 			expect(stale).toHaveLength(2);
 		});
 
 		test("orders by oldest first", async () => {
-			const old1 = await beads.createCell(projectKey, {
+			const old1 = await cells.createCell(projectKey, {
 				title: "Old 1",
 				type: "task",
 				priority: 2,
 			});
-			const old2 = await beads.createCell(projectKey, {
+			const old2 = await cells.createCell(projectKey, {
 				title: "Old 2",
 				type: "task",
 				priority: 2,
 			});
 
 			// old1 is older
-			await db.query(`UPDATE beads SET updated_at = $1 WHERE id = $2`, [
+			await db.query(`UPDATE cells SET updated_at = $1 WHERE id = $2`, [
 				Date.now() - 20 * 24 * 60 * 60 * 1000,
 				old1.id,
 			]);
 
 			// old2 is less old
-			await db.query(`UPDATE beads SET updated_at = $1 WHERE id = $2`, [
+			await db.query(`UPDATE cells SET updated_at = $1 WHERE id = $2`, [
 				Date.now() - 10 * 24 * 60 * 60 * 1000,
 				old2.id,
 			]);
 
-			const stale = await getStaleIssues(beads, projectKey, 7);
+			const stale = await getStaleIssues(cells, projectKey, 7);
 			expect(stale.map((b) => b.id)).toEqual([old1.id, old2.id]);
 		});
 	});
 
 	describe("resolvePartialId", () => {
 		test("returns full ID when given complete hash portion", async () => {
-			const cell = await beads.createCell(projectKey, {
+			const cell = await cells.createCell(projectKey, {
 				title: "Test task",
 				type: "task",
 				priority: 2,
@@ -598,13 +598,13 @@ describe("beads/queries", () => {
 			const hash = parts[1]; // e.g., "lf2p4u"
 
 			const { resolvePartialId } = await import("./queries.js");
-			const result = await resolvePartialId(beads, projectKey, hash);
+			const result = await resolvePartialId(cells, projectKey, hash);
 
 			expect(result).toBe(cell.id);
 		});
 
 		test("returns full ID when given partial hash", async () => {
-			const cell = await beads.createCell(projectKey, {
+			const cell = await cells.createCell(projectKey, {
 				title: "Test task",
 				type: "task",
 				priority: 2,
@@ -615,20 +615,20 @@ describe("beads/queries", () => {
 			const partialHash = hash.slice(0, 3); // first 3 chars
 
 			const { resolvePartialId } = await import("./queries.js");
-			const result = await resolvePartialId(beads, projectKey, partialHash);
+			const result = await resolvePartialId(cells, projectKey, partialHash);
 
 			expect(result).toBe(cell.id);
 		});
 
 		test("returns null when no matches found", async () => {
-			await beads.createCell(projectKey, {
+			await cells.createCell(projectKey, {
 				title: "Test task",
 				type: "task",
 				priority: 2,
 			});
 
 			const { resolvePartialId } = await import("./queries.js");
-			const result = await resolvePartialId(beads, projectKey, "nonexistent");
+			const result = await resolvePartialId(cells, projectKey, "nonexistent");
 
 			expect(result).toBe(null);
 		});
@@ -636,13 +636,13 @@ describe("beads/queries", () => {
 		test("throws error when multiple cells match (ambiguous)", async () => {
 			// This is edge case - would need hash collision
 			// For now, test that function returns first match consistently
-			const cell1 = await beads.createCell(projectKey, {
+			const cell1 = await cells.createCell(projectKey, {
 				title: "Test 1",
 				type: "task",
 				priority: 2,
 			});
 
-			const cell2 = await beads.createCell(projectKey, {
+			const cell2 = await cells.createCell(projectKey, {
 				title: "Test 2",
 				type: "task",
 				priority: 2,
@@ -658,12 +658,12 @@ describe("beads/queries", () => {
 			const { resolvePartialId } = await import("./queries.js");
 			// Should throw when ambiguous
 			await expect(
-				resolvePartialId(beads, projectKey, parts1[1]),
+				resolvePartialId(cells, projectKey, parts1[1]),
 			).rejects.toThrow(/multiple cells/i);
 		});
 
 		test("ignores deleted cells", async () => {
-			const cell = await beads.createCell(projectKey, {
+			const cell = await cells.createCell(projectKey, {
 				title: "Test task",
 				type: "task",
 				priority: 2,
@@ -672,16 +672,16 @@ describe("beads/queries", () => {
 			const parts = cell.id.split("-");
 			const hash = parts[1];
 
-			await beads.deleteCell(projectKey, cell.id);
+			await cells.deleteCell(projectKey, cell.id);
 
 			const { resolvePartialId } = await import("./queries.js");
-			const result = await resolvePartialId(beads, projectKey, hash);
+			const result = await resolvePartialId(cells, projectKey, hash);
 
 			expect(result).toBe(null);
 		});
 
 		test("returns full ID when given timestamp+random segment (end of ID)", async () => {
-			const cell = await beads.createCell(projectKey, {
+			const cell = await cells.createCell(projectKey, {
 				title: "Test task",
 				type: "task",
 				priority: 2,
@@ -694,13 +694,13 @@ describe("beads/queries", () => {
 			const timestampRandom = parts[parts.length - 1]; // e.g., "mjkmdat26vq"
 
 			const { resolvePartialId } = await import("./queries.js");
-			const result = await resolvePartialId(beads, projectKey, timestampRandom);
+			const result = await resolvePartialId(cells, projectKey, timestampRandom);
 
 			expect(result).toBe(cell.id);
 		});
 
 		test("returns full ID when given partial timestamp+random segment", async () => {
-			const cell = await beads.createCell(projectKey, {
+			const cell = await cells.createCell(projectKey, {
 				title: "Test task",
 				type: "task",
 				priority: 2,
@@ -712,7 +712,7 @@ describe("beads/queries", () => {
 
 			const { resolvePartialId } = await import("./queries.js");
 			const result = await resolvePartialId(
-				beads,
+				cells,
 				projectKey,
 				partialTimestamp,
 			);
@@ -721,7 +721,7 @@ describe("beads/queries", () => {
 		});
 
 		test("returns full ID when given any unique substring of the ID", async () => {
-			const cell = await beads.createCell(projectKey, {
+			const cell = await cells.createCell(projectKey, {
 				title: "Test task",
 				type: "task",
 				priority: 2,
@@ -731,7 +731,7 @@ describe("beads/queries", () => {
 			const { resolvePartialId } = await import("./queries.js");
 
 			// Match by full ID
-			const result1 = await resolvePartialId(beads, projectKey, cell.id);
+			const result1 = await resolvePartialId(cells, projectKey, cell.id);
 			expect(result1).toBe(cell.id);
 		});
 	});
@@ -739,12 +739,12 @@ describe("beads/queries", () => {
 	describe("findCellsByPartialId", () => {
 		test("returns all matching cells instead of throwing on ambiguous", async () => {
 			// Create two cells with same project key (same hash segment)
-			const cell1 = await beads.createCell(projectKey, {
+			const cell1 = await cells.createCell(projectKey, {
 				title: "Task 1",
 				type: "task",
 				priority: 2,
 			});
-			const cell2 = await beads.createCell(projectKey, {
+			const cell2 = await cells.createCell(projectKey, {
 				title: "Task 2",
 				type: "task",
 				priority: 2,
@@ -755,7 +755,7 @@ describe("beads/queries", () => {
 			const hash = parts1[1]; // e.g., "lf2p4u"
 
 			const { findCellsByPartialId } = await import("./queries.js");
-			const results = await findCellsByPartialId(beads, projectKey, hash);
+			const results = await findCellsByPartialId(cells, projectKey, hash);
 
 			// Should return both cells, not throw
 			expect(results.length).toBeGreaterThanOrEqual(2);
@@ -766,7 +766,7 @@ describe("beads/queries", () => {
 		test("returns empty array when no matches", async () => {
 			const { findCellsByPartialId } = await import("./queries.js");
 			const results = await findCellsByPartialId(
-				beads,
+				cells,
 				projectKey,
 				"nonexistent999",
 			);
@@ -775,7 +775,7 @@ describe("beads/queries", () => {
 		});
 
 		test("returns single cell when unique match", async () => {
-			const cell = await beads.createCell(projectKey, {
+			const cell = await cells.createCell(projectKey, {
 				title: "Unique task",
 				type: "task",
 				priority: 2,
@@ -787,7 +787,7 @@ describe("beads/queries", () => {
 
 			const { findCellsByPartialId } = await import("./queries.js");
 			const results = await findCellsByPartialId(
-				beads,
+				cells,
 				projectKey,
 				timestampRandom,
 			);
@@ -797,7 +797,7 @@ describe("beads/queries", () => {
 		});
 
 		test("ignores deleted cells", async () => {
-			const cell = await beads.createCell(projectKey, {
+			const cell = await cells.createCell(projectKey, {
 				title: "To be deleted",
 				type: "task",
 				priority: 2,
@@ -806,11 +806,11 @@ describe("beads/queries", () => {
 			const parts = cell.id.split("-");
 			const timestampRandom = parts[parts.length - 1];
 
-			await beads.deleteCell(projectKey, cell.id);
+			await cells.deleteCell(projectKey, cell.id);
 
 			const { findCellsByPartialId } = await import("./queries.js");
 			const results = await findCellsByPartialId(
-				beads,
+				cells,
 				projectKey,
 				timestampRandom,
 			);
@@ -821,7 +821,7 @@ describe("beads/queries", () => {
 
 	describe("getStatistics", () => {
 		test("returns zeros for empty database", async () => {
-			const stats = await getStatistics(beads, projectKey);
+			const stats = await getStatistics(cells, projectKey);
 
 			expect(stats.total_cells).toBe(0);
 			expect(stats.open).toBe(0);
@@ -832,33 +832,33 @@ describe("beads/queries", () => {
 			expect(stats.by_type).toEqual({});
 		});
 
-		test("counts beads by status", async () => {
-			await beads.createCell(projectKey, {
+		test("counts cells by status", async () => {
+			await cells.createCell(projectKey, {
 				title: "Open 1",
 				type: "task",
 				priority: 2,
 			});
-			await beads.createCell(projectKey, {
+			await cells.createCell(projectKey, {
 				title: "Open 2",
 				type: "task",
 				priority: 2,
 			});
 
-			const inProgress = await beads.createCell(projectKey, {
+			const inProgress = await cells.createCell(projectKey, {
 				title: "In Progress",
 				type: "task",
 				priority: 2,
 			});
-			await beads.changeCellStatus(projectKey, inProgress.id, "in_progress");
+			await cells.changeCellStatus(projectKey, inProgress.id, "in_progress");
 
-			const closed = await beads.createCell(projectKey, {
+			const closed = await cells.createCell(projectKey, {
 				title: "Closed",
 				type: "task",
 				priority: 2,
 			});
-			await beads.closeCell(projectKey, closed.id, "Done");
+			await cells.closeCell(projectKey, closed.id, "Done");
 
-			const stats = await getStatistics(beads, projectKey);
+			const stats = await getStatistics(cells, projectKey);
 
 			expect(stats.total_cells).toBe(4);
 			expect(stats.open).toBe(2);
@@ -866,70 +866,70 @@ describe("beads/queries", () => {
 			expect(stats.closed).toBe(1);
 		});
 
-		test("counts blocked beads", async () => {
-			const blocker = await beads.createCell(projectKey, {
+		test("counts blocked cells", async () => {
+			const blocker = await cells.createCell(projectKey, {
 				title: "Blocker",
 				type: "task",
 				priority: 2,
 			});
-			const blocked = await beads.createCell(projectKey, {
+			const blocked = await cells.createCell(projectKey, {
 				title: "Blocked",
 				type: "task",
 				priority: 2,
 			});
 
-			await beads.addDependency(projectKey, blocked.id, blocker.id, "blocks");
+			await cells.addDependency(projectKey, blocked.id, blocker.id, "blocks");
 
-			const stats = await getStatistics(beads, projectKey);
+			const stats = await getStatistics(cells, projectKey);
 			expect(stats.blocked).toBe(1);
 		});
 
-		test("counts ready beads", async () => {
-			const blocker = await beads.createCell(projectKey, {
+		test("counts ready cells", async () => {
+			const blocker = await cells.createCell(projectKey, {
 				title: "Blocker",
 				type: "task",
 				priority: 2,
 			});
-			const blocked = await beads.createCell(projectKey, {
+			const blocked = await cells.createCell(projectKey, {
 				title: "Blocked",
 				type: "task",
 				priority: 2,
 			});
-			await beads.createCell(projectKey, {
+			await cells.createCell(projectKey, {
 				title: "Ready",
 				type: "task",
 				priority: 2,
 			});
 
-			await beads.addDependency(projectKey, blocked.id, blocker.id, "blocks");
+			await cells.addDependency(projectKey, blocked.id, blocker.id, "blocks");
 
-			const stats = await getStatistics(beads, projectKey);
+			const stats = await getStatistics(cells, projectKey);
 			expect(stats.ready).toBe(2); // blocker + ready (blocked is not ready)
 		});
 
 		test("groups by type", async () => {
-			await beads.createCell(projectKey, {
+			await cells.createCell(projectKey, {
 				title: "Task 1",
 				type: "task",
 				priority: 2,
 			});
-			await beads.createCell(projectKey, {
+			await cells.createCell(projectKey, {
 				title: "Task 2",
 				type: "task",
 				priority: 2,
 			});
-			await beads.createCell(projectKey, {
+			await cells.createCell(projectKey, {
 				title: "Bug",
 				type: "bug",
 				priority: 0,
 			});
-			await beads.createCell(projectKey, {
+			await cells.createCell(projectKey, {
 				title: "Epic",
 				type: "epic",
 				priority: 2,
 			});
 
-			const stats = await getStatistics(beads, projectKey);
+			const stats = await getStatistics(cells, projectKey);
 
 			expect(stats.by_type).toEqual({
 				task: 2,
@@ -938,21 +938,21 @@ describe("beads/queries", () => {
 			});
 		});
 
-		test("excludes deleted beads", async () => {
-			await beads.createCell(projectKey, {
+		test("excludes deleted cells", async () => {
+			await cells.createCell(projectKey, {
 				title: "Task 1",
 				type: "task",
 				priority: 2,
 			});
-			const deleted = await beads.createCell(projectKey, {
+			const deleted = await cells.createCell(projectKey, {
 				title: "Task 2",
 				type: "task",
 				priority: 2,
 			});
 
-			await beads.deleteCell(projectKey, deleted.id);
+			await cells.deleteCell(projectKey, deleted.id);
 
-			const stats = await getStatistics(beads, projectKey);
+			const stats = await getStatistics(cells, projectKey);
 			expect(stats.total_cells).toBe(1);
 		});
 	});

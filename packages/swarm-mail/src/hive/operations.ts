@@ -18,12 +18,12 @@ import type {
 import {
 	type CreateCellOptions,
 	type UpdateCellOptions,
-	validateCreateBead,
-	validateUpdateBead,
+	validateCreatecell,
+	validateUpdatecell,
 } from "./validation.js";
 
 /**
- * Create a new bead with validation
+ * Create a new cell with validation
  *
  * @throws {Error} If validation fails
  */
@@ -33,12 +33,12 @@ export async function createCell(
 	options: CreateCellOptions,
 ): Promise<Cell> {
 	// Validate options
-	const validation = validateCreateBead(options);
+	const validation = validateCreatecell(options);
 	if (!validation.valid) {
 		throw new Error(validation.errors.join(", "));
 	}
 
-	// Create bead via adapter
+	// Create cell via adapter
 	return adapter.createCell(projectKey, {
 		title: options.title,
 		type: options.type,
@@ -51,7 +51,7 @@ export async function createCell(
 }
 
 /**
- * Get a bead by ID
+ * Get a cell by ID
  *
  * @returns Cell or null if not found
  */
@@ -64,9 +64,9 @@ export async function getCell(
 }
 
 /**
- * Update a bead with validation
+ * Update a cell with validation
  *
- * @throws {Error} If validation fails or bead not found
+ * @throws {Error} If validation fails or cell not found
  */
 export async function updateCell(
 	adapter: HiveAdapter,
@@ -75,7 +75,7 @@ export async function updateCell(
 	updates: UpdateCellOptions,
 ): Promise<Cell> {
 	// Validate updates
-	const validation = validateUpdateBead(updates);
+	const validation = validateUpdatecell(updates);
 	if (!validation.valid) {
 		throw new Error(validation.errors.join(", "));
 	}
@@ -85,9 +85,9 @@ export async function updateCell(
 }
 
 /**
- * Close a bead
+ * Close a cell
  *
- * @throws {Error} If bead not found
+ * @throws {Error} If cell not found
  */
 export async function closeCell(
 	adapter: HiveAdapter,
@@ -102,9 +102,9 @@ export async function closeCell(
 }
 
 /**
- * Reopen a closed bead
+ * Reopen a closed cell
  *
- * @throws {Error} If bead not found or invalid transition
+ * @throws {Error} If cell not found or invalid transition
  */
 export async function reopenCell(
 	adapter: HiveAdapter,
@@ -118,9 +118,9 @@ export async function reopenCell(
 }
 
 /**
- * Delete a bead (soft delete - creates tombstone)
+ * Delete a cell (soft delete - creates tombstone)
  *
- * @throws {Error} If bead not found
+ * @throws {Error} If cell not found
  */
 export async function deleteCell(
 	adapter: HiveAdapter,
@@ -136,28 +136,28 @@ export async function deleteCell(
 }
 
 /**
- * Search beads by title
+ * Search cells by title
  *
- * Simple text search across bead titles with optional filters.
+ * Simple text search across cell titles with optional filters.
  */
-export async function searchBeads(
+export async function searchcells(
 	adapter: HiveAdapter,
 	projectKey: string,
 	query: string,
 	filter?: QueryCellsOptions,
 ): Promise<Cell[]> {
-	// Get all beads matching filter
-	const allBeads = await adapter.queryCells(projectKey, filter);
+	// Get all cells matching filter
+	const allcells = await adapter.queryCells(projectKey, filter);
 
 	// Filter by query string if provided
 	if (!query || query.trim().length === 0) {
-		return allBeads;
+		return allcells;
 	}
 
 	const lowerQuery = query.toLowerCase();
-	return allBeads.filter(
-		(bead) =>
-			bead.title.toLowerCase().includes(lowerQuery) ||
-			bead.description?.toLowerCase().includes(lowerQuery),
+	return allcells.filter(
+		(cell) =>
+			cell.title.toLowerCase().includes(lowerQuery) ||
+			cell.description?.toLowerCase().includes(lowerQuery),
 	);
 }

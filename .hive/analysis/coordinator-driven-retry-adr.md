@@ -571,5 +571,5 @@ The alternative (persistent workers with async messaging) requires platform feat
   - `packages/opencode-swarm-plugin/src/swarm-prompts.ts` (swarm_spawn_retry tool)
   - `packages/opencode-swarm-plugin/src/swarm-prompts.test.ts` (retry tests)
 - **Related ADRs:**
-  - Event Sourcing Feasibility (`.hive/analysis/event-sourced-beads-feasibility.md`)
+  - Event Sourcing Feasibility (`.hive/analysis/event-sourced-cells-feasibility.md`)
   - Git Sync and Distributed Coordination (`.hive/analysis/git-sync-distributed-coordination.md`)

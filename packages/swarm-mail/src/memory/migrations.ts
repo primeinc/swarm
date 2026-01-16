@@ -19,7 +19,7 @@
  * - B-tree index on collection for filtering
  *
  * ## Design Notes
- * - Uses TEXT for IDs (like hive/beads)
+ * - Uses TEXT for IDs (like hive/cells)
  * - Uses TIMESTAMPTZ for timestamps (Postgres standard)
  * - Uses JSONB for metadata (flexible key-value storage)
  * - Uses vector(1024) for embeddings (mxbai-embed-large dimension)

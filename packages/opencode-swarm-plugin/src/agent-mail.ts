@@ -1255,7 +1255,7 @@ export const agentmail_send = tool({
     thread_id: tool.schema
       .string()
       .optional()
-      .describe("Thread ID (use bead ID for linking)"),
+      .describe("Thread ID (use cell ID for linking)"),
     importance: tool.schema
       .enum(["low", "normal", "high", "urgent"])
       .optional()
@@ -1382,7 +1382,7 @@ export const agentmail_read_message = tool({
 export const agentmail_summarize_thread = tool({
   description: "Summarize thread (PREFERRED over fetching all messages)",
   args: {
-    thread_id: tool.schema.string().describe("Thread ID (usually bead ID)"),
+    thread_id: tool.schema.string().describe("Thread ID (usually cell ID)"),
     include_examples: tool.schema
       .boolean()
       .optional()
@@ -1429,7 +1429,7 @@ export const agentmail_reserve = tool({
     reason: tool.schema
       .string()
       .optional()
-      .describe("Reason for reservation (include bead ID)"),
+      .describe("Reason for reservation (include cell ID)"),
   },
   async execute(args, ctx) {
     const state = requireState(ctx.sessionID);

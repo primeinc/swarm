@@ -93,7 +93,7 @@ ORDER BY received_at ASC;
 
 -- Wildcard subscriptions
 WHERE topic LIKE 'agent.%.error'  -- All agent errors
-WHERE topic LIKE 'bead.%.status'  -- All bead status updates
+WHERE topic LIKE 'cell.%.status'  -- All cell status updates
 ```
 
 ### 5. Saga Orchestration Pattern

@@ -202,7 +202,7 @@ describe("guardrailOutput", () => {
   test("skips configured tools", () => {
     const longOutput = "a".repeat(50000);
 
-    // Beads tools should never be truncated
+    // cells tools should never be truncated
     const result = guardrailOutput("hive_create", longOutput);
 
     expect(result.truncated).toBe(false);

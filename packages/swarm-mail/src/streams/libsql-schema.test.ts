@@ -225,10 +225,10 @@ describe("libSQL streams schema", () => {
 				id: "ctx-123",
 				project_key: "/path/to/project",
 				epic_id: "epic-123",
-				cell_id: "bead-456",
+				cell_id: "cell-456",
 				strategy: "feature-based",
 				files: JSON.stringify(["src/auth.ts"]),
-				dependencies: JSON.stringify(["bead-455"]),
+				dependencies: JSON.stringify(["cell-455"]),
 				directives: JSON.stringify({ shared_context: "auth flow" }),
 				recovery: JSON.stringify({ last_checkpoint: now }),
 				created_at: now,
@@ -269,7 +269,7 @@ describe("libSQL streams schema", () => {
 			expect(result.rows[0]).toMatchObject({
 				id: "ctx-123",
 				epic_id: "epic-123",
-				cell_id: "bead-456",
+				cell_id: "cell-456",
 			});
 		});
 
@@ -281,7 +281,7 @@ describe("libSQL streams schema", () => {
 				id: "dt-abc123",
 				decision_type: "strategy_selection",
 				epic_id: "epic-123",
-				cell_id: "bead-456",
+				cell_id: "cell-456",
 				agent_name: "coordinator",
 				project_key: "/path/to/project",
 				decision: JSON.stringify({ strategy: "file-based", confidence: 0.85 }),

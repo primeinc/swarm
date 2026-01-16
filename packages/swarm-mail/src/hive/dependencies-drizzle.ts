@@ -9,15 +9,15 @@
 
 import { eq, sql } from "drizzle-orm";
 import type { SwarmDb } from "../db/client.js";
-import { beadDependencies, blockedBeadsCache } from "../db/schema/hive.js";
+import { cellDependencies, blockedcellsCache } from "../db/schema/hive.js";
 
 const MAX_DEPENDENCY_DEPTH = 100;
 
 /**
- * Get all open blockers for a bead (including transitive)
+ * Get all open blockers for a cell (including transitive)
  *
  * Uses raw SQL because recursive CTEs are complex in Drizzle.
- * Returns bead IDs of all beads blocking this one that aren't closed.
+ * Returns cell IDs of all cells blocking this one that aren't closed.
  * Only considers "blocks" relationship type.
  */
 export async function getOpenBlockersDrizzle(
@@ -29,33 +29,33 @@ export async function getOpenBlockersDrizzle(
 		sql`WITH RECURSIVE blockers AS (
        -- Direct blockers
        SELECT depends_on_id as blocker_id, 1 as depth
-       FROM bead_dependencies
+       FROM cell_dependencies
        WHERE cell_id = ${cellId} AND relationship = 'blocks'
        
        UNION
        
        -- Transitive blockers
        SELECT bd.depends_on_id, b.depth + 1
-       FROM bead_dependencies bd
+       FROM cell_dependencies bd
        JOIN blockers b ON bd.cell_id = b.blocker_id
        WHERE bd.relationship = 'blocks' AND b.depth < ${MAX_DEPENDENCY_DEPTH}
      )
      SELECT DISTINCT b.blocker_id
      FROM blockers b
-     JOIN beads bead ON b.blocker_id = bead.id
-     WHERE bead.project_key = ${projectKey} AND bead.status != 'closed' AND bead.deleted_at IS NULL`,
+     JOIN cells cell ON b.blocker_id = cell.id
+     WHERE cell.project_key = ${projectKey} AND cell.status != 'closed' AND cell.deleted_at IS NULL`,
 	);
 
 	return result.map((r) => r.blocker_id);
 }
 
 /**
- * Rebuild blocked cache for a specific bead using Drizzle
+ * Rebuild blocked cache for a specific cell using Drizzle
  *
  * Finds all open blockers and updates the cache.
- * If no open blockers, removes from cache (bead is unblocked).
+ * If no open blockers, removes from cache (cell is unblocked).
  */
-export async function rebuildBeadBlockedCacheDrizzle(
+export async function rebuildcellBlockedCacheDrizzle(
 	db: SwarmDb,
 	projectKey: string,
 	cellId: string,
@@ -67,14 +67,14 @@ export async function rebuildBeadBlockedCacheDrizzle(
 		// SQLite: serialize array as JSON string
 		const blockerIdsJson = JSON.stringify(blockerIds);
 		await db
-			.insert(blockedBeadsCache)
+			.insert(blockedcellsCache)
 			.values({
 				cell_id: cellId,
 				blocker_ids: blockerIdsJson,
 				updated_at: Date.now(),
 			})
 			.onConflictDoUpdate({
-				target: blockedBeadsCache.cell_id,
+				target: blockedcellsCache.cell_id,
 				set: {
 					blocker_ids: blockerIdsJson,
 					updated_at: Date.now(),
@@ -83,8 +83,8 @@ export async function rebuildBeadBlockedCacheDrizzle(
 	} else {
 		// No open blockers - remove from cache
 		await db
-			.delete(blockedBeadsCache)
-			.where(eq(blockedBeadsCache.cell_id, cellId));
+			.delete(blockedcellsCache)
+			.where(eq(blockedcellsCache.cell_id, cellId));
 	}
 }
 
@@ -98,15 +98,15 @@ export async function invalidateBlockedCacheDrizzle(
 	projectKey: string,
 	cellId: string,
 ): Promise<void> {
-	await rebuildBeadBlockedCacheDrizzle(db, projectKey, cellId);
+	await rebuildcellBlockedCacheDrizzle(db, projectKey, cellId);
 
-	// Also invalidate dependents (beads that depend on this one)
+	// Also invalidate dependents (cells that depend on this one)
 	const dependents = await db
-		.select({ cell_id: beadDependencies.cell_id })
-		.from(beadDependencies)
-		.where(eq(beadDependencies.depends_on_id, cellId));
+		.select({ cell_id: cellDependencies.cell_id })
+		.from(cellDependencies)
+		.where(eq(cellDependencies.depends_on_id, cellId));
 
 	for (const row of dependents) {
-		await rebuildBeadBlockedCacheDrizzle(db, projectKey, row.cell_id);
+		await rebuildcellBlockedCacheDrizzle(db, projectKey, row.cell_id);
 	}
 }

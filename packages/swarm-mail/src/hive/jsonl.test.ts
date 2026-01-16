@@ -2,13 +2,13 @@
  * Tests for JSONL export/import
  *
  * Covers:
- * - Export full beads to JSONL
- * - Export dirty beads only (incremental)
- * - Import from JSONL (new beads, updates, hash dedup)
+ * - Export full cells to JSONL
+ * - Export dirty cells only (incremental)
+ * - Import from JSONL (new cells, updates, hash dedup)
  * - Parse/serialize JSONL
  * - Content hash computation
  *
- * @module beads/jsonl.test
+ * @module cells/jsonl.test
  */
 
 import { beforeEach, describe, expect, it } from "bun:test";
@@ -18,7 +18,7 @@ import { createHiveAdapter } from "./adapter.js";
 import {
 	type CellExport,
 	computeContentHash,
-	exportDirtyBeads,
+	exportDirtycells,
 	exportToJSONL,
 	importFromJSONL,
 	parseJSONL,
@@ -98,10 +98,10 @@ describe("JSONL Export/Import", () => {
 				comments: [],
 			});
 
-			const beads = parseJSONL(line);
+			const cells = parseJSONL(line);
 
-			expect(beads).toHaveLength(1);
-			expect(beads[0].id).toBe("bd-abc123");
+			expect(cells).toHaveLength(1);
+			expect(cells[0].id).toBe("bd-abc123");
 		});
 
 		it("parses multiple lines", () => {
@@ -132,11 +132,11 @@ describe("JSONL Export/Import", () => {
 				}),
 			].join("\n");
 
-			const beads = parseJSONL(jsonl);
+			const cells = parseJSONL(jsonl);
 
-			expect(beads).toHaveLength(2);
-			expect(beads[0].id).toBe("bd-1");
-			expect(beads[1].id).toBe("bd-2");
+			expect(cells).toHaveLength(2);
+			expect(cells[0].id).toBe("bd-1");
+			expect(cells[1].id).toBe("bd-2");
 		});
 
 		it("skips empty lines", () => {
@@ -168,9 +168,9 @@ describe("JSONL Export/Import", () => {
 				}),
 			].join("\n");
 
-			const beads = parseJSONL(jsonl);
+			const cells = parseJSONL(jsonl);
 
-			expect(beads).toHaveLength(2);
+			expect(cells).toHaveLength(2);
 		});
 
 		it("throws on invalid JSON", () => {
@@ -253,7 +253,7 @@ describe("JSONL Export/Import", () => {
 			expect(jsonl).toBe("");
 		});
 
-		it("exports single bead", async () => {
+		it("exports single cell", async () => {
 			await adapter.createCell(projectKey, {
 				title: "Task 1",
 				type: "task",
@@ -262,76 +262,76 @@ describe("JSONL Export/Import", () => {
 
 			const jsonl = await exportToJSONL(adapter, projectKey);
 
-			const beads = parseJSONL(jsonl);
-			expect(beads).toHaveLength(1);
-			expect(beads[0].title).toBe("Task 1");
+			const cells = parseJSONL(jsonl);
+			expect(cells).toHaveLength(1);
+			expect(cells[0].title).toBe("Task 1");
 		});
 
-		it("exports multiple beads", async () => {
+		it("exports multiple cells", async () => {
 			await adapter.createCell(projectKey, { title: "Task 1", type: "task" });
 			await adapter.createCell(projectKey, { title: "Task 2", type: "bug" });
 
 			const jsonl = await exportToJSONL(adapter, projectKey);
 
-			const beads = parseJSONL(jsonl);
-			expect(beads).toHaveLength(2);
+			const cells = parseJSONL(jsonl);
+			expect(cells).toHaveLength(2);
 		});
 
-		it("exports beads with dependencies", async () => {
-			const bead1 = await adapter.createCell(projectKey, {
+		it("exports cells with dependencies", async () => {
+			const cell1 = await adapter.createCell(projectKey, {
 				title: "Blocker",
 				type: "task",
 			});
-			const bead2 = await adapter.createCell(projectKey, {
+			const cell2 = await adapter.createCell(projectKey, {
 				title: "Blocked",
 				type: "task",
 			});
-			await adapter.addDependency(projectKey, bead2.id, bead1.id, "blocks");
+			await adapter.addDependency(projectKey, cell2.id, cell1.id, "blocks");
 
 			const jsonl = await exportToJSONL(adapter, projectKey);
 
-			const beads = parseJSONL(jsonl);
-			const blocked = beads.find((b) => b.id === bead2.id);
+			const cells = parseJSONL(jsonl);
+			const blocked = cells.find((b) => b.id === cell2.id);
 			expect(blocked?.dependencies).toHaveLength(1);
-			expect(blocked?.dependencies[0].depends_on_id).toBe(bead1.id);
+			expect(blocked?.dependencies[0].depends_on_id).toBe(cell1.id);
 		});
 
-		it("exports beads with labels", async () => {
-			const bead = await adapter.createCell(projectKey, {
+		it("exports cells with labels", async () => {
+			const cell = await adapter.createCell(projectKey, {
 				title: "Task",
 				type: "task",
 			});
-			await adapter.addLabel(projectKey, bead.id, "urgent");
-			await adapter.addLabel(projectKey, bead.id, "backend");
+			await adapter.addLabel(projectKey, cell.id, "urgent");
+			await adapter.addLabel(projectKey, cell.id, "backend");
 
 			const jsonl = await exportToJSONL(adapter, projectKey);
 
-			const beads = parseJSONL(jsonl);
-			expect(beads[0].labels).toContain("urgent");
-			expect(beads[0].labels).toContain("backend");
+			const cells = parseJSONL(jsonl);
+			expect(cells[0].labels).toContain("urgent");
+			expect(cells[0].labels).toContain("backend");
 		});
 
-		it("exports beads with comments", async () => {
-			const bead = await adapter.createCell(projectKey, {
+		it("exports cells with comments", async () => {
+			const cell = await adapter.createCell(projectKey, {
 				title: "Task",
 				type: "task",
 			});
-			await adapter.addComment(projectKey, bead.id, "alice", "First comment");
-			await adapter.addComment(projectKey, bead.id, "bob", "Second comment");
+			await adapter.addComment(projectKey, cell.id, "alice", "First comment");
+			await adapter.addComment(projectKey, cell.id, "bob", "Second comment");
 
 			const jsonl = await exportToJSONL(adapter, projectKey);
 
-			const beads = parseJSONL(jsonl);
-			expect(beads[0].comments).toHaveLength(2);
-			expect(beads[0].comments[0].author).toBe("alice");
+			const cells = parseJSONL(jsonl);
+			expect(cells[0].comments).toHaveLength(2);
+			expect(cells[0].comments[0].author).toBe("alice");
 		});
 
-		it("excludes deleted beads by default", async () => {
-			const bead = await adapter.createCell(projectKey, {
+		it("excludes deleted cells by default", async () => {
+			const cell = await adapter.createCell(projectKey, {
 				title: "Task",
 				type: "task",
 			});
-			await adapter.deleteCell(projectKey, bead.id, {
+			await adapter.deleteCell(projectKey, cell.id, {
 				deleted_by: "test",
 				reason: "cleanup",
 			});
@@ -341,12 +341,12 @@ describe("JSONL Export/Import", () => {
 			expect(jsonl).toBe("");
 		});
 
-		it("includes deleted beads when requested", async () => {
-			const bead = await adapter.createCell(projectKey, {
+		it("includes deleted cells when requested", async () => {
+			const cell = await adapter.createCell(projectKey, {
 				title: "Task",
 				type: "task",
 			});
-			await adapter.deleteCell(projectKey, bead.id, {
+			await adapter.deleteCell(projectKey, cell.id, {
 				deleted_by: "test",
 				reason: "cleanup",
 			});
@@ -355,65 +355,65 @@ describe("JSONL Export/Import", () => {
 				includeDeleted: true,
 			});
 
-			const beads = parseJSONL(jsonl);
-			expect(beads).toHaveLength(1);
-			expect(beads[0].status).toBe("tombstone");
+			const cells = parseJSONL(jsonl);
+			expect(cells).toHaveLength(1);
+			expect(cells[0].status).toBe("tombstone");
 		});
 
-		it("exports specific beads only", async () => {
-			const bead1 = await adapter.createCell(projectKey, {
+		it("exports specific cells only", async () => {
+			const cell1 = await adapter.createCell(projectKey, {
 				title: "Task 1",
 				type: "task",
 			});
 			await adapter.createCell(projectKey, { title: "Task 2", type: "task" });
 
 			const jsonl = await exportToJSONL(adapter, projectKey, {
-				cellIds: [bead1.id],
+				cellIds: [cell1.id],
 			});
 
-			const beads = parseJSONL(jsonl);
-			expect(beads).toHaveLength(1);
-			expect(beads[0].id).toBe(bead1.id);
+			const cells = parseJSONL(jsonl);
+			expect(cells).toHaveLength(1);
+			expect(cells[0].id).toBe(cell1.id);
 		});
 	});
 
-	describe("exportDirtyBeads", () => {
-		it("exports only dirty beads", async () => {
-			const bead1 = await adapter.createCell(projectKey, {
+	describe("exportDirtycells", () => {
+		it("exports only dirty cells", async () => {
+			const cell1 = await adapter.createCell(projectKey, {
 				title: "Clean",
 				type: "task",
 			});
-			const bead2 = await adapter.createCell(projectKey, {
+			const cell2 = await adapter.createCell(projectKey, {
 				title: "Dirty",
 				type: "task",
 			});
 
 			// Clear dirty flags
 			const db = await adapter.getDatabase();
-			await db.query("DELETE FROM dirty_beads", []);
+			await db.query("DELETE FROM dirty_cells", []);
 
-			// Mark only bead2 as dirty
+			// Mark only cell2 as dirty
 			await db.query(
-				"INSERT INTO dirty_beads (cell_id, marked_at) VALUES ($1, $2)",
-				[bead2.id, Date.now()],
+				"INSERT INTO dirty_cells (cell_id, marked_at) VALUES ($1, $2)",
+				[cell2.id, Date.now()],
 			);
 
-			const result = await exportDirtyBeads(adapter, projectKey);
+			const result = await exportDirtycells(adapter, projectKey);
 
-			const beads = parseJSONL(result.jsonl);
-			expect(beads).toHaveLength(1);
-			expect(beads[0].id).toBe(bead2.id);
-			expect(result.cellIds).toEqual([bead2.id]);
+			const cells = parseJSONL(result.jsonl);
+			expect(cells).toHaveLength(1);
+			expect(cells[0].id).toBe(cell2.id);
+			expect(result.cellIds).toEqual([cell2.id]);
 		});
 
-		it("returns empty for no dirty beads", async () => {
+		it("returns empty for no dirty cells", async () => {
 			await adapter.createCell(projectKey, { title: "Task", type: "task" });
 
 			// Clear dirty flags
 			const db = await adapter.getDatabase();
-			await db.query("DELETE FROM dirty_beads", []);
+			await db.query("DELETE FROM dirty_cells", []);
 
-			const result = await exportDirtyBeads(adapter, projectKey);
+			const result = await exportDirtycells(adapter, projectKey);
 
 			expect(result.jsonl).toBe("");
 			expect(result.cellIds).toEqual([]);
@@ -499,9 +499,9 @@ describe("JSONL Export/Import", () => {
 				"", // Trailing newline creates empty line
 			].join("\n");
 
-			const beads = parseJSONL(jsonl);
+			const cells = parseJSONL(jsonl);
 
-			expect(beads).toHaveLength(2); // Should still parse 2 records
+			expect(cells).toHaveLength(2); // Should still parse 2 records
 		});
 	});
 
@@ -520,27 +520,27 @@ describe("JSONL Export/Import", () => {
 				comments: [],
 			});
 
-			const beads = parseJSONL(jsonl);
+			const cells = parseJSONL(jsonl);
 
-			expect(beads).toHaveLength(1);
-			expect(beads[0].created_at).toBe("2025-12-19T17:14:05.371Z");
-			expect(beads[0].updated_at).toBe("2025-12-19T17:14:05.371Z");
+			expect(cells).toHaveLength(1);
+			expect(cells[0].created_at).toBe("2025-12-19T17:14:05.371Z");
+			expect(cells[0].updated_at).toBe("2025-12-19T17:14:05.371Z");
 		});
 
 		it("exportToJSONL produces valid Date objects from ISO strings", async () => {
-			const bead = await adapter.createCell(projectKey, {
+			const cell = await adapter.createCell(projectKey, {
 				title: "Date export test",
 				type: "task",
 			});
 
 			const jsonl = await exportToJSONL(adapter, projectKey);
-			const beads = parseJSONL(jsonl);
+			const cells = parseJSONL(jsonl);
 
-			expect(beads).toHaveLength(1);
+			expect(cells).toHaveLength(1);
 
 			// created_at and updated_at should be valid ISO strings
-			const createdDate = new Date(beads[0].created_at);
-			const updatedDate = new Date(beads[0].updated_at);
+			const createdDate = new Date(cells[0].created_at);
+			const updatedDate = new Date(cells[0].updated_at);
 
 			expect(createdDate.toString()).not.toBe("Invalid Date");
 			expect(updatedDate.toString()).not.toBe("Invalid Date");
@@ -549,16 +549,16 @@ describe("JSONL Export/Import", () => {
 		});
 
 		it("handles undefined closed_at without Invalid Date", async () => {
-			const bead = await adapter.createCell(projectKey, {
+			const cell = await adapter.createCell(projectKey, {
 				title: "Open task",
 				type: "task",
 			});
 
 			const jsonl = await exportToJSONL(adapter, projectKey);
-			const beads = parseJSONL(jsonl);
+			const cells = parseJSONL(jsonl);
 
-			expect(beads).toHaveLength(1);
-			expect(beads[0].closed_at).toBeUndefined();
+			expect(cells).toHaveLength(1);
+			expect(cells[0].closed_at).toBeUndefined();
 
 			// Re-import should not throw Invalid Date error
 			const result = await importFromJSONL(adapter, projectKey, jsonl);
@@ -566,29 +566,29 @@ describe("JSONL Export/Import", () => {
 		});
 
 		it("handles closed_at ISO string correctly", async () => {
-			const bead = await adapter.createCell(projectKey, {
+			const cell = await adapter.createCell(projectKey, {
 				title: "Closed task",
 				type: "task",
 			});
-			await adapter.closeCell(projectKey, bead.id, "Test complete", {
+			await adapter.closeCell(projectKey, cell.id, "Test complete", {
 				closed_by: "test",
 			});
 
 			const jsonl = await exportToJSONL(adapter, projectKey);
-			const beads = parseJSONL(jsonl);
+			const cells = parseJSONL(jsonl);
 
-			expect(beads).toHaveLength(1);
-			expect(beads[0].closed_at).toBeDefined();
+			expect(cells).toHaveLength(1);
+			expect(cells[0].closed_at).toBeDefined();
 
 			// closed_at should be valid ISO string
-			const closedDate = new Date(beads[0].closed_at!);
+			const closedDate = new Date(cells[0].closed_at!);
 			expect(closedDate.toString()).not.toBe("Invalid Date");
 			expect(Number.isNaN(closedDate.getTime())).toBe(false);
 		});
 	});
 
 	describe("importFromJSONL", () => {
-		it("imports new beads", async () => {
+		it("imports new cells", async () => {
 			const jsonl = serializeToJSONL({
 				id: "bd-new123",
 				title: "New task",
@@ -608,24 +608,24 @@ describe("JSONL Export/Import", () => {
 			expect(result.updated).toBe(0);
 			expect(result.skipped).toBe(0);
 
-			const bead = await adapter.getCell(projectKey, "bd-new123");
-			expect(bead).not.toBeNull();
-			expect(bead?.title).toBe("New task");
+			const cell = await adapter.getCell(projectKey, "bd-new123");
+			expect(cell).not.toBeNull();
+			expect(cell?.title).toBe("New task");
 		});
 
-		it("updates existing beads", async () => {
-			const bead = await adapter.createCell(projectKey, {
+		it("updates existing cells", async () => {
+			const cell = await adapter.createCell(projectKey, {
 				title: "Original",
 				type: "task",
 			});
 
 			const jsonl = serializeToJSONL({
-				id: bead.id,
+				id: cell.id,
 				title: "Updated",
 				status: "in_progress",
 				priority: 1,
 				issue_type: "task",
-				created_at: new Date(bead.created_at).toISOString(),
+				created_at: new Date(cell.created_at).toISOString(),
 				updated_at: new Date().toISOString(),
 				dependencies: [],
 				labels: [],
@@ -637,13 +637,13 @@ describe("JSONL Export/Import", () => {
 			expect(result.created).toBe(0);
 			expect(result.updated).toBe(1);
 
-			const updated = await adapter.getCell(projectKey, bead.id);
+			const updated = await adapter.getCell(projectKey, cell.id);
 			expect(updated?.title).toBe("Updated");
 			expect(updated?.status).toBe("in_progress");
 		});
 
-		it("skips beads with same content hash", async () => {
-			const bead = await adapter.createCell(projectKey, {
+		it("skips cells with same content hash", async () => {
+			const cell = await adapter.createCell(projectKey, {
 				title: "Task",
 				type: "task",
 				priority: 2,
@@ -678,23 +678,23 @@ describe("JSONL Export/Import", () => {
 
 			expect(result.created).toBe(1);
 
-			const bead = await adapter.getCell(projectKey, "bd-dry123");
-			expect(bead).toBeNull();
+			const cell = await adapter.getCell(projectKey, "bd-dry123");
+			expect(cell).toBeNull();
 		});
 
-		it("skipExisting does not update existing beads", async () => {
-			const bead = await adapter.createCell(projectKey, {
+		it("skipExisting does not update existing cells", async () => {
+			const cell = await adapter.createCell(projectKey, {
 				title: "Original",
 				type: "task",
 			});
 
 			const jsonl = serializeToJSONL({
-				id: bead.id,
+				id: cell.id,
 				title: "Should not update",
 				status: "open",
 				priority: 2,
 				issue_type: "task",
-				created_at: new Date(bead.created_at).toISOString(),
+				created_at: new Date(cell.created_at).toISOString(),
 				updated_at: new Date().toISOString(),
 				dependencies: [],
 				labels: [],
@@ -707,7 +707,7 @@ describe("JSONL Export/Import", () => {
 
 			expect(result.skipped).toBe(1);
 
-			const unchanged = await adapter.getCell(projectKey, bead.id);
+			const unchanged = await adapter.getCell(projectKey, cell.id);
 			expect(unchanged?.title).toBe("Original");
 		});
 

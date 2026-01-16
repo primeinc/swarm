@@ -3,7 +3,7 @@
  *
  * All errors include:
  * - Agent name (if available)
- * - Cell/bead ID and epic ID (for correlation)
+ * - Cell/cell ID and epic ID (for correlation)
  * - Timestamp and sequence number
  * - Recent events from event log (last 5)
  * - Actionable suggestions for resolution

@@ -3,7 +3,7 @@
  *
  * Tests for schema migrations including:
  * - Fresh database initialization
- * - Upgrade from beads → cells rename
+ * - Upgrade from cells → cells rename
  * - Recovery from corrupted/partial migrations
  *
  * @module hive/migrations.test
@@ -15,7 +15,7 @@ import { createClient } from "@libsql/client";
 import { convertPlaceholders } from "../libsql.js";
 import type { DatabaseAdapter } from "../types/database.js";
 import {
-	beadsMigration,
+	cellsMigration,
 	cellsViewMigrationLibSQL,
 	hiveMigrationsLibSQL,
 } from "./migrations.js";
@@ -69,28 +69,28 @@ describe("Hive Migrations", () => {
     `);
 	});
 
-	describe("beadsMigration (v6)", () => {
-		test("creates beads table with correct schema", async () => {
-			await db.exec(beadsMigration.up);
+	describe("cellsMigration (v6)", () => {
+		test("creates cells table with correct schema", async () => {
+			await db.exec(cellsMigration.up);
 
 			// Verify table exists (SQLite uses sqlite_master instead of information_schema)
 			const result = await db.query<{ name: string }>(`
-        SELECT name FROM sqlite_master WHERE type='table' AND name='beads'
+        SELECT name FROM sqlite_master WHERE type='table' AND name='cells'
       `);
 			expect(result.rows.length).toBe(1);
-			expect(result.rows[0].name).toBe("beads");
+			expect(result.rows[0].name).toBe("cells");
 		});
 
 		test("creates all supporting tables", async () => {
-			await db.exec(beadsMigration.up);
+			await db.exec(cellsMigration.up);
 
 			const tables = [
-				"beads",
-				"bead_dependencies",
-				"bead_labels",
-				"bead_comments",
-				"blocked_beads_cache",
-				"dirty_beads",
+				"cells",
+				"cell_dependencies",
+				"cell_labels",
+				"cell_comments",
+				"blocked_cells_cache",
+				"dirty_cells",
 			];
 
 			for (const table of tables) {
@@ -103,9 +103,9 @@ describe("Hive Migrations", () => {
 	});
 
 	describe("cellsViewMigration (v7)", () => {
-		test("creates cells view pointing to beads table", async () => {
+		test("creates cells view pointing to cells table", async () => {
 			// First apply v6
-			await db.exec(beadsMigration.up);
+			await db.exec(cellsMigration.up);
 
 			// Then apply v7
 			await db.exec(cellsViewMigrationLibSQL.up);
@@ -119,13 +119,13 @@ describe("Hive Migrations", () => {
 		});
 
 		test("cells view allows SELECT queries", async () => {
-			await db.exec(beadsMigration.up);
+			await db.exec(cellsMigration.up);
 			await db.exec(cellsViewMigrationLibSQL.up);
 
-			// Insert into beads
+			// Insert into cells
 			await db.query(
 				`
-        INSERT INTO beads (id, project_key, type, status, title, priority, created_at, updated_at)
+        INSERT INTO cells (id, project_key, type, status, title, priority, created_at, updated_at)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       `,
 				[
@@ -154,7 +154,7 @@ describe("Hive Migrations", () => {
 		});
 
 		test("cells view allows INSERT via INSTEAD OF trigger", async () => {
-			await db.exec(beadsMigration.up);
+			await db.exec(cellsMigration.up);
 			await db.exec(cellsViewMigrationLibSQL.up);
 
 			// Insert via cells view
@@ -175,10 +175,10 @@ describe("Hive Migrations", () => {
 				],
 			);
 
-			// Verify it's in beads table
+			// Verify it's in cells table
 			const result = await db.query<{ id: string }>(
 				`
-        SELECT id FROM beads WHERE id = $1
+        SELECT id FROM cells WHERE id = $1
       `,
 				["bd-via-view"],
 			);
@@ -190,18 +190,18 @@ describe("Hive Migrations", () => {
 	describe("upgrade path", () => {
 		test("existing v6 database can upgrade to v7", async () => {
 			// Simulate existing v6 database with data
-			await db.exec(beadsMigration.up);
+			await db.exec(cellsMigration.up);
 			await db.query(
 				`
         INSERT INTO schema_version (version, applied_at, description)
         VALUES ($1, $2, $3)
       `,
-				[6, Date.now(), beadsMigration.description],
+				[6, Date.now(), cellsMigration.description],
 			);
 
 			await db.query(
 				`
-        INSERT INTO beads (id, project_key, type, status, title, priority, created_at, updated_at)
+        INSERT INTO cells (id, project_key, type, status, title, priority, created_at, updated_at)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       `,
 				[
@@ -250,15 +250,15 @@ describe("Hive Migrations", () => {
 				);
 			}
 
-			// Verify both beads table and cells view exist
-			const beadsExists = await db.query<{ name: string }>(`
-        SELECT name FROM sqlite_master WHERE type='table' AND name='beads'
+			// Verify both cells table and cells view exist
+			const cellsExists = await db.query<{ name: string }>(`
+        SELECT name FROM sqlite_master WHERE type='table' AND name='cells'
       `);
 			const cellsExists = await db.query<{ name: string }>(`
         SELECT name FROM sqlite_master WHERE type='view' AND name='cells'
       `);
 
-			expect(beadsExists.rows.length).toBe(1);
+			expect(cellsExists.rows.length).toBe(1);
 			expect(cellsExists.rows.length).toBe(1);
 		});
 	});
@@ -266,7 +266,7 @@ describe("Hive Migrations", () => {
 	describe("recovery scenarios", () => {
 		test("handles missing cells view gracefully", async () => {
 			// Database has v6 but somehow missing v7
-			await db.exec(beadsMigration.up);
+			await db.exec(cellsMigration.up);
 
 			// Query cells should fail
 			await expect(db.query(`SELECT * FROM cells LIMIT 1`)).rejects.toThrow();

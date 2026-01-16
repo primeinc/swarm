@@ -317,7 +317,7 @@ The `swarm_review_feedback` tool expects:
 // Approval (no issues)
 await swarm_review_feedback({
   project_key: projectPath,
-  task_id: beadId,
+  task_id: cellId,
   worker_id: workerName,
   status: "approved",
   summary: "All checks passed"
@@ -327,7 +327,7 @@ await swarm_review_feedback({
 // Rejection (with issues)
 await swarm_review_feedback({
   project_key: projectPath,
-  task_id: beadId,
+  task_id: cellId,
   worker_id: workerName,
   status: "needs_changes",
   summary: "Found type errors",

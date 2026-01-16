@@ -2181,7 +2181,7 @@ describe("swarm db repair", () => {
      * @returns Summary of changes
      */
     async function executeRepair(dryRun: boolean): Promise<{
-      nullBeads: number;
+      nullcells: number;
       orphanedRecipients: number;
       messagesWithoutRecipients: number;
       expiredReservations: number;
@@ -2189,7 +2189,7 @@ describe("swarm db repair", () => {
       // Mock implementation for testing
       // Real implementation will use getSwarmMailLibSQL()
       return {
-        nullBeads: dryRun ? 427 : 0,
+        nullcells: dryRun ? 427 : 0,
         orphanedRecipients: dryRun ? 208 : 0,
         messagesWithoutRecipients: dryRun ? 72 : 0,
         expiredReservations: dryRun ? 213 : 0,
@@ -2199,7 +2199,7 @@ describe("swarm db repair", () => {
     test("dry run returns counts without deleting", async () => {
       const result = await executeRepair(true);
 
-      expect(result.nullBeads).toBeGreaterThanOrEqual(0);
+      expect(result.nullcells).toBeGreaterThanOrEqual(0);
       expect(result.orphanedRecipients).toBeGreaterThanOrEqual(0);
       expect(result.messagesWithoutRecipients).toBeGreaterThanOrEqual(0);
       expect(result.expiredReservations).toBeGreaterThanOrEqual(0);
@@ -2209,7 +2209,7 @@ describe("swarm db repair", () => {
       const result = await executeRepair(false);
 
       // After cleanup, all counts should be zero (mock behavior)
-      expect(result.nullBeads).toBe(0);
+      expect(result.nullcells).toBe(0);
       expect(result.orphanedRecipients).toBe(0);
       expect(result.messagesWithoutRecipients).toBe(0);
       expect(result.expiredReservations).toBe(0);
@@ -2219,7 +2219,7 @@ describe("swarm db repair", () => {
   describe("formatRepairSummary", () => {
     function formatRepairSummary(
       counts: {
-        nullBeads: number;
+        nullcells: number;
         orphanedRecipients: number;
         messagesWithoutRecipients: number;
         expiredReservations: number;
@@ -2236,13 +2236,13 @@ describe("swarm db repair", () => {
         lines.push("Deleted:");
       }
 
-      lines.push(`  - ${counts.nullBeads} beads with NULL IDs`);
+      lines.push(`  - ${counts.nullcells} cells with NULL IDs`);
       lines.push(`  - ${counts.orphanedRecipients} orphaned message_recipients`);
       lines.push(`  - ${counts.messagesWithoutRecipients} messages without recipients`);
       lines.push(`  - ${counts.expiredReservations} expired unreleased reservations`);
 
       const total =
-        counts.nullBeads +
+        counts.nullcells +
         counts.orphanedRecipients +
         counts.messagesWithoutRecipients +
         counts.expiredReservations;
@@ -2255,7 +2255,7 @@ describe("swarm db repair", () => {
 
     test("formats dry run summary", () => {
       const counts = {
-        nullBeads: 427,
+        nullcells: 427,
         orphanedRecipients: 208,
         messagesWithoutRecipients: 72,
         expiredReservations: 213,
@@ -2265,7 +2265,7 @@ describe("swarm db repair", () => {
 
       expect(result).toContain("DRY RUN");
       expect(result).toContain("Would delete:");
-      expect(result).toContain("427 beads with NULL IDs");
+      expect(result).toContain("427 cells with NULL IDs");
       expect(result).toContain("208 orphaned message_recipients");
       expect(result).toContain("72 messages without recipients");
       expect(result).toContain("213 expired unreleased reservations");
@@ -2274,7 +2274,7 @@ describe("swarm db repair", () => {
 
     test("formats actual repair summary", () => {
       const counts = {
-        nullBeads: 427,
+        nullcells: 427,
         orphanedRecipients: 208,
         messagesWithoutRecipients: 72,
         expiredReservations: 213,
@@ -2289,7 +2289,7 @@ describe("swarm db repair", () => {
 
     test("handles zero counts", () => {
       const counts = {
-        nullBeads: 0,
+        nullcells: 0,
         orphanedRecipients: 0,
         messagesWithoutRecipients: 0,
         expiredReservations: 0,

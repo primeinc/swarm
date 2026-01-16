@@ -1,20 +1,20 @@
 /**
- * JSONL Export/Import for Beads
+ * JSONL Export/Import for cells
  *
- * Implements git sync via JSONL format compatible with steveyegge/beads.
+ * Implements git sync via JSONL format compatible with steveyegge/cells.
  * Features:
  * - Full export to JSONL string
- * - Incremental dirty bead export
+ * - Incremental dirty cell export
  * - Import with hash-based deduplication
  * - Parse/serialize individual lines
  *
- * @module beads/jsonl
+ * @module cells/jsonl
  */
 
 import { createHash } from "node:crypto";
 import type { HiveAdapter } from "../types/hive-adapter.js";
 import {
-	clearDirtyBead,
+	clearDirtycell,
 	getComments,
 	getDependencies,
 	getDirtyCells,
@@ -26,7 +26,7 @@ import {
 // ============================================================================
 
 /**
- * JSONL export format matching steveyegge/beads
+ * JSONL export format matching steveyegge/cells
  *
  * One JSON object per line. Field names match the Go struct tags.
  */
@@ -75,7 +75,7 @@ export interface ImportResult {
 // ============================================================================
 
 /**
- * Serialize a bead to a JSONL line
+ * Serialize a cell to a JSONL line
  *
  * Returns JSON with trailing newline for proper JSONL format.
  */
@@ -84,7 +84,7 @@ export function serializeToJSONL(cell: CellExport): string {
 }
 
 /**
- * Parse JSONL string to bead exports
+ * Parse JSONL string to cell exports
  *
  * Skips empty lines. Throws on invalid JSON.
  */
@@ -136,9 +136,9 @@ export function computeContentHash(cell: CellExport): string {
 // ============================================================================
 
 /**
- * Export all beads to JSONL string
+ * Export all cells to JSONL string
  *
- * By default excludes deleted beads (tombstones).
+ * By default excludes deleted cells (tombstones).
  * Includes dependencies, labels, and comments.
  */
 export async function exportToJSONL(
@@ -173,28 +173,28 @@ export async function exportToJSONL(
   `;
 
 	const result = await db.query<any>(query, params);
-	const beads = result.rows;
+	const cells = result.rows;
 
-	if (beads.length === 0) {
+	if (cells.length === 0) {
 		return "";
 	}
 
-	// Convert each bead to export format
+	// Convert each cell to export format
 	const lines: string[] = [];
 
-	for (const bead of beads) {
+	for (const cell of cells) {
 		// Get dependencies
-		const deps = await getDependencies(db, projectKey, bead.id as string);
+		const deps = await getDependencies(db, projectKey, cell.id as string);
 		const dependencies = deps.map((d) => ({
 			depends_on_id: d.depends_on_id,
 			type: d.relationship,
 		}));
 
 		// Get labels
-		const labels = await getLabels(db, projectKey, bead.id as string);
+		const labels = await getLabels(db, projectKey, cell.id as string);
 
 		// Get comments
-		const comments = await getComments(db, projectKey, bead.id as string);
+		const comments = await getComments(db, projectKey, cell.id as string);
 		const commentExports = comments.map((c) => ({
 			author: c.author,
 			text: c.body,
@@ -202,19 +202,19 @@ export async function exportToJSONL(
 
 		// Build export
 		const cellExport: CellExport = {
-			id: bead.id as string,
-			title: bead.title as string,
-			description: bead.description || undefined,
-			status: bead.deleted_at ? "tombstone" : (bead.status as any),
-			priority: bead.priority as number,
-			issue_type: bead.type as any,
-			created_at: new Date(Number(bead.created_at)).toISOString(),
-			updated_at: new Date(Number(bead.updated_at)).toISOString(),
-			closed_at: bead.closed_at
-				? new Date(Number(bead.closed_at)).toISOString()
+			id: cell.id as string,
+			title: cell.title as string,
+			description: cell.description || undefined,
+			status: cell.deleted_at ? "tombstone" : (cell.status as any),
+			priority: cell.priority as number,
+			issue_type: cell.type as any,
+			created_at: new Date(Number(cell.created_at)).toISOString(),
+			updated_at: new Date(Number(cell.updated_at)).toISOString(),
+			closed_at: cell.closed_at
+				? new Date(Number(cell.closed_at)).toISOString()
 				: undefined,
-			assignee: bead.assignee || undefined,
-			parent_id: bead.parent_id || undefined,
+			assignee: cell.assignee || undefined,
+			parent_id: cell.parent_id || undefined,
 			dependencies,
 			labels,
 			comments: commentExports,
@@ -228,11 +228,11 @@ export async function exportToJSONL(
 }
 
 /**
- * Export only dirty beads (incremental)
+ * Export only dirty cells (incremental)
  *
- * Returns JSONL and list of bead IDs that were exported.
+ * Returns JSONL and list of cell IDs that were exported.
  */
-export async function exportDirtyBeads(
+export async function exportDirtycells(
 	adapter: HiveAdapter,
 	projectKey: string,
 ): Promise<{ jsonl: string; cellIds: string[] }> {
@@ -329,7 +329,7 @@ async function importSingleCell(
 
 	// Hash-based deduplication
 	if (existing) {
-		const existingHash = await computeBeadHash(
+		const existingHash = await computecellHash(
 			adapter,
 			projectKey,
 			existing.id,
@@ -435,21 +435,21 @@ async function importSingleCell(
 }
 
 /**
- * Compute hash for existing bead in database
+ * Compute hash for existing cell in database
  */
-async function computeBeadHash(
+async function computecellHash(
 	adapter: HiveAdapter,
 	projectKey: string,
 	cellId: string,
 ): Promise<string> {
 	const db = await adapter.getDatabase();
 
-	// Get bead
-	const beadResult = await db.query<any>(
-		"SELECT * FROM beads WHERE project_key = $1 AND id = $2",
+	// Get cell
+	const cellResult = await db.query<any>(
+		"SELECT * FROM cells WHERE project_key = $1 AND id = $2",
 		[projectKey, cellId],
 	);
-	const cell = beadResult.rows[0];
+	const cell = cellResult.rows[0];
 	if (!cell) {
 		throw new Error(`Cell not found: ${cellId}`);
 	}
@@ -510,7 +510,7 @@ async function importDependencies(
 	const db = await adapter.getDatabase();
 
 	// Clear existing dependencies
-	await db.query("DELETE FROM bead_dependencies WHERE cell_id = $1", [
+	await db.query("DELETE FROM cell_dependencies WHERE cell_id = $1", [
 		cellExport.id,
 	]);
 
@@ -526,7 +526,7 @@ async function importDependencies(
 }
 
 /**
- * Import labels for a bead
+ * Import labels for a cell
  */
 async function importLabels(
 	adapter: HiveAdapter,
@@ -541,7 +541,7 @@ async function importLabels(
 	const db = await adapter.getDatabase();
 
 	// Clear existing labels
-	await db.query("DELETE FROM bead_labels WHERE cell_id = $1", [cellExport.id]);
+	await db.query("DELETE FROM cell_labels WHERE cell_id = $1", [cellExport.id]);
 
 	// Add new labels
 	for (const label of cellExport.labels) {
@@ -565,7 +565,7 @@ async function importComments(
 	const db = await adapter.getDatabase();
 
 	// Clear existing comments (simple approach - could be smarter)
-	await db.query("DELETE FROM bead_comments WHERE cell_id = $1", [
+	await db.query("DELETE FROM cell_comments WHERE cell_id = $1", [
 		cellExport.id,
 	]);
 

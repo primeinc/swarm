@@ -49,7 +49,7 @@ describe("Query Tools - RED Phase Tests", () => {
 				JSON.stringify({ 
 					agent_name: "AgentA",
 					epic_id: "epic1",
-					cell_id: "bead1",
+					cell_id: "cell1",
 					success: false, 
 					strategy: "file-based", 
 					durationMs: 5000 
@@ -66,7 +66,7 @@ describe("Query Tools - RED Phase Tests", () => {
 				JSON.stringify({ 
 					agent_name: "AgentB",
 					epic_id: "epic1",
-					cell_id: "bead2",
+					cell_id: "cell2",
 					success: true, 
 					strategy: "feature-based", 
 					durationMs: 3000 
@@ -83,7 +83,7 @@ describe("Query Tools - RED Phase Tests", () => {
 				JSON.stringify({ 
 					agent_name: "AgentA",
 					epic_id: "epic1",
-					cell_id: "bead1",
+					cell_id: "cell1",
 					paths: ["src/file.ts"], 
 					exclusive: true 
 				}),
@@ -99,7 +99,7 @@ describe("Query Tools - RED Phase Tests", () => {
 				JSON.stringify({ 
 					agent_name: "AgentB",
 					epic_id: "epic1",
-					cell_id: "bead2",
+					cell_id: "cell2",
 					paths: ["src/file.ts"], 
 					exclusive: true 
 				}),
@@ -115,7 +115,7 @@ describe("Query Tools - RED Phase Tests", () => {
 				JSON.stringify({ 
 					agent_name: "Coordinator",
 					epic_id: "epic1",
-					cell_id: "bead1",
+					cell_id: "cell1",
 					status: "needs_changes", 
 					issues: ["Type error"] 
 				}),

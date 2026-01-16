@@ -54,7 +54,7 @@ The swarm system shows **strong worker efficiency** with a 100% task success rat
 
 ### Duration by Files Touched
 
-| Bead ID | Files | Duration | Rate |
+| cell ID | Files | Duration | Rate |
 |---------|-------|----------|------|
 | cell--f7aiq-mk2y31hse3t | 3 | 120.07s | 40s/file |
 | cell-qwm17x-mk2y31q6bsc | 2 | 90.02s | 45s/file |
@@ -105,7 +105,7 @@ FAILURE  (none)
 ┌─────────────────────────────────────────────────────────────┐
 │                     RETRY PATTERN DETECTED                  │
 ├─────────────────────────────────────────────────────────────┤
-│  Bead ID: test-project-abc123-task1                         │
+│  cell ID: test-project-abc123-task1                         │
 │  Title:   Implement feature X                               │
 │  Spawns:  28 times                                          │
 │  Status:  Likely test/development data                      │

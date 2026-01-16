@@ -1,16 +1,16 @@
 /**
- * Beads Adapter Tests
+ * cells Adapter Tests
  *
  * Tests the HiveAdapter factory and its interface implementation.
  *
  * ## Test Strategy
  * 1. Factory creation - createHiveAdapter returns valid adapter
- * 2. Core CRUD operations - create, read, update, close beads
+ * 2. Core CRUD operations - create, read, update, close cells
  * 3. Dependency management - add, remove, query dependencies
  * 4. Label operations - add, remove, query labels
  * 5. Comment operations - add, update, delete comments
  * 6. Epic operations - add/remove children, closure eligibility
- * 7. Query helpers - ready beads, in-progress, blocked
+ * 7. Query helpers - ready cells, in-progress, blocked
  */
 
 import { beforeEach, describe, expect, test } from "bun:test";
@@ -19,7 +19,7 @@ import type { DatabaseAdapter } from "../types/database.js";
 import type { HiveAdapter } from "../types/hive-adapter.js";
 import { createHiveAdapter } from "./adapter.js";
 
-describe("Beads Adapter", () => {
+describe("cells Adapter", () => {
 	let db: DatabaseAdapter;
 	let adapter: HiveAdapter;
 	const projectKey = "/test/project";
@@ -51,21 +51,21 @@ describe("Beads Adapter", () => {
 	// Core CRUD Operations
 	// ============================================================================
 
-	test("createCell - creates a new bead", async () => {
-		const bead = await adapter.createCell(projectKey, {
-			title: "Test Bead",
+	test("createCell - creates a new cell", async () => {
+		const cell = await adapter.createCell(projectKey, {
+			title: "Test cell",
 			type: "task",
 			priority: 2,
 		});
 
-		expect(bead).toBeDefined();
-		expect(bead.title).toBe("Test Bead");
-		expect(bead.type).toBe("task");
-		expect(bead.status).toBe("open");
-		expect(bead.priority).toBe(2);
+		expect(cell).toBeDefined();
+		expect(cell.title).toBe("Test cell");
+		expect(cell.type).toBe("task");
+		expect(cell.status).toBe("open");
+		expect(cell.priority).toBe(2);
 	});
 
-	test("getCell - retrieves existing bead", async () => {
+	test("getCell - retrieves existing cell", async () => {
 		const created = await adapter.createCell(projectKey, {
 			title: "Get Test",
 			type: "feature",
@@ -78,28 +78,28 @@ describe("Beads Adapter", () => {
 		expect(retrieved?.title).toBe("Get Test");
 	});
 
-	test("queryCells - returns all beads", async () => {
+	test("queryCells - returns all cells", async () => {
 		await adapter.createCell(projectKey, {
-			title: "Bead 1",
+			title: "cell 1",
 			type: "task",
 			priority: 2,
 		});
 		await adapter.createCell(projectKey, {
-			title: "Bead 2",
+			title: "cell 2",
 			type: "bug",
 			priority: 1,
 		});
 
-		const beads = await adapter.queryCells(projectKey);
-		expect(beads.length).toBeGreaterThanOrEqual(2);
+		const cells = await adapter.queryCells(projectKey);
+		expect(cells.length).toBeGreaterThanOrEqual(2);
 	});
 
 	// ============================================================================
-	// Bead ID Validation Tests
+	// cell ID Validation Tests
 	// ============================================================================
 
 	test("createCell - should reject null cell ID via event system", async () => {
-		// Create a cell event with null ID to simulate generateBeadId failure
+		// Create a cell event with null ID to simulate generatecellId failure
 		const { appendCellEvent } = await import("./store.js");
 
 		const badEvent: any = {
@@ -107,13 +107,13 @@ describe("Beads Adapter", () => {
 			project_key: projectKey,
 			cell_id: null, // This should be rejected
 			timestamp: Date.now(),
-			title: "Bad Bead",
+			title: "Bad cell",
 			issue_type: "task",
 			priority: 2,
 		};
 
 		await expect(appendCellEvent(badEvent, undefined, db)).rejects.toThrow(
-			/Bead ID cannot be null or empty/,
+			/cell ID cannot be null or empty/,
 		);
 	});
 
@@ -125,13 +125,13 @@ describe("Beads Adapter", () => {
 			project_key: projectKey,
 			cell_id: "", // Empty string should also be rejected
 			timestamp: Date.now(),
-			title: "Bad Bead",
+			title: "Bad cell",
 			issue_type: "task",
 			priority: 2,
 		};
 
 		await expect(appendCellEvent(badEvent, undefined, db)).rejects.toThrow(
-			/Bead ID cannot be null or empty/,
+			/cell ID cannot be null or empty/,
 		);
 	});
 
@@ -143,24 +143,24 @@ describe("Beads Adapter", () => {
 			project_key: projectKey,
 			cell_id: "   ", // Whitespace only should be rejected
 			timestamp: Date.now(),
-			title: "Bad Bead",
+			title: "Bad cell",
 			issue_type: "task",
 			priority: 2,
 		};
 
 		await expect(appendCellEvent(badEvent, undefined, db)).rejects.toThrow(
-			/Bead ID cannot be null or empty/,
+			/cell ID cannot be null or empty/,
 		);
 	});
 
-	test("updateCell - updates bead fields", async () => {
-		const bead = await adapter.createCell(projectKey, {
+	test("updateCell - updates cell fields", async () => {
+		const cell = await adapter.createCell(projectKey, {
 			title: "Original",
 			type: "task",
 			priority: 2,
 		});
 
-		const updated = await adapter.updateCell(projectKey, bead.id, {
+		const updated = await adapter.updateCell(projectKey, cell.id, {
 			title: "Updated",
 			description: "New description",
 			priority: 1,
@@ -171,8 +171,8 @@ describe("Beads Adapter", () => {
 		expect(updated.priority).toBe(1);
 	});
 
-	test("changeCellStatus - changes bead status", async () => {
-		const bead = await adapter.createCell(projectKey, {
+	test("changeCellStatus - changes cell status", async () => {
+		const cell = await adapter.createCell(projectKey, {
 			title: "Status Test",
 			type: "task",
 			priority: 2,
@@ -180,34 +180,34 @@ describe("Beads Adapter", () => {
 
 		const updated = await adapter.changeCellStatus(
 			projectKey,
-			bead.id,
+			cell.id,
 			"in_progress",
 		);
 		expect(updated.status).toBe("in_progress");
 	});
 
-	test("closeCell - closes a bead", async () => {
-		const bead = await adapter.createCell(projectKey, {
+	test("closeCell - closes a cell", async () => {
+		const cell = await adapter.createCell(projectKey, {
 			title: "Close Test",
 			type: "task",
 			priority: 2,
 		});
 
-		const closed = await adapter.closeCell(projectKey, bead.id, "Completed");
+		const closed = await adapter.closeCell(projectKey, cell.id, "Completed");
 		expect(closed.status).toBe("closed");
 		expect(closed.closed_reason).toBe("Completed");
 		expect(closed.closed_at).toBeGreaterThan(0);
 	});
 
-	test("reopenCell - reopens a closed bead", async () => {
-		const bead = await adapter.createCell(projectKey, {
+	test("reopenCell - reopens a closed cell", async () => {
+		const cell = await adapter.createCell(projectKey, {
 			title: "Reopen Test",
 			type: "task",
 			priority: 2,
 		});
 
-		await adapter.closeCell(projectKey, bead.id, "Done");
-		const reopened = await adapter.reopenCell(projectKey, bead.id);
+		await adapter.closeCell(projectKey, cell.id, "Done");
+		const reopened = await adapter.reopenCell(projectKey, cell.id);
 
 		expect(reopened.status).toBe("open");
 		expect(reopened.closed_at).toBeNull();
@@ -219,12 +219,12 @@ describe("Beads Adapter", () => {
 	// ============================================================================
 
 	test("addDependency - adds a dependency", async () => {
-		const bead1 = await adapter.createCell(projectKey, {
+		const cell1 = await adapter.createCell(projectKey, {
 			title: "Blocker",
 			type: "task",
 			priority: 2,
 		});
-		const bead2 = await adapter.createCell(projectKey, {
+		const cell2 = await adapter.createCell(projectKey, {
 			title: "Blocked",
 			type: "task",
 			priority: 2,
@@ -232,49 +232,49 @@ describe("Beads Adapter", () => {
 
 		const dep = await adapter.addDependency(
 			projectKey,
-			bead2.id,
-			bead1.id,
+			cell2.id,
+			cell1.id,
 			"blocks",
 		);
-		expect(dep.depends_on_id).toBe(bead1.id);
+		expect(dep.depends_on_id).toBe(cell1.id);
 		expect(dep.relationship).toBe("blocks");
 	});
 
 	test("getDependencies - returns dependencies", async () => {
-		const bead1 = await adapter.createCell(projectKey, {
+		const cell1 = await adapter.createCell(projectKey, {
 			title: "Blocker",
 			type: "task",
 			priority: 2,
 		});
-		const bead2 = await adapter.createCell(projectKey, {
+		const cell2 = await adapter.createCell(projectKey, {
 			title: "Blocked",
 			type: "task",
 			priority: 2,
 		});
 
-		await adapter.addDependency(projectKey, bead2.id, bead1.id, "blocks");
-		const deps = await adapter.getDependencies(projectKey, bead2.id);
+		await adapter.addDependency(projectKey, cell2.id, cell1.id, "blocks");
+		const deps = await adapter.getDependencies(projectKey, cell2.id);
 
 		expect(deps).toHaveLength(1);
-		expect(deps[0]?.depends_on_id).toBe(bead1.id);
+		expect(deps[0]?.depends_on_id).toBe(cell1.id);
 	});
 
 	test("removeDependency - removes a dependency", async () => {
-		const bead1 = await adapter.createCell(projectKey, {
+		const cell1 = await adapter.createCell(projectKey, {
 			title: "Blocker",
 			type: "task",
 			priority: 2,
 		});
-		const bead2 = await adapter.createCell(projectKey, {
+		const cell2 = await adapter.createCell(projectKey, {
 			title: "Blocked",
 			type: "task",
 			priority: 2,
 		});
 
-		await adapter.addDependency(projectKey, bead2.id, bead1.id, "blocks");
-		await adapter.removeDependency(projectKey, bead2.id, bead1.id, "blocks");
+		await adapter.addDependency(projectKey, cell2.id, cell1.id, "blocks");
+		await adapter.removeDependency(projectKey, cell2.id, cell1.id, "blocks");
 
-		const deps = await adapter.getDependencies(projectKey, bead2.id);
+		const deps = await adapter.getDependencies(projectKey, cell2.id);
 		expect(deps).toHaveLength(0);
 	});
 
@@ -282,43 +282,43 @@ describe("Beads Adapter", () => {
 	// Label Operations
 	// ============================================================================
 
-	test("addLabel - adds a label to bead", async () => {
-		const bead = await adapter.createCell(projectKey, {
+	test("addLabel - adds a label to cell", async () => {
+		const cell = await adapter.createCell(projectKey, {
 			title: "Label Test",
 			type: "task",
 			priority: 2,
 		});
 
-		const label = await adapter.addLabel(projectKey, bead.id, "p0");
+		const label = await adapter.addLabel(projectKey, cell.id, "p0");
 		expect(label.label).toBe("p0");
 	});
 
-	test("getLabels - returns bead labels", async () => {
-		const bead = await adapter.createCell(projectKey, {
+	test("getLabels - returns cell labels", async () => {
+		const cell = await adapter.createCell(projectKey, {
 			title: "Label Test",
 			type: "task",
 			priority: 2,
 		});
 
-		await adapter.addLabel(projectKey, bead.id, "p0");
-		await adapter.addLabel(projectKey, bead.id, "urgent");
+		await adapter.addLabel(projectKey, cell.id, "p0");
+		await adapter.addLabel(projectKey, cell.id, "urgent");
 
-		const labels = await adapter.getLabels(projectKey, bead.id);
+		const labels = await adapter.getLabels(projectKey, cell.id);
 		expect(labels).toContain("p0");
 		expect(labels).toContain("urgent");
 	});
 
 	test("removeLabel - removes a label", async () => {
-		const bead = await adapter.createCell(projectKey, {
+		const cell = await adapter.createCell(projectKey, {
 			title: "Label Test",
 			type: "task",
 			priority: 2,
 		});
 
-		await adapter.addLabel(projectKey, bead.id, "p0");
-		await adapter.removeLabel(projectKey, bead.id, "p0");
+		await adapter.addLabel(projectKey, cell.id, "p0");
+		await adapter.removeLabel(projectKey, cell.id, "p0");
 
-		const labels = await adapter.getLabels(projectKey, bead.id);
+		const labels = await adapter.getLabels(projectKey, cell.id);
 		expect(labels).not.toContain("p0");
 	});
 
@@ -326,8 +326,8 @@ describe("Beads Adapter", () => {
 	// Comment Operations
 	// ============================================================================
 
-	test("addComment - adds a comment to bead", async () => {
-		const bead = await adapter.createCell(projectKey, {
+	test("addComment - adds a comment to cell", async () => {
+		const cell = await adapter.createCell(projectKey, {
 			title: "Comment Test",
 			type: "task",
 			priority: 2,
@@ -335,7 +335,7 @@ describe("Beads Adapter", () => {
 
 		const comment = await adapter.addComment(
 			projectKey,
-			bead.id,
+			cell.id,
 			"testuser",
 			"Test comment",
 		);
@@ -343,17 +343,17 @@ describe("Beads Adapter", () => {
 		expect(comment.author).toBe("testuser");
 	});
 
-	test("getComments - returns bead comments", async () => {
-		const bead = await adapter.createCell(projectKey, {
+	test("getComments - returns cell comments", async () => {
+		const cell = await adapter.createCell(projectKey, {
 			title: "Comment Test",
 			type: "task",
 			priority: 2,
 		});
 
-		await adapter.addComment(projectKey, bead.id, "user1", "Comment 1");
-		await adapter.addComment(projectKey, bead.id, "user2", "Comment 2");
+		await adapter.addComment(projectKey, cell.id, "user1", "Comment 1");
+		await adapter.addComment(projectKey, cell.id, "user2", "Comment 2");
 
-		const comments = await adapter.getComments(projectKey, bead.id);
+		const comments = await adapter.getComments(projectKey, cell.id);
 		expect(comments).toHaveLength(2);
 	});
 
@@ -407,9 +407,9 @@ describe("Beads Adapter", () => {
 	// Query Helpers
 	// ============================================================================
 
-	test("getNextReadyCell - returns unblocked bead", async () => {
+	test("getNextReadyCell - returns unblocked cell", async () => {
 		await adapter.createCell(projectKey, {
-			title: "Ready Bead",
+			title: "Ready cell",
 			type: "task",
 			priority: 1,
 		});
@@ -419,17 +419,17 @@ describe("Beads Adapter", () => {
 		expect(ready?.status).toBe("open");
 	});
 
-	test("getInProgressCells - returns in-progress beads", async () => {
-		const bead = await adapter.createCell(projectKey, {
-			title: "WIP Bead",
+	test("getInProgressCells - returns in-progress cells", async () => {
+		const cell = await adapter.createCell(projectKey, {
+			title: "WIP cell",
 			type: "task",
 			priority: 2,
 		});
 
-		await adapter.changeCellStatus(projectKey, bead.id, "in_progress");
+		await adapter.changeCellStatus(projectKey, cell.id, "in_progress");
 
 		const inProgress = await adapter.getInProgressCells(projectKey);
-		expect(inProgress.some((b) => b.id === bead.id)).toBe(true);
+		expect(inProgress.some((b) => b.id === cell.id)).toBe(true);
 	});
 
 	// ============================================================================
@@ -479,7 +479,7 @@ describe("Beads Adapter", () => {
 	// Cell ID Generation Tests (TDD for project-name prefix)
 	// ============================================================================
 
-	describe("generateBeadId with project name prefix", () => {
+	describe("generatecellId with project name prefix", () => {
 		test("uses project name from package.json as prefix", async () => {
 			// This test will fail initially - we're doing TDD
 			// Expected ID format: {slugified-name}-{hash}-{timestamp}{random}
@@ -490,7 +490,7 @@ describe("Beads Adapter", () => {
 			const testProjectPath = import.meta.dir.split("/").slice(0, -2).join("/");
 			const testAdapter = createHiveAdapter(db, testProjectPath);
 
-			const bead = await testAdapter.createCell(testProjectPath, {
+			const cell = await testAdapter.createCell(testProjectPath, {
 				title: "Test with project prefix",
 				type: "task",
 				priority: 2,
@@ -498,7 +498,7 @@ describe("Beads Adapter", () => {
 
 			// ID should start with "swarm-mail-" (slugified from package.json name)
 			// Hash can include negative sign, so we use [-a-z0-9]+
-			expect(bead.id).toMatch(/^swarm-mail-[-a-z0-9]+-[a-z0-9]+$/);
+			expect(cell.id).toMatch(/^swarm-mail-[-a-z0-9]+-[a-z0-9]+$/);
 		});
 
 		test("RED: changeCellStatus to 'closed' sets closed_at (CHECK constraint)", async () => {
@@ -554,7 +554,7 @@ describe("Beads Adapter", () => {
 			const nonExistentPath = "/path/that/does/not/exist";
 			const testAdapter = createHiveAdapter(db, nonExistentPath);
 
-			const bead = await testAdapter.createCell(nonExistentPath, {
+			const cell = await testAdapter.createCell(nonExistentPath, {
 				title: "Test fallback",
 				type: "task",
 				priority: 2,
@@ -562,7 +562,7 @@ describe("Beads Adapter", () => {
 
 			// Should use 'cell' as fallback prefix
 			// Hash can include negative sign, so we use [-a-z0-9]+
-			expect(bead.id).toMatch(/^cell-[-a-z0-9]+-[a-z0-9]+$/);
+			expect(cell.id).toMatch(/^cell-[-a-z0-9]+-[a-z0-9]+$/);
 		});
 
 		test("falls back to 'cell' when package.json has no name field", async () => {
@@ -571,14 +571,14 @@ describe("Beads Adapter", () => {
 				"/Users/joel/Code/joelhooks/opencode-swarm-plugin/packages/swarm-mail/test-fixtures";
 			const testAdapter = createHiveAdapter(db, fixturePath);
 
-			const bead = await testAdapter.createCell(fixturePath, {
+			const cell = await testAdapter.createCell(fixturePath, {
 				title: "Test no-name fallback",
 				type: "task",
 				priority: 2,
 			});
 
 			// Should use 'cell' as fallback prefix
-			expect(bead.id).toMatch(/^cell-[-a-z0-9]+-[a-z0-9]+$/);
+			expect(cell.id).toMatch(/^cell-[-a-z0-9]+-[a-z0-9]+$/);
 		});
 
 		test("slugifies project name correctly", () => {

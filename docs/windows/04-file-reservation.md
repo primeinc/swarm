@@ -423,15 +423,15 @@ await swarm_complete(...);
 ```typescript
 // ❌ BAD - parallel writes will fail
 await Promise.all([
-  swarm_complete(bead1),
-  swarm_complete(bead2),
+  swarm_complete(cell1),
+  swarm_complete(cell2),
   swarmmail_release()
 ]);
 // Error: SQLITE_BUSY
 
 // ✅ GOOD - sequential writes
-await swarm_complete(bead1);
-await swarm_complete(bead2);
+await swarm_complete(cell1);
+await swarm_complete(cell2);
 await swarmmail_release();
 ```
 

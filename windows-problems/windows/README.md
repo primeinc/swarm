@@ -244,14 +244,14 @@ const badPath = 'C:\\Users/will\\dev/swarm-tools';
 ```typescript
 // ❌ BAD - will fail with SQLITE_BUSY
 await Promise.all([
-  swarm_complete(bead1),
-  hive_close(bead2),
+  swarm_complete(cell1),
+  hive_close(cell2),
   swarmmail_send(message)
 ]);
 
 // ✅ GOOD - sequential
-await swarm_complete(bead1);
-await hive_close(bead2);
+await swarm_complete(cell1);
+await hive_close(cell2);
 await swarmmail_send(message);
 ```
 
@@ -271,7 +271,7 @@ async function withRetry(fn: () => Promise<any>, maxRetries = 3) {
   }
 }
 
-await withRetry(() => swarm_complete(bead));
+await withRetry(() => swarm_complete(cell));
 ```
 
 ### 🪟 File Reservations

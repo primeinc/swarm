@@ -1,5 +1,5 @@
 /**
- * Beads Projections Layer - Update and query materialized views
+ * cells Projections Layer - Update and query materialized views
  *
  * Projections are the read-side of CQRS. They update denormalized
  * materialized views when events are appended, and provide query methods.
@@ -11,14 +11,14 @@
  * - Queries read from projections (fast)
  *
  * ## Key projections:
- * - beads table: Main bead records
- * - bead_dependencies: Dependency relationships
- * - bead_labels: String tags
- * - bead_comments: Comments/notes
- * - blocked_beads_cache: Cached blocker lookups
- * - dirty_beads: Tracks changes for export
+ * - cells table: Main cell records
+ * - cell_dependencies: Dependency relationships
+ * - cell_labels: String tags
+ * - cell_comments: Comments/notes
+ * - blocked_cells_cache: Cached blocker lookups
+ * - dirty_cells: Tracks changes for export
  *
- * @module beads/projections
+ * @module cells/projections
  */
 
 import type { DatabaseAdapter } from "../types/database.js";
@@ -89,7 +89,7 @@ export async function updateProjections(
 // ============================================================================
 
 /**
- * Get a bead by ID
+ * Get a cell by ID
  */
 export async function getCell(
 	db: DatabaseAdapter,
@@ -97,14 +97,14 @@ export async function getCell(
 	cellId: string,
 ): Promise<Cell | null> {
 	const result = await db.query<Cell>(
-		`SELECT * FROM beads WHERE project_key = $1 AND id = $2 AND deleted_at IS NULL`,
+		`SELECT * FROM cells WHERE project_key = $1 AND id = $2 AND deleted_at IS NULL`,
 		[projectKey, cellId],
 	);
 	return result.rows[0] ?? null;
 }
 
 /**
- * Query beads with filters
+ * Query cells with filters
  */
 export async function queryCells(
 	db: DatabaseAdapter,
@@ -160,7 +160,7 @@ export async function queryCells(
 		params.push(options.assignee);
 	}
 
-	let query = `SELECT * FROM beads WHERE ${conditions.join(" AND ")} ORDER BY priority DESC, created_at ASC`;
+	let query = `SELECT * FROM cells WHERE ${conditions.join(" AND ")} ORDER BY priority DESC, created_at ASC`;
 
 	if (options.limit) {
 		query += ` LIMIT $${paramIndex++}`;
@@ -177,7 +177,7 @@ export async function queryCells(
 }
 
 /**
- * Get dependencies for a bead
+ * Get dependencies for a cell
  */
 export async function getDependencies(
 	db: DatabaseAdapter,
@@ -185,14 +185,14 @@ export async function getDependencies(
 	cellId: string,
 ): Promise<CellDependency[]> {
 	const result = await db.query<CellDependency>(
-		`SELECT * FROM bead_dependencies WHERE cell_id = $1`,
+		`SELECT * FROM cell_dependencies WHERE cell_id = $1`,
 		[cellId],
 	);
 	return result.rows;
 }
 
 /**
- * Get beads that depend on this bead
+ * Get cells that depend on this cell
  */
 export async function getDependents(
 	db: DatabaseAdapter,
@@ -200,14 +200,14 @@ export async function getDependents(
 	cellId: string,
 ): Promise<CellDependency[]> {
 	const result = await db.query<CellDependency>(
-		`SELECT * FROM bead_dependencies WHERE depends_on_id = $1`,
+		`SELECT * FROM cell_dependencies WHERE depends_on_id = $1`,
 		[cellId],
 	);
 	return result.rows;
 }
 
 /**
- * Check if bead is blocked
+ * Check if cell is blocked
  */
 export async function isBlocked(
 	db: DatabaseAdapter,
@@ -216,14 +216,14 @@ export async function isBlocked(
 ): Promise<boolean> {
 	// SQLite-compatible: use COUNT instead of EXISTS which returns boolean
 	const result = await db.query<{ is_blocked: number }>(
-		`SELECT COUNT(*) as is_blocked FROM blocked_beads_cache WHERE cell_id = $1 LIMIT 1`,
+		`SELECT COUNT(*) as is_blocked FROM blocked_cells_cache WHERE cell_id = $1 LIMIT 1`,
 		[cellId],
 	);
 	return (result.rows[0]?.is_blocked ?? 0) > 0;
 }
 
 /**
- * Get blockers for a bead
+ * Get blockers for a cell
  */
 export async function getBlockers(
 	db: DatabaseAdapter,
@@ -231,7 +231,7 @@ export async function getBlockers(
 	cellId: string,
 ): Promise<string[]> {
 	const result = await db.query<{ blocker_ids: string }>(
-		`SELECT blocker_ids FROM blocked_beads_cache WHERE cell_id = $1`,
+		`SELECT blocker_ids FROM blocked_cells_cache WHERE cell_id = $1`,
 		[cellId],
 	);
 	// SQLite stores arrays as JSON strings - parse them
@@ -245,7 +245,7 @@ export async function getBlockers(
 }
 
 /**
- * Get labels for a bead
+ * Get labels for a cell
  */
 export async function getLabels(
 	db: DatabaseAdapter,
@@ -253,14 +253,14 @@ export async function getLabels(
 	cellId: string,
 ): Promise<string[]> {
 	const result = await db.query<{ label: string }>(
-		`SELECT label FROM bead_labels WHERE cell_id = $1 ORDER BY label`,
+		`SELECT label FROM cell_labels WHERE cell_id = $1 ORDER BY label`,
 		[cellId],
 	);
 	return result.rows.map((r) => r.label);
 }
 
 /**
- * Get comments for a bead
+ * Get comments for a cell
  */
 export async function getComments(
 	db: DatabaseAdapter,
@@ -268,26 +268,26 @@ export async function getComments(
 	cellId: string,
 ): Promise<CellComment[]> {
 	const result = await db.query<CellComment>(
-		`SELECT * FROM bead_comments WHERE cell_id = $1 ORDER BY created_at ASC`,
+		`SELECT * FROM cell_comments WHERE cell_id = $1 ORDER BY created_at ASC`,
 		[cellId],
 	);
 	return result.rows;
 }
 
 /**
- * Get next ready bead (unblocked, highest priority)
+ * Get next ready cell (unblocked, highest priority)
  */
 export async function getNextReadyCell(
 	db: DatabaseAdapter,
 	projectKey: string,
 ): Promise<Cell | null> {
 	const result = await db.query<Cell>(
-		`SELECT b.* FROM beads b
+		`SELECT b.* FROM cells b
      WHERE b.project_key = $1 
        AND b.status = 'open'
        AND b.deleted_at IS NULL
        AND NOT EXISTS (
-         SELECT 1 FROM blocked_beads_cache bbc WHERE bbc.cell_id = b.id
+         SELECT 1 FROM blocked_cells_cache bbc WHERE bbc.cell_id = b.id
        )
      ORDER BY b.priority DESC, b.created_at ASC
      LIMIT 1`,
@@ -297,14 +297,14 @@ export async function getNextReadyCell(
 }
 
 /**
- * Get all in-progress beads
+ * Get all in-progress cells
  */
 export async function getInProgressCells(
 	db: DatabaseAdapter,
 	projectKey: string,
 ): Promise<Cell[]> {
 	const result = await db.query<Cell>(
-		`SELECT * FROM beads 
+		`SELECT * FROM cells 
      WHERE project_key = $1 AND status = 'in_progress' AND deleted_at IS NULL
      ORDER BY priority DESC, created_at ASC`,
 		[projectKey],
@@ -313,7 +313,7 @@ export async function getInProgressCells(
 }
 
 /**
- * Get all blocked beads with their blockers
+ * Get all blocked cells with their blockers
  */
 export async function getBlockedCells(
 	db: DatabaseAdapter,
@@ -321,8 +321,8 @@ export async function getBlockedCells(
 ): Promise<Array<{ cell: Cell; blockers: string[] }>> {
 	const result = await db.query<Cell & { blocker_ids: string[] }>(
 		`SELECT b.*, bbc.blocker_ids 
-     FROM beads b
-     JOIN blocked_beads_cache bbc ON b.id = bbc.cell_id
+     FROM cells b
+     JOIN blocked_cells_cache bbc ON b.id = bbc.cell_id
      WHERE b.project_key = $1 AND b.deleted_at IS NULL
      ORDER BY b.priority DESC, b.created_at ASC`,
 		[projectKey],
@@ -344,32 +344,32 @@ export async function getBlockedCells(
 // ============================================================================
 
 /**
- * Mark bead as dirty for JSONL export
+ * Mark cell as dirty for JSONL export
  *
  * Uses Drizzle for write operations.
  */
-export async function markBeadDirty(
+export async function markcellDirty(
 	db: DatabaseAdapter,
 	projectKey: string,
 	cellId: string,
 ): Promise<void> {
 	const { toDrizzleDb } = await import("../libsql.convenience.js");
-	const { markBeadDirtyDrizzle } = await import("./projections-drizzle.js");
+	const { markcellDirtyDrizzle } = await import("./projections-drizzle.js");
 
 	const swarmDb = toDrizzleDb(db);
-	await markBeadDirtyDrizzle(swarmDb, projectKey, cellId);
+	await markcellDirtyDrizzle(swarmDb, projectKey, cellId);
 }
 
 /**
- * Get all dirty beads
+ * Get all dirty cells
  */
 export async function getDirtyCells(
 	db: DatabaseAdapter,
 	projectKey: string,
 ): Promise<string[]> {
 	const result = await db.query<{ cell_id: string }>(
-		`SELECT db.cell_id FROM dirty_beads db
-     JOIN beads b ON db.cell_id = b.id
+		`SELECT db.cell_id FROM dirty_cells db
+     JOIN cells b ON db.cell_id = b.id
      WHERE b.project_key = $1
      ORDER BY db.marked_at ASC`,
 		[projectKey],
@@ -382,16 +382,16 @@ export async function getDirtyCells(
  *
  * Uses Drizzle for write operations.
  */
-export async function clearDirtyBead(
+export async function clearDirtycell(
 	db: DatabaseAdapter,
 	projectKey: string,
 	cellId: string,
 ): Promise<void> {
 	const { toDrizzleDb } = await import("../libsql.convenience.js");
-	const { clearDirtyBeadDrizzle } = await import("./projections-drizzle.js");
+	const { clearDirtycellDrizzle } = await import("./projections-drizzle.js");
 
 	const swarmDb = toDrizzleDb(db);
-	await clearDirtyBeadDrizzle(swarmDb, projectKey, cellId);
+	await clearDirtycellDrizzle(swarmDb, projectKey, cellId);
 }
 
 /**
@@ -399,15 +399,15 @@ export async function clearDirtyBead(
  *
  * Uses Drizzle for write operations.
  */
-export async function clearAllDirtyBeads(
+export async function clearAllDirtycells(
 	db: DatabaseAdapter,
 	projectKey: string,
 ): Promise<void> {
 	const { toDrizzleDb } = await import("../libsql.convenience.js");
-	const { clearAllDirtyBeadsDrizzle } = await import(
+	const { clearAllDirtycellsDrizzle } = await import(
 		"./projections-drizzle.js"
 	);
 
 	const swarmDb = toDrizzleDb(db);
-	await clearAllDirtyBeadsDrizzle(swarmDb, projectKey);
+	await clearAllDirtycellsDrizzle(swarmDb, projectKey);
 }

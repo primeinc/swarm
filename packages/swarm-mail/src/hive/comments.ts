@@ -4,9 +4,9 @@
  * Comment management with threading support.
  * Comments can have parent_id for nested discussions.
  *
- * Reference: steveyegge/beads/internal/storage/sqlite/comments.go
+ * Reference: steveyegge/cells/internal/storage/sqlite/comments.go
  *
- * @module beads/comments
+ * @module cells/comments
  */
 
 import type { DatabaseAdapter } from "../types/database.js";
@@ -20,7 +20,7 @@ export async function getCommentById(
 	commentId: number,
 ): Promise<CellComment | null> {
 	const result = await db.query<CellComment>(
-		`SELECT * FROM bead_comments WHERE id = $1`,
+		`SELECT * FROM cell_comments WHERE id = $1`,
 		[commentId],
 	);
 	return result.rows[0] ?? null;
@@ -36,12 +36,12 @@ export async function getCommentThread(
 	const result = await db.query<CellComment>(
 		`WITH RECURSIVE thread AS (
        -- Root comment
-       SELECT * FROM bead_comments WHERE id = $1
+       SELECT * FROM cell_comments WHERE id = $1
        
        UNION
        
        -- Replies
-       SELECT c.* FROM bead_comments c
+       SELECT c.* FROM cell_comments c
        JOIN thread t ON c.parent_id = t.id
      )
      SELECT * FROM thread ORDER BY created_at ASC`,

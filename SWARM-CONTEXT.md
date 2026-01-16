@@ -1,28 +1,28 @@
-# Swarm Context - Beads→Hive Rename
+# Swarm Context - cells→Hive Rename
 
 ## Session State (SAVE THIS)
 
 ### Branch
-`swarm/beads-to-hive-rename` - pushed to origin
+`swarm/cells-to-hive-rename` - pushed to origin
 
 ### Epic
-Rename beads → hive + add hive prime command
+Rename cells → hive + add hive prime command
 
 ### Completed Work
 
 **Wave 1 (swarm-mail) - DONE:**
-- ✅ Directory renamed: `src/beads/` → `src/hive/`
-- ✅ Types renamed: `BeadEvent` → `CellEvent`, `Bead` → `Cell`, etc.
-- ✅ Adapter renamed: `BeadsAdapter` → `HiveAdapter`
-- ✅ Type file renamed: `types/beads-adapter.ts` → `types/hive-adapter.ts`
+- ✅ Directory renamed: `src/cells/` → `src/hive/`
+- ✅ Types renamed: `cellEvent` → `CellEvent`, `cell` → `Cell`, etc.
+- ✅ Adapter renamed: `cellsAdapter` → `HiveAdapter`
+- ✅ Type file renamed: `types/cells-adapter.ts` → `types/hive-adapter.ts`
 - ✅ Index exports updated: `export * from "./hive"`
 - ✅ Typecheck passes: 0 errors
 
 **Wave 2 (opencode-swarm-plugin) - DONE:**
-- ✅ Renamed `src/beads.ts` → `src/hive.ts` with Cell naming
-- ✅ Renamed `schemas/bead.ts` → `schemas/cell.ts` with backward compat aliases
-- ✅ Renamed `schemas/bead-events.ts` → `schemas/cell-events.ts` with backward compat aliases
-- ✅ Updated `schemas/index.ts` to export both Cell* and Bead* names
+- ✅ Renamed `src/cells.ts` → `src/hive.ts` with Cell naming
+- ✅ Renamed `schemas/cell.ts` → `schemas/cell.ts` with backward compat aliases
+- ✅ Renamed `schemas/cell-events.ts` → `schemas/cell-events.ts` with backward compat aliases
+- ✅ Updated `schemas/index.ts` to export both Cell* and cell* names
 - ✅ Updated `tool-availability.ts` to add "hive" tool check
 - ✅ Updated `index.ts` imports/exports for hive module
 - ✅ Updated `swarm-prompts.ts` to use hive/cell terminology
@@ -65,24 +65,24 @@ Rename beads → hive + add hive prime command
 
 **swarm-mail package:**
 ```
-D packages/swarm-mail/src/beads/* (deleted)
+D packages/swarm-mail/src/cells/* (deleted)
 A packages/swarm-mail/src/hive/* (added)
-D packages/swarm-mail/src/types/beads-adapter.ts
+D packages/swarm-mail/src/types/cells-adapter.ts
 A packages/swarm-mail/src/types/hive-adapter.ts
 M packages/swarm-mail/src/index.ts
 ```
 
 **opencode-swarm-plugin package:**
 ```
-D packages/opencode-swarm-plugin/src/beads.ts
+D packages/opencode-swarm-plugin/src/cells.ts
 A packages/opencode-swarm-plugin/src/hive.ts
-D packages/opencode-swarm-plugin/src/beads.integration.test.ts
+D packages/opencode-swarm-plugin/src/cells.integration.test.ts
 A packages/opencode-swarm-plugin/src/hive.integration.test.ts
-D packages/opencode-swarm-plugin/src/schemas/bead.ts
+D packages/opencode-swarm-plugin/src/schemas/cell.ts
 A packages/opencode-swarm-plugin/src/schemas/cell.ts
-D packages/opencode-swarm-plugin/src/schemas/bead-events.ts
+D packages/opencode-swarm-plugin/src/schemas/cell-events.ts
 A packages/opencode-swarm-plugin/src/schemas/cell-events.ts
-D packages/opencode-swarm-plugin/src/schemas/bead-events.test.ts
+D packages/opencode-swarm-plugin/src/schemas/cell-events.test.ts
 A packages/opencode-swarm-plugin/src/schemas/cell-events.test.ts
 M packages/opencode-swarm-plugin/src/schemas/index.ts
 M packages/opencode-swarm-plugin/src/index.ts
@@ -110,10 +110,10 @@ M packages/opencode-swarm-plugin/examples/commands/swarm.md
 ### Backward Compatibility
 
 All old names are exported as deprecated aliases:
-- `beads_*` tools → aliases to `hive_*` tools
-- `BeadSchema` → alias to `CellSchema`
-- `BeadError` → alias to `HiveError`
-- `BeadsAdapter` → alias to `HiveAdapter`
+- `cells_*` tools → aliases to `hive_*` tools
+- `cellSchema` → alias to `CellSchema`
+- `cellError` → alias to `HiveError`
+- `cellsAdapter` → alias to `HiveAdapter`
 - etc.
 
 Existing code using the old names will continue to work.

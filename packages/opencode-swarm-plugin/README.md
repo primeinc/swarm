@@ -311,7 +311,7 @@ Auto-saves progress at milestones. Survives context death or crashes. Data store
 | `hive_ready`       | Get next unblocked cell               |
 | `hive_sync`        | Sync to git                           |
 
-> **Migration Note:** `beads_*` tools still work but show deprecation warnings. Update to `hive_*` tools.
+> **Migration Note:** `cells_*` tools still work but show deprecation warnings. Update to `hive_*` tools.
 
 ### Swarm Mail (Agent Coordination)
 

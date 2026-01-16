@@ -541,7 +541,7 @@ export const swarmmail_reserve = tool({
     reason: tool.schema
       .string()
       .optional()
-      .describe("Reason for reservation (e.g., bead ID)"),
+      .describe("Reason for reservation (e.g., cell ID)"),
     exclusive: tool.schema
       .boolean()
       .optional()

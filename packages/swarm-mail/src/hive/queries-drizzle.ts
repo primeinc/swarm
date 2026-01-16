@@ -9,7 +9,7 @@
 
 import { and, count, eq, isNull, like, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/libsql";
-import { beads } from "../db/schema/hive.js";
+import { cells } from "../db/schema/hive.js";
 import type { DatabaseAdapter } from "../types/database.js";
 import type { Cell, HiveAdapter } from "../types/hive-adapter.js";
 import type { StaleOptions } from "./queries.js";
@@ -22,7 +22,7 @@ import type { StaleOptions } from "./queries.js";
  */
 function getHiveDrizzle(db: DatabaseAdapter) {
 	// Import only hive schema tables
-	const hiveSchema = { beads };
+	const hiveSchema = { cells };
 
 	// For LibSQL Client, get the client and wrap with Drizzle
 	if (typeof (db as any).getClient === "function") {
@@ -58,12 +58,12 @@ export async function findCellsByPartialIdDrizzle(
 
 	const results = await db
 		.select()
-		.from(beads)
+		.from(cells)
 		.where(
 			and(
-				eq(beads.project_key, projectKey),
-				isNull(beads.deleted_at),
-				like(beads.id, pattern),
+				eq(cells.project_key, projectKey),
+				isNull(cells.deleted_at),
+				like(cells.id, pattern),
 			),
 		);
 
@@ -115,12 +115,12 @@ export async function resolvePartialIdDrizzle(
 
 	const results = await db
 		.select()
-		.from(beads)
+		.from(cells)
 		.where(
 			and(
-				eq(beads.project_key, projectKey),
-				isNull(beads.deleted_at),
-				like(beads.id, pattern),
+				eq(cells.project_key, projectKey),
+				isNull(cells.deleted_at),
+				like(cells.id, pattern),
 			),
 		);
 
@@ -156,23 +156,23 @@ export async function getStaleIssuesDrizzle(
 
 	// Build WHERE conditions
 	const conditions = [
-		eq(beads.project_key, projectKey),
-		sql`${beads.status} != 'closed'`,
-		isNull(beads.deleted_at),
-		sql`${beads.updated_at} < ${cutoffTimestamp}`,
+		eq(cells.project_key, projectKey),
+		sql`${cells.status} != 'closed'`,
+		isNull(cells.deleted_at),
+		sql`${cells.updated_at} < ${cutoffTimestamp}`,
 	];
 
 	// Optional status filter
 	if (options.status) {
-		conditions.push(eq(beads.status, options.status));
+		conditions.push(eq(cells.status, options.status));
 	}
 
 	// Build and execute query
 	const baseQuery = db
 		.select()
-		.from(beads)
+		.from(cells)
 		.where(and(...conditions))
-		.orderBy(beads.updated_at);
+		.orderBy(cells.updated_at);
 
 	// Apply limit if specified
 	const results = options.limit
@@ -197,12 +197,12 @@ export async function getCountsByTypeDrizzle(
 
 	const results = await db
 		.select({
-			type: beads.type,
+			type: cells.type,
 			count: count(),
 		})
-		.from(beads)
-		.where(and(eq(beads.project_key, projectKey), isNull(beads.deleted_at)))
-		.groupBy(beads.type);
+		.from(cells)
+		.where(and(eq(cells.project_key, projectKey), isNull(cells.deleted_at)))
+		.groupBy(cells.type);
 
 	const byType: Record<string, number> = {};
 	for (const row of results) {
@@ -232,14 +232,14 @@ export async function getStatusCountsDrizzle(
 	const result = await db
 		.select({
 			total: count(),
-			open: count(sql`CASE WHEN ${beads.status} = 'open' THEN 1 END`),
+			open: count(sql`CASE WHEN ${cells.status} = 'open' THEN 1 END`),
 			in_progress: count(
-				sql`CASE WHEN ${beads.status} = 'in_progress' THEN 1 END`,
+				sql`CASE WHEN ${cells.status} = 'in_progress' THEN 1 END`,
 			),
-			closed: count(sql`CASE WHEN ${beads.status} = 'closed' THEN 1 END`),
+			closed: count(sql`CASE WHEN ${cells.status} = 'closed' THEN 1 END`),
 		})
-		.from(beads)
-		.where(and(eq(beads.project_key, projectKey), isNull(beads.deleted_at)));
+		.from(cells)
+		.where(and(eq(cells.project_key, projectKey), isNull(cells.deleted_at)));
 
 	const counts = result[0] || { total: 0, open: 0, in_progress: 0, closed: 0 };
 

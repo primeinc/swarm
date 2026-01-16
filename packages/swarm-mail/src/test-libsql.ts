@@ -22,7 +22,7 @@
  *
  * ## Schema Coverage
  * - All streams tables (events, agents, messages, reservations, locks)
- * - All hive tables (beads, dependencies, labels, comments)
+ * - All hive tables (cells, dependencies, labels, comments)
  * - All durable primitive tables (cursors, deferred)
  * - All memory tables (memories with vector support, FTS5)
  * - Learning system tables (eval_records, swarm_contexts)
@@ -57,7 +57,7 @@ const EMBEDDING_DIM = 1024;
  * ```typescript
  * const adapter = createTestDatabaseAdapter(client);
  * // Works with PostgreSQL syntax
- * await adapter.query("SELECT * FROM beads WHERE id = $1", ["bd-123"]);
+ * await adapter.query("SELECT * FROM cells WHERE id = $1", ["bd-123"]);
  * ```
  */
 class TestDatabaseAdapter implements DatabaseAdapter {
@@ -125,7 +125,7 @@ export function createTestDatabaseAdapter(client: Client): DatabaseAdapter {
  * ```typescript
  * const { client, db, adapter } = await createTestLibSQLDb();
  * // Use adapter for PostgreSQL-style queries
- * await adapter.query("SELECT * FROM beads WHERE id = $1", ["bd-123"]);
+ * await adapter.query("SELECT * FROM cells WHERE id = $1", ["bd-123"]);
  * // Use db for Drizzle queries
  * await db.query.agents.findMany();
  * ```
@@ -347,11 +347,11 @@ export async function createTestLibSQLDb(): Promise<{
   `);
 
 	// ========================================================================
-	// Beads/Hive Tables
+	// cells/Hive Tables
 	// ========================================================================
 
 	await client.execute(`
-    CREATE TABLE IF NOT EXISTS beads (
+    CREATE TABLE IF NOT EXISTS cells (
       id TEXT PRIMARY KEY,
       project_key TEXT NOT NULL,
       type TEXT NOT NULL CHECK (type IN ('bug', 'feature', 'task', 'epic', 'chore', 'message')),
@@ -370,65 +370,65 @@ export async function createTestLibSQLDb(): Promise<{
       delete_reason TEXT,
       created_by TEXT,
       CHECK ((status = 'closed') = (closed_at IS NOT NULL)),
-      FOREIGN KEY (parent_id) REFERENCES beads(id) ON DELETE SET NULL
+      FOREIGN KEY (parent_id) REFERENCES cells(id) ON DELETE SET NULL
     )
   `);
 
 	await client.execute(`
-    CREATE INDEX IF NOT EXISTS idx_beads_project ON beads(project_key)
+    CREATE INDEX IF NOT EXISTS idx_cells_project ON cells(project_key)
   `);
 	await client.execute(`
-    CREATE INDEX IF NOT EXISTS idx_beads_status ON beads(status)
+    CREATE INDEX IF NOT EXISTS idx_cells_status ON cells(status)
   `);
 	await client.execute(`
-    CREATE INDEX IF NOT EXISTS idx_beads_type ON beads(type)
+    CREATE INDEX IF NOT EXISTS idx_cells_type ON cells(type)
   `);
 	await client.execute(`
-    CREATE INDEX IF NOT EXISTS idx_beads_priority ON beads(priority)
+    CREATE INDEX IF NOT EXISTS idx_cells_priority ON cells(priority)
   `);
 	await client.execute(`
-    CREATE INDEX IF NOT EXISTS idx_beads_parent ON beads(parent_id)
+    CREATE INDEX IF NOT EXISTS idx_cells_parent ON cells(parent_id)
   `);
 	await client.execute(`
-    CREATE INDEX IF NOT EXISTS idx_beads_project_status ON beads(project_key, status)
+    CREATE INDEX IF NOT EXISTS idx_cells_project_status ON cells(project_key, status)
   `);
 
 	await client.execute(`
-    CREATE TABLE IF NOT EXISTS bead_dependencies (
+    CREATE TABLE IF NOT EXISTS cell_dependencies (
       cell_id TEXT NOT NULL,
       depends_on_id TEXT NOT NULL,
       relationship TEXT NOT NULL CHECK (relationship IN ('blocks', 'related', 'parent-child', 'discovered-from', 'replies-to', 'relates-to', 'duplicates', 'supersedes')),
       created_at INTEGER NOT NULL,
       created_by TEXT,
       PRIMARY KEY (cell_id, depends_on_id, relationship),
-      FOREIGN KEY (cell_id) REFERENCES beads(id) ON DELETE CASCADE,
-      FOREIGN KEY (depends_on_id) REFERENCES beads(id) ON DELETE CASCADE
+      FOREIGN KEY (cell_id) REFERENCES cells(id) ON DELETE CASCADE,
+      FOREIGN KEY (depends_on_id) REFERENCES cells(id) ON DELETE CASCADE
     )
   `);
 
 	await client.execute(`
-    CREATE INDEX IF NOT EXISTS idx_bead_deps_bead ON bead_dependencies(cell_id)
+    CREATE INDEX IF NOT EXISTS idx_cell_deps_cell ON cell_dependencies(cell_id)
   `);
 	await client.execute(`
-    CREATE INDEX IF NOT EXISTS idx_bead_deps_depends_on ON bead_dependencies(depends_on_id)
+    CREATE INDEX IF NOT EXISTS idx_cell_deps_depends_on ON cell_dependencies(depends_on_id)
   `);
 
 	await client.execute(`
-    CREATE TABLE IF NOT EXISTS bead_labels (
+    CREATE TABLE IF NOT EXISTS cell_labels (
       cell_id TEXT NOT NULL,
       label TEXT NOT NULL,
       created_at INTEGER NOT NULL,
       PRIMARY KEY (cell_id, label),
-      FOREIGN KEY (cell_id) REFERENCES beads(id) ON DELETE CASCADE
+      FOREIGN KEY (cell_id) REFERENCES cells(id) ON DELETE CASCADE
     )
   `);
 
 	await client.execute(`
-    CREATE INDEX IF NOT EXISTS idx_bead_labels_label ON bead_labels(label)
+    CREATE INDEX IF NOT EXISTS idx_cell_labels_label ON cell_labels(label)
   `);
 
 	await client.execute(`
-    CREATE TABLE IF NOT EXISTS bead_comments (
+    CREATE TABLE IF NOT EXISTS cell_comments (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       cell_id TEXT NOT NULL,
       author TEXT NOT NULL,
@@ -436,38 +436,38 @@ export async function createTestLibSQLDb(): Promise<{
       parent_id INTEGER,
       created_at INTEGER NOT NULL,
       updated_at INTEGER,
-      FOREIGN KEY (cell_id) REFERENCES beads(id) ON DELETE CASCADE,
-      FOREIGN KEY (parent_id) REFERENCES bead_comments(id) ON DELETE CASCADE
+      FOREIGN KEY (cell_id) REFERENCES cells(id) ON DELETE CASCADE,
+      FOREIGN KEY (parent_id) REFERENCES cell_comments(id) ON DELETE CASCADE
     )
   `);
 
 	await client.execute(`
-    CREATE INDEX IF NOT EXISTS idx_bead_comments_bead ON bead_comments(cell_id)
+    CREATE INDEX IF NOT EXISTS idx_cell_comments_cell ON cell_comments(cell_id)
   `);
 
 	await client.execute(`
-    CREATE TABLE IF NOT EXISTS blocked_beads_cache (
+    CREATE TABLE IF NOT EXISTS blocked_cells_cache (
       cell_id TEXT PRIMARY KEY,
       blocker_ids TEXT NOT NULL,
       updated_at INTEGER NOT NULL,
-      FOREIGN KEY (cell_id) REFERENCES beads(id) ON DELETE CASCADE
+      FOREIGN KEY (cell_id) REFERENCES cells(id) ON DELETE CASCADE
     )
   `);
 
 	await client.execute(`
-    CREATE TABLE IF NOT EXISTS dirty_beads (
+    CREATE TABLE IF NOT EXISTS dirty_cells (
       cell_id TEXT PRIMARY KEY,
       marked_at INTEGER NOT NULL,
-      FOREIGN KEY (cell_id) REFERENCES beads(id) ON DELETE CASCADE
+      FOREIGN KEY (cell_id) REFERENCES cells(id) ON DELETE CASCADE
     )
   `);
 
 	// ========================================================================
-	// Cells View (beads → cells compatibility layer)
+	// Cells View (cells → cells compatibility layer)
 	// ========================================================================
 
 	await client.execute(`
-    CREATE VIEW IF NOT EXISTS cells AS SELECT * FROM beads
+    CREATE VIEW IF NOT EXISTS cells AS SELECT * FROM cells
   `);
 
 	await client.execute(`
@@ -479,7 +479,7 @@ export async function createTestLibSQLDb(): Promise<{
       INSTEAD OF INSERT ON cells
       FOR EACH ROW
     BEGIN
-      INSERT INTO beads VALUES (
+      INSERT INTO cells VALUES (
         NEW.id, NEW.project_key, NEW.type, NEW.status, NEW.title,
         NEW.description, NEW.priority, NEW.parent_id, NEW.assignee,
         NEW.created_at, NEW.updated_at, NEW.closed_at, NEW.closed_reason,
@@ -497,7 +497,7 @@ export async function createTestLibSQLDb(): Promise<{
       INSTEAD OF UPDATE ON cells
       FOR EACH ROW
     BEGIN
-      UPDATE beads
+      UPDATE cells
       SET
         type = NEW.type,
         status = NEW.status,
@@ -525,7 +525,7 @@ export async function createTestLibSQLDb(): Promise<{
       INSTEAD OF DELETE ON cells
       FOR EACH ROW
     BEGIN
-      DELETE FROM beads WHERE id = OLD.id AND project_key = OLD.project_key;
+      DELETE FROM cells WHERE id = OLD.id AND project_key = OLD.project_key;
     END
   `);
 

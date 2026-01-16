@@ -102,7 +102,7 @@ async function handleSwarmComplete(
   const result = JSON.parse(output.output ?? "{}");
   log("swarm_complete", {
     sessionID: input.sessionID,
-    beadID: result.cell_id,
+    cellID: result.cell_id,
     success: result.success,
   });
 }
@@ -118,7 +118,7 @@ async function handleSwarmSpawn(
   const result = JSON.parse(output.output ?? "{}");
   log("swarm_spawn_subtask", {
     sessionID: input.sessionID,
-    beadID: result.cell_id,
+    cellID: result.cell_id,
   });
 }
 

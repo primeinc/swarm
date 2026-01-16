@@ -74,7 +74,7 @@ Every swarm worker MUST follow these 9 steps. No exceptions.
 // 1. INITIALIZE - Register with Swarm Mail
 swarmmail_init({
   project_path: "/abs/path/to/project",
-  task_description: "bead-id: Task description"
+  task_description: "cell-id: Task description"
 });
 
 // 2. QUERY LEARNINGS - Check what past agents learned
@@ -90,7 +90,7 @@ skills_use({ name: "relevant-skill" });
 // 4. RESERVE FILES - Claim exclusive ownership
 swarmmail_reserve({
   paths: ["src/assigned/**"],
-  reason: "bead-id: What I'm working on",
+  reason: "cell-id: What I'm working on",
   ttl_seconds: 3600
 });
 
@@ -326,7 +326,7 @@ const validation = await swarm_validate_decomposition({ ... });
 **✅ Correct Pattern (Context-Lean):**
 
 ```typescript
-// 1. Create planning bead with full context
+// 1. Create planning cell with full context
 await hive_create({
   title: `Plan: ${taskTitle}`,
   type: "task",
@@ -358,13 +358,13 @@ Output format: Valid CellTree JSON only.
 });
 
 // 3. Parse result (subagent already validated)
-const beadTree = JSON.parse(planningResult);
+const cellTree = JSON.parse(planningResult);
 
 // 4. Create epic + subtasks atomically
 await hive_create_epic({
-  epic_title: beadTree.epic.title,
-  epic_description: beadTree.epic.description,
-  subtasks: beadTree.subtasks,
+  epic_title: cellTree.epic.title,
+  epic_description: cellTree.epic.description,
+  subtasks: cellTree.subtasks,
 });
 ```
 
@@ -805,7 +805,7 @@ swarmmail_send({
 | Worker blocked >5 min   | Check inbox, offer guidance          |
 | File conflict           | Mediate, reassign files              |
 | Worker asking questions | Answer directly                      |
-| Scope creep             | Redirect, create new bead for extras |
+| Scope creep             | Redirect, create new cell for extras |
 | Repeated failures       | Take over or reassign                |
 
 ## Failure Recovery
