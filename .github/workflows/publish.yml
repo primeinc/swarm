@@ -40,6 +40,10 @@ jobs:
       - name: Scope packages for @${{ github.repository_owner }}
         run: bun scripts/scope-packages.ts ${{ github.repository_owner }}
 
+      - name: Refresh workspace after scoping
+        run: bun install
+        # Re-run install to pick up renamed package names for workspace resolution
+
       - name: Build only publishable packages
         run: |
           # Build cross-path first (no dependencies)
@@ -61,7 +65,8 @@ jobs:
             (cd "$pkg" && bun publish --access public --tag beta) || echo "⚠️ May already exist"
           done
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # bun publish uses NPM_CONFIG_TOKEN, not NODE_AUTH_TOKEN
+          NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Dry run - show what would be published
         if: ${{ inputs.dry_run == true }}
