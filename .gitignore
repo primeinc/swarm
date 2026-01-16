@@ -49,3 +49,7 @@ npm-debug.log*
 *.code-workspace
 /undefined/.semantic-memory/memory
 /packages/opencode-swarm-plugin/undefined/.semantic-memory
+
+# Local references and temp files
+refs/
+
