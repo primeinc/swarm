@@ -180,7 +180,7 @@ function projectSwarmState(events: ToolCallEvent[]): SwarmProjection {
       }
 
       case "swarm_spawn_subtask": {
-        const beadId = typeof event.input.bead_id === "string" ? event.input.bead_id : undefined;
+        const beadId = typeof event.input.cell_id === "string" ? event.input.cell_id : undefined;
         const title = typeof event.input.subtask_title === "string" ? event.input.subtask_title : "Unknown";
         const files = Array.isArray(event.input.files) ? (event.input.files as string[]) : [];
 
@@ -223,7 +223,7 @@ function projectSwarmState(events: ToolCallEvent[]): SwarmProjection {
       }
 
       case "swarm_complete": {
-        const beadId = typeof event.input.bead_id === "string" ? event.input.bead_id : undefined;
+        const beadId = typeof event.input.cell_id === "string" ? event.input.cell_id : undefined;
         if (beadId) {
           const subtask = state.subtasks.get(beadId);
           if (subtask && subtask.status !== "closed") {
@@ -846,7 +846,7 @@ PREFER THIS OVER hive_query when you need to:
 const beads_link_thread = tool({
   description: "Add metadata linking bead to Agent Mail thread",
   args: {
-    bead_id: tool.schema.string().describe("Cell ID"),
+    cell_id: tool.schema.string().describe("Cell ID"),
     thread_id: tool.schema.string().describe("Agent Mail thread ID"),
   },
   execute: (args, ctx) => execTool("beads_link_thread", args, ctx),
@@ -1169,7 +1169,7 @@ const swarm_progress = tool({
   args: {
     project_key: tool.schema.string().describe("Project key"),
     agent_name: tool.schema.string().describe("Agent name"),
-    bead_id: tool.schema.string().describe("Cell ID"),
+    cell_id: tool.schema.string().describe("Cell ID"),
     status: tool.schema
       .enum(["in_progress", "blocked", "completed", "failed"])
       .describe("Status"),
@@ -1194,7 +1194,7 @@ const swarm_complete = tool({
   args: {
     project_key: tool.schema.string().describe("Project key"),
     agent_name: tool.schema.string().describe("Agent name"),
-    bead_id: tool.schema.string().describe("Cell ID"),
+    cell_id: tool.schema.string().describe("Cell ID"),
     summary: tool.schema.string().describe("Completion summary"),
     evaluation: tool.schema.string().optional().describe("Self-evaluation JSON"),
     files_touched: tool.schema
@@ -1216,7 +1216,7 @@ const swarm_complete = tool({
 const swarm_record_outcome = tool({
   description: "Record subtask outcome for implicit feedback scoring",
   args: {
-    bead_id: tool.schema.string().describe("Cell ID"),
+    cell_id: tool.schema.string().describe("Cell ID"),
     duration_ms: tool.schema.number().int().min(0).describe("Duration in ms"),
     error_count: tool.schema
       .number()
@@ -1251,7 +1251,7 @@ const swarm_subtask_prompt = tool({
   description: "Generate the prompt for a spawned subtask agent",
   args: {
     agent_name: tool.schema.string().describe("Agent name"),
-    bead_id: tool.schema.string().describe("Cell ID"),
+    cell_id: tool.schema.string().describe("Cell ID"),
     epic_id: tool.schema.string().describe("Epic ID"),
     subtask_title: tool.schema.string().describe("Subtask title"),
     subtask_description: tool.schema
@@ -1267,7 +1267,7 @@ const swarm_subtask_prompt = tool({
 const swarm_spawn_subtask = tool({
   description: "Prepare a subtask for spawning with Task tool",
   args: {
-    bead_id: tool.schema.string().describe("Cell ID"),
+    cell_id: tool.schema.string().describe("Cell ID"),
     epic_id: tool.schema.string().describe("Epic ID"),
     subtask_title: tool.schema.string().describe("Subtask title"),
     subtask_description: tool.schema
@@ -1283,7 +1283,7 @@ const swarm_spawn_subtask = tool({
 const swarm_complete_subtask = tool({
   description: "Handle subtask completion after Task agent returns",
   args: {
-    bead_id: tool.schema.string().describe("Cell ID"),
+    cell_id: tool.schema.string().describe("Cell ID"),
     task_result: tool.schema.string().describe("Task result JSON"),
     files_touched: tool.schema
       .array(tool.schema.string())
@@ -1296,7 +1296,7 @@ const swarm_complete_subtask = tool({
 const swarm_evaluation_prompt = tool({
   description: "Generate self-evaluation prompt for a completed subtask",
   args: {
-    bead_id: tool.schema.string().describe("Cell ID"),
+    cell_id: tool.schema.string().describe("Cell ID"),
     subtask_title: tool.schema.string().describe("Subtask title"),
     files_touched: tool.schema
       .array(tool.schema.string())
@@ -2703,7 +2703,7 @@ function buildDynamicStateFromSnapshot(snapshot: SwarmStateSnapshot): string {
   }
   if (pending.length > 0) {
     const next = pending[0];
-    parts.push(`4. Spawn next subtask: \`swarm_spawn_subtask(bead_id="${next.id}", ...)\``);
+    parts.push(`4. Spawn next subtask: \`swarm_spawn_subtask(cell_id="${next.id}", ...)\``);
   }
   if (blocked.length > 0) {
     parts.push(`5. Unblock: ${blocked.map(s => s.id).join(", ")}`);

@@ -241,7 +241,7 @@ describe("observability-tools", () => {
 
 		test("returns structured diagnosis with suggestions", async () => {
 			const args: SwarmDiagnoseArgs = {
-				bead_id: "task-1",
+				cell_id: "task-1",
 			};
 
 			const result = await tool.execute(args, mockContext);
@@ -252,7 +252,7 @@ describe("observability-tools", () => {
 
 		test("includes timeline when requested", async () => {
 			const args: SwarmDiagnoseArgs = {
-				bead_id: "task-1",
+				cell_id: "task-1",
 				include: ["timeline"],
 			};
 

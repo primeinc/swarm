@@ -302,7 +302,7 @@ const insights = await swarm_get_file_insights(files: files);
 // Include in worker prompt
 const prompt = await swarm_subtask_prompt(
   agent_name: "worker-1",
-  bead_id: "task-123",
+  cell_id: "task-123",
   subtask_title: "Refactor DDP client",
   files: files,
   shared_context: `
@@ -510,7 +510,7 @@ Records task outcomes to feed the learning system. This is the **critical write 
 **Command:**
 ```typescript
 swarm_record_outcome(
-  bead_id: "swarm-tools--lcljz-mkdcmebbjrn",
+  cell_id: "swarm-tools--lcljz-mkdcmebbjrn",
   duration_ms: 300000,  // 5 minutes
   success: true,
   strategy: "feature-based",
@@ -541,7 +541,7 @@ swarm_record_outcome(
 **Command:**
 ```typescript
 swarm_record_outcome(
-  bead_id: "swarm-tools--lcljz-mkdcmebbjrn",
+  cell_id: "swarm-tools--lcljz-mkdcmebbjrn",
   duration_ms: 450000,  // 7.5 minutes (longer due to retries)
   success: false,
   strategy: "file-based",
@@ -576,7 +576,7 @@ swarm_record_outcome(
 #### 🪟 Database Write Operation
 ```
 Database: C:\Users\will\dev\swarm-tools\.hive\outcomes.db
-Operation: INSERT INTO outcomes (bead_id, strategy, success, ...)
+Operation: INSERT INTO outcomes (cell_id, strategy, success, ...)
 Time: ~15ms per call
 ```
 
@@ -636,7 +636,7 @@ const endTime = Date.now();
 const duration = endTime - startTime;  // milliseconds
 
 await swarm_record_outcome(
-  bead_id: "...",
+  cell_id: "...",
   duration_ms: duration,
   success: true
 );
@@ -649,16 +649,16 @@ await swarm_record_outcome(
 #### Use Case 1: Record Success from swarm_complete
 ```typescript
 // Inside swarm_complete tool
-async function swarm_complete(agent_name, bead_id, summary, files_touched) {
-  const startTime = getTaskStartTime(bead_id);  // Stored earlier
+async function swarm_complete(agent_name, cell_id, summary, files_touched) {
+  const startTime = getTaskStartTime(cell_id);  // Stored earlier
   const duration = Date.now() - startTime;
   
   // Record outcome for learning
   await swarm_record_outcome(
-    bead_id: bead_id,
+    cell_id: cell_id,
     duration_ms: duration,
     success: true,
-    strategy: getTaskStrategy(bead_id),
+    strategy: getTaskStrategy(cell_id),
     files_touched: files_touched,
     error_count: 0,
     retry_count: 0
@@ -678,7 +678,7 @@ async function swarm_review_feedback(task_id, worker_id, status, issues) {
     if (attempt >= 3) {
       // Max retries exceeded - record failure
       await swarm_record_outcome(
-        bead_id: task_id,
+        cell_id: task_id,
         duration_ms: getTotalDuration(task_id),
         success: false,
         strategy: getTaskStrategy(task_id),
@@ -696,7 +696,7 @@ async function swarm_review_feedback(task_id, worker_id, status, issues) {
 ```typescript
 // Record a successful test outcome
 await swarm_record_outcome(
-  bead_id: "test-insights-learning",
+  cell_id: "test-insights-learning",
   duration_ms: 180000,  // 3 minutes
   success: true,
   strategy: "feature-based",
@@ -943,7 +943,7 @@ await swarm_record_outcome(
 ```sql
 CREATE TABLE outcomes (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  bead_id TEXT NOT NULL,
+  cell_id TEXT NOT NULL,
   strategy TEXT,                    -- "file-based" | "feature-based" | "risk-based"
   success BOOLEAN NOT NULL,
   duration_ms INTEGER NOT NULL,
@@ -1145,7 +1145,7 @@ swarmmail_reserve(
 ```typescript
 swarm_progress(
   agent_name: "insights-worker",
-  bead_id: "swarm-tools--lcljz-mkdcmebbjrn",
+  cell_id: "swarm-tools--lcljz-mkdcmebbjrn",
   project_key: "C:\\Users\\will\\dev\\swarm-tools",
   status: "in_progress",
   progress_percent: 25,

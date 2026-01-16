@@ -14,7 +14,7 @@
  *
  * throw new ReservationError("File already reserved", {
  *   agent: "WiseStone",
- *   bead_id: "bd-123",
+ *   cell_id: "bd-123",
  *   current_holder: {
  *     agent: "OtherAgent",
  *     expires_at: Date.now() + 3600000,

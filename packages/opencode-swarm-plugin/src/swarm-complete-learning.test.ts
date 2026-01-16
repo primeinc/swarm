@@ -44,7 +44,7 @@ describe("swarm_complete learning integration", () => {
     
     // Fast completion with no errors = helpful
     const helpfulOutcome = scoreOutcome({
-      bead_id: "test-123",
+      cell_id: "test-123",
       duration_ms: 60000, // 1 minute (fast)
       error_count: 0,
       retry_count: 0,
@@ -59,7 +59,7 @@ describe("swarm_complete learning integration", () => {
     
     // Slow completion with errors = harmful or neutral
     const slowOutcome = scoreOutcome({
-      bead_id: "test-456",
+      cell_id: "test-456",
       duration_ms: 40 * 60 * 1000, // 40 minutes (slow)
       error_count: 5,
       retry_count: 3,
@@ -92,7 +92,7 @@ describe("swarm_complete learning integration", () => {
       {
         project_key: testProjectPath,
         agent_name: "TestAgent",
-        bead_id: beadId,
+        cell_id: beadId,
         summary: "Completed test task",
         files_touched: ["src/test.ts"],
         skip_verification: true,
@@ -121,7 +121,7 @@ describe("swarm_complete learning integration", () => {
     
     const feedbackForBead = await storage.getFeedbackByBead(beadId);
     expect(feedbackForBead.length).toBeGreaterThan(0);
-    expect(feedbackForBead[0].bead_id).toBe(beadId);
+    expect(feedbackForBead[0].cell_id).toBe(beadId);
     expect(feedbackForBead[0].criterion).toBe("task_completion");
   });
 });

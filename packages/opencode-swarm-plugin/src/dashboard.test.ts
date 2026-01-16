@@ -55,12 +55,12 @@ describe("Dashboard Data Layer - RED Phase", () => {
 			// Task lifecycle events
 			{
 				type: "task_started",
-				data: { bead_id: "epic-1.1", agent_name: "AlphaAgent", title: "Setup auth" },
+				data: { cell_id: "epic-1.1", agent_name: "AlphaAgent", title: "Setup auth" },
 				timestamp: 2000,
 			},
 			{
 				type: "task_started",
-				data: { bead_id: "epic-1.2", agent_name: "BetaAgent", title: "Add tests" },
+				data: { cell_id: "epic-1.2", agent_name: "BetaAgent", title: "Add tests" },
 				timestamp: 2100,
 			},
 
@@ -68,7 +68,7 @@ describe("Dashboard Data Layer - RED Phase", () => {
 			{
 				type: "progress_reported",
 				data: {
-					bead_id: "epic-1.1",
+					cell_id: "epic-1.1",
 					agent_name: "AlphaAgent",
 					progress_percent: 50,
 					status: "in_progress",
@@ -78,7 +78,7 @@ describe("Dashboard Data Layer - RED Phase", () => {
 			{
 				type: "progress_reported",
 				data: {
-					bead_id: "epic-1.2",
+					cell_id: "epic-1.2",
 					agent_name: "BetaAgent",
 					progress_percent: 75,
 					status: "in_progress",
@@ -90,7 +90,7 @@ describe("Dashboard Data Layer - RED Phase", () => {
 			{
 				type: "task_blocked",
 				data: {
-					bead_id: "epic-1.3",
+					cell_id: "epic-1.3",
 					agent_name: "AlphaAgent",
 					reason: "Waiting for schema",
 				},
@@ -297,11 +297,11 @@ describe("Dashboard Data Layer - RED Phase", () => {
 			expect(result.length).toBeGreaterThan(0);
 		});
 
-		test("should include bead_id, title, status, and progress_percent", async () => {
+		test("should include cell_id, title, status, and progress_percent", async () => {
 			const result = await getSubtaskProgress(testProjectPath, "epic-1");
 
 			const subtask = result[0];
-			expect(subtask).toHaveProperty("bead_id");
+			expect(subtask).toHaveProperty("cell_id");
 			expect(subtask).toHaveProperty("title");
 			expect(subtask).toHaveProperty("status");
 			expect(subtask).toHaveProperty("progress_percent");
@@ -320,7 +320,7 @@ describe("Dashboard Data Layer - RED Phase", () => {
 			const result = await getSubtaskProgress(testProjectPath, "epic-1");
 
 			// Should have epic-1.1, epic-1.2, epic-1.3
-			const beadIds = result.map((s) => s.bead_id);
+			const beadIds = result.map((s) => s.cell_id);
 			expect(beadIds).toContain("epic-1.1");
 			expect(beadIds).toContain("epic-1.2");
 			expect(beadIds).toContain("epic-1.3");
@@ -333,11 +333,11 @@ describe("Dashboard Data Layer - RED Phase", () => {
 			const result = await getSubtaskProgress(testProjectPath, "epic-1");
 
 			// epic-1.1 reported 50% progress
-			const task1 = result.find((s) => s.bead_id === "epic-1.1");
+			const task1 = result.find((s) => s.cell_id === "epic-1.1");
 			expect(task1?.progress_percent).toBe(50);
 
 			// epic-1.2 reported 75% progress
-			const task2 = result.find((s) => s.bead_id === "epic-1.2");
+			const task2 = result.find((s) => s.cell_id === "epic-1.2");
 			expect(task2?.progress_percent).toBe(75);
 		});
 
@@ -345,7 +345,7 @@ describe("Dashboard Data Layer - RED Phase", () => {
 			const result = await getSubtaskProgress(testProjectPath, "epic-1");
 
 			// epic-1.3 is blocked but has no progress events
-			const task3 = result.find((s) => s.bead_id === "epic-1.3");
+			const task3 = result.find((s) => s.cell_id === "epic-1.3");
 			expect(task3?.progress_percent).toBe(0);
 		});
 

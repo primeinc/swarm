@@ -1,7 +1,7 @@
 /**
  * OpenCode Swarm Plugin
  *
- * A type-safe plugin for multi-agent coordination with hive issue tracking
+ * A type-safe plugin for multi-agent coordination with Hive issue tracking
  * and Agent Mail integration. Provides structured tools for swarm operations.
  *
  * @module opencode-swarm-plugin
@@ -16,66 +16,65 @@
  *
  * @example
  * ```typescript
- * // Programmatic usage (hive is the new name, beads is deprecated)
+ * // Programmatic usage (Hive is the new name, beads is deprecated)
  * import { hiveTools, beadsTools, agentMailTools, swarmMailTools } from "opencode-swarm-plugin"
  * ```
  */
-import type { Plugin, PluginInput, Hooks } from "@opencode-ai/plugin";
-
+import type { Hooks, Plugin, PluginInput } from "@opencode-ai/plugin";
 import {
-  hiveTools,
-  beadsTools,
-  setHiveWorkingDirectory,
-  setBeadsWorkingDirectory,
-} from "./hive";
-import {
-  agentMailTools,
-  setAgentMailProjectDirectory,
-  type AgentMailState,
-  AGENT_MAIL_URL,
+	AGENT_MAIL_URL,
+	type AgentMailState,
+	agentMailTools,
+	setAgentMailProjectDirectory,
 } from "./agent-mail";
-import {
-  swarmMailTools,
-  setSwarmMailProjectDirectory,
-  type SwarmMailState,
-} from "./swarm-mail";
-import { structuredTools } from "./structured";
-import { swarmTools } from "./swarm";
-import { worktreeTools } from "./swarm-worktree";
-import { reviewTools } from "./swarm-review";
-import { repoCrawlTools } from "./repo-crawl";
-import { skillsTools, setSkillsProjectDirectory } from "./skills";
-import { mandateTools } from "./mandates";
-import { hivemindTools } from "./hivemind-tools";
-import { observabilityTools } from "./observability-tools";
-import { researchTools } from "./swarm-research";
+import { createCompactionHook } from "./compaction-hook";
 // NOTE: evalTools removed from main bundle - evalite is a devDependency
 // Use `bunx evalite run` directly for running evals
 // import { evalTools } from "./eval-runner";
 import { contributorTools } from "./contributor-tools";
+import { checkCoordinatorGuard } from "./coordinator-guard";
 import {
-  guardrailOutput,
-  DEFAULT_GUARDRAIL_CONFIG,
-  type GuardrailResult,
+	beadsTools,
+	hiveTools,
+	setBeadsWorkingDirectory,
+	setHiveWorkingDirectory,
+} from "./hive";
+import { hivemindTools } from "./hivemind-tools";
+import { mandateTools } from "./mandates";
+import { observabilityTools } from "./observability-tools";
+import {
+	DEFAULT_GUARDRAIL_CONFIG,
+	type GuardrailResult,
+	guardrailOutput,
 } from "./output-guardrails";
 import {
-  analyzeTodoWrite,
-  shouldAnalyzeTool,
-  detectCoordinatorViolation,
-  isInCoordinatorContext,
-  getCoordinatorContext,
-  setCoordinatorContext,
-  clearCoordinatorContext,
+	analyzeTodoWrite,
+	clearCoordinatorContext,
+	detectCoordinatorViolation,
+	getCoordinatorContext,
+	isInCoordinatorContext,
+	setCoordinatorContext,
+	shouldAnalyzeTool,
 } from "./planning-guardrails";
-import { checkCoordinatorGuard } from "./coordinator-guard";
-import { createCompactionHook } from "./compaction-hook";
+import { repoCrawlTools } from "./repo-crawl";
+import { setSkillsProjectDirectory, skillsTools } from "./skills";
+import { structuredTools } from "./structured";
+import { swarmTools } from "./swarm";
+import {
+	type SwarmMailState,
+	setSwarmMailProjectDirectory,
+	swarmMailTools,
+} from "./swarm-mail";
+import { researchTools } from "./swarm-research";
+import { reviewTools } from "./swarm-review";
+import { worktreeTools } from "./swarm-worktree";
 
 /**
  * OpenCode Swarm Plugin
  *
  * Registers all swarm coordination tools:
- * - hive:* - Type-safe hive issue tracker wrappers (primary)
- * - beads:* - Legacy aliases for hive tools (deprecated, use hive:* instead)
+ * - hive:* - Type-safe Hive issue tracker wrappers (primary)
+ * - beads:* - Legacy aliases for Hive tools (deprecated, use hive:* instead)
  * - agent-mail:* - Multi-agent coordination via Agent Mail MCP (legacy)
  * - swarm-mail:* - Multi-agent coordination with embedded event sourcing (recommended)
  * - structured:* - Structured output parsing and validation
@@ -89,433 +88,457 @@ import { createCompactionHook } from "./compaction-hook";
  * @param input - Plugin context from OpenCode
  * @returns Plugin hooks including tools, events, and tool execution hooks
  */
-const SwarmPlugin: Plugin = async (
-  input: PluginInput,
-): Promise<Hooks> => {
-  const { $, directory, client } = input;
+const SwarmPlugin: Plugin = async (input: PluginInput): Promise<Hooks> => {
+	const { $, directory, client } = input;
 
-  // Set the working directory for hive commands
-  // This ensures hive operations run in the project directory, not ~/.config/opencode
-  setHiveWorkingDirectory(directory);
+	// Set the working directory for Hive commands
+	// This ensures Hive operations run in the project directory, not ~/.config/opencode
+	setHiveWorkingDirectory(directory);
 
-  // Set the project directory for skills discovery
-  // Skills are discovered from .opencode/skills/, .claude/skills/, or skills/
-  setSkillsProjectDirectory(directory);
+	// Set the project directory for skills discovery
+	// Skills are discovered from .opencode/skills/, .claude/skills/, or skills/
+	setSkillsProjectDirectory(directory);
 
-  // Set the project directory for Agent Mail (legacy MCP-based)
-  // This ensures agentmail_init uses the correct project path by default
-  // (prevents using plugin directory when working in a different project)
-  setAgentMailProjectDirectory(directory);
+	// Set the project directory for Agent Mail (legacy MCP-based)
+	// This ensures agentmail_init uses the correct project path by default
+	// (prevents using plugin directory when working in a different project)
+	setAgentMailProjectDirectory(directory);
 
-  // Set the project directory for Swarm Mail (embedded event-sourced)
-  // This ensures swarmmail_init uses the correct project path by default
-  setSwarmMailProjectDirectory(directory);
+	// Set the project directory for Swarm Mail (embedded event-sourced)
+	// This ensures swarmmail_init uses the correct project path by default
+	setSwarmMailProjectDirectory(directory);
 
-  /** Track active sessions for cleanup */
-  let activeAgentMailState: AgentMailState | null = null;
+	/** Track active sessions for cleanup */
+	let activeAgentMailState: AgentMailState | null = null;
 
-  /**
-   * Release all file reservations for the active agent
-   * Best-effort cleanup - errors are logged but not thrown
-   */
-  async function releaseReservations(): Promise<void> {
-    if (
-      !activeAgentMailState ||
-      activeAgentMailState.reservations.length === 0
-    ) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`${AGENT_MAIL_URL}/mcp/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          jsonrpc: "2.0",
-          id: crypto.randomUUID(),
-          method: "tools/call",
-          params: {
-            name: "release_file_reservations",
-            arguments: {
-              project_key: activeAgentMailState.projectKey,
-              agent_name: activeAgentMailState.agentName,
-            },
-          },
-        }),
-      });
-
-      if (response.ok) {
-        activeAgentMailState.reservations = [];
-      }
-    } catch (error) {
-      // Agent Mail might not be running - that's ok
-      console.warn(
-        `[swarm-plugin] Could not auto-release reservations: ${error instanceof Error ? error.message : String(error)}`,
-      );
-    }
-  }
-
-  return {
-     /**
-      * Register all tools from modules
-      *
-      * Tools are namespaced by module:
-      * - hive:create, hive:query, hive:update, etc. (primary)
-      * - beads:* - Legacy aliases (deprecated, use hive:* instead)
-      * - agent-mail:init, agent-mail:send, agent-mail:reserve, etc. (legacy MCP)
-      * - swarm-mail:init, swarm-mail:send, swarm-mail:reserve, etc. (embedded)
-	  * - repo-crawl:readme, repo-crawl:structure, etc.
-	  * - mandate:file, mandate:vote, mandate:query, etc.
-	  * - hivemind:* - Unified memory system (learnings + sessions)
-	  * - contributor_lookup - GitHub contributor profile lookup with changeset credits
+	/**
+	 * Release all file reservations for the active agent
+	 * Best-effort cleanup - errors are logged but not thrown
 	 */
-     tool: {
-      ...hiveTools,
-      ...swarmMailTools,
-      ...structuredTools,
-      ...swarmTools,
-      ...worktreeTools,
-      ...reviewTools,
-      ...repoCrawlTools,
-      ...skillsTools,
-      ...mandateTools,
-      ...hivemindTools,
-      ...observabilityTools,
-      ...researchTools,
-      // evalTools removed - evalite is devDependency, use `bunx evalite run` directly
-      ...contributorTools,
-    },
+	async function releaseReservations(): Promise<void> {
+		if (
+			!activeAgentMailState ||
+			activeAgentMailState.reservations.length === 0
+		) {
+			return;
+		}
 
-    /**
-     * Event hook for session lifecycle
-     *
-     * Handles cleanup when session becomes idle:
-     * - Releases any held file reservations
-     */
-    event: async ({ event }) => {
-      // Auto-release reservations on session idle
-      if (event.type === "session.idle") {
-        await releaseReservations();
-      }
-    },
+		try {
+			const response = await fetch(`${AGENT_MAIL_URL}/mcp/`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					jsonrpc: "2.0",
+					id: crypto.randomUUID(),
+					method: "tools/call",
+					params: {
+						name: "release_file_reservations",
+						arguments: {
+							project_key: activeAgentMailState.projectKey,
+							agent_name: activeAgentMailState.agentName,
+						},
+					},
+				}),
+			});
 
-    /**
-     * Hook before tool execution for planning guardrails
-     *
-     * Warns when agents are about to make planning mistakes:
-     * - Using todowrite for multi-file implementation (should use swarm)
-     * - Coordinator editing files directly (should spawn workers)
-     * - Coordinator running tests (workers should run tests)
-     */
-    "tool.execute.before": async (input, output) => {
-      const toolName = input.tool;
-      const sessionId = input.sessionID || "unknown";
+			if (response.ok) {
+				activeAgentMailState.reservations = [];
+			}
+		} catch (error) {
+			// Agent Mail might not be running - that's ok
+			console.warn(
+				`[swarm-plugin] Could not auto-release reservations: ${error instanceof Error ? error.message : String(error)}`,
+			);
+		}
+	}
 
-      // Check for planning anti-patterns
-      if (shouldAnalyzeTool(toolName)) {
-        const analysis = analyzeTodoWrite(output.args);
-        if (analysis.warning) {
-          console.warn(`[swarm-plugin] ${analysis.warning}`);
-        }
-      }
+	return {
+		/**
+		 * Register all tools from modules
+		 *
+		 * Tools are namespaced by module:
+		 * - hive:create, hive:query, hive:update, etc. (primary)
+		 * - beads:* - Legacy aliases (deprecated, use hive:* instead)
+		 * - agent-mail:init, agent-mail:send, agent-mail:reserve, etc. (legacy MCP)
+		 * - swarm-mail:init, swarm-mail:send, swarm-mail:reserve, etc. (embedded)
+		 * - repo-crawl:readme, repo-crawl:structure, etc.
+		 * - mandate:file, mandate:vote, mandate:query, etc.
+		 * - hivemind:* - Unified memory system (learnings + sessions)
+		 * - contributor_lookup - GitHub contributor profile lookup with changeset credits
+		 */
+		tool: {
+			...hiveTools,
+			...swarmMailTools,
+			...structuredTools,
+			...swarmTools,
+			...worktreeTools,
+			...reviewTools,
+			...repoCrawlTools,
+			...skillsTools,
+			...mandateTools,
+			...hivemindTools,
+			...observabilityTools,
+			...researchTools,
+			// evalTools removed - evalite is devDependency, use `bunx evalite run` directly
+			...contributorTools,
+		},
 
-      // Activate coordinator context when swarm tools are used
-      // MUST happen BEFORE violation check so violations can be detected
-      if (toolName === "hive_create_epic" || toolName === "swarm_decompose") {
-        setCoordinatorContext({
-          isCoordinator: true,
-          sessionId,
-        });
-      }
+		/**
+		 * Event hook for session lifecycle
+		 *
+		 * Handles cleanup when session becomes idle:
+		 * - Releases any held file reservations
+		 */
+		event: async ({ event }) => {
+			// Auto-release reservations on session idle
+			if (event.type === "session.idle") {
+				await releaseReservations();
+			}
+		},
 
-      // Detect coordinator by Task tool spawning swarm-worker agent
-      const taskArgs = output.args as { subagent_type?: string } | undefined;
-      if (toolName === "task" && taskArgs?.subagent_type?.toLowerCase().includes("swarm")) {
-        setCoordinatorContext({
-          isCoordinator: true,
-          sessionId,
-        });
-      }
+		/**
+		 * Hook before tool execution for planning guardrails
+		 *
+		 * Warns when agents are about to make planning mistakes:
+		 * - Using todowrite for multi-file implementation (should use swarm)
+		 * - Coordinator editing files directly (should spawn workers)
+		 * - Coordinator running tests (workers should run tests)
+		 */
+		"tool.execute.before": async (input, output) => {
+			const toolName = input.tool;
+			const sessionId = input.sessionID || "unknown";
 
-      // Check for coordinator violations when in coordinator context
-      // Uses session-scoped context detection
-      if (isInCoordinatorContext(sessionId)) {
-        const ctx = getCoordinatorContext(sessionId);
-        
-        // ENFORCE coordinator guard (blocks violations)
-        const guardResult = checkCoordinatorGuard({
-          agentContext: "coordinator",
-          toolName,
-          toolArgs: output.args as Record<string, unknown>,
-        });
+			// Check for planning anti-patterns
+			if (shouldAnalyzeTool(toolName)) {
+				const analysis = analyzeTodoWrite(output.args);
+				if (analysis.warning) {
+					console.warn(`[swarm-plugin] ${analysis.warning}`);
+				}
+			}
 
-        if (guardResult.blocked && guardResult.error) {
-          // REJECT the tool call by throwing
-          throw guardResult.error;
-        }
+			// Activate coordinator context when swarm tools are used
+			// MUST happen BEFORE violation check so violations can be detected
+			if (toolName === "hive_create_epic" || toolName === "swarm_decompose") {
+				setCoordinatorContext({
+					isCoordinator: true,
+					sessionId,
+				});
+			}
 
-        // Also capture violations for analytics (warnings only)
-        const violation = detectCoordinatorViolation({
-          sessionId,
-          epicId: ctx.epicId || "unknown",
-          toolName,
-          toolArgs: output.args as Record<string, unknown>,
-          agentContext: "coordinator",
-        });
+			// Detect coordinator by Task tool spawning swarm-worker agent
+			const taskArgs = output.args as { subagent_type?: string } | undefined;
+			if (
+				toolName === "task" &&
+				taskArgs?.subagent_type?.toLowerCase().includes("swarm")
+			) {
+				setCoordinatorContext({
+					isCoordinator: true,
+					sessionId,
+				});
+			}
 
-        if (violation.isViolation) {
-          console.warn(`[swarm-plugin] ${violation.message}`);
-        }
-      }
+			// Check for coordinator violations when in coordinator context
+			// Uses session-scoped context detection
+			if (isInCoordinatorContext(sessionId)) {
+				const ctx = getCoordinatorContext(sessionId);
 
-      // Capture epic ID when epic is created
-      if (toolName === "hive_create_epic" && output.args) {
-        const args = output.args as { epic_title?: string };
-        // Epic ID will be set after execution in tool.execute.after
-      }
-    },
+				// ENFORCE coordinator guard (blocks violations)
+				const guardResult = checkCoordinatorGuard({
+					agentContext: "coordinator",
+					toolName,
+					toolArgs: output.args as Record<string, unknown>,
+				});
 
-    /**
-     * Hook after tool execution for automatic cleanup and guardrails
-     *
-     * - Applies output guardrails to prevent context blowout from MCP tools
-     * - Auto-releases file reservations after swarm:complete or hive:close
-     * - Auto-syncs cells after closing
-     */
-    "tool.execute.after": async (input, output) => {
-      const toolName = input.tool;
+				if (guardResult.blocked && guardResult.error) {
+					// REJECT the tool call by throwing
+					throw guardResult.error;
+				}
 
-      // Apply output guardrails to prevent context blowout
-      // Skip if output is empty or tool is in skip list
-      if (output.output && typeof output.output === "string") {
-        const guardrailResult = guardrailOutput(toolName, output.output);
-        if (guardrailResult.truncated) {
-          output.output = guardrailResult.output;
-        }
-      }
+				// Also capture violations for analytics (warnings only)
+				const violation = detectCoordinatorViolation({
+					sessionId,
+					epicId: ctx.epicId || "unknown",
+					toolName,
+					toolArgs: output.args as Record<string, unknown>,
+					agentContext: "coordinator",
+				});
 
-      // Track Agent Mail state for cleanup
-      if (toolName === "agentmail_init" && output.output) {
-        try {
-          const result = JSON.parse(output.output);
-          if (result.agent) {
-            activeAgentMailState = {
-              projectKey: result.project?.human_key || "",
-              agentName: result.agent.name,
-              reservations: [],
-              startedAt: new Date().toISOString(),
-            };
-          }
-        } catch {
-          // Parsing failed - ignore
-        }
-      }
+				if (violation.isViolation) {
+					console.warn(`[swarm-plugin] ${violation.message}`);
+				}
+			}
 
-      // Track reservations from output
-      if (
-        toolName === "agentmail_reserve" &&
-        output.output &&
-        activeAgentMailState
-      ) {
-        // Extract reservation count from output if present
-        const match = output.output.match(/Reserved (\d+) path/);
-        if (match) {
-          // Track reservation for cleanup
-          activeAgentMailState.reservations.push(Date.now());
-        }
-      }
+			// Capture epic ID when epic is created
+			if (toolName === "hive_create_epic" && output.args) {
+				const args = output.args as { epic_title?: string };
+				// Epic ID will be set after execution in tool.execute.after
+			}
+		},
 
-      // Auto-release after swarm:complete
-      if (toolName === "swarm_complete" && activeAgentMailState) {
-        await releaseReservations();
-      }
+		/**
+		 * Hook after tool execution for automatic cleanup and guardrails
+		 *
+		 * - Applies output guardrails to prevent context blowout from MCP tools
+		 * - Auto-releases file reservations after swarm:complete or hive:close
+		 * - Auto-syncs cells after closing
+		 */
+		"tool.execute.after": async (input, output) => {
+			const toolName = input.tool;
 
-      // Capture epic ID when epic is created (for coordinator context)
-      if (toolName === "hive_create_epic" && output.output) {
-        try {
-          const result = JSON.parse(output.output);
-          if (result.epic?.id) {
-            setCoordinatorContext({
-              isCoordinator: true,
-              epicId: result.epic.id,
-              sessionId: input.sessionID,
-            });
-          }
-        } catch {
-          // Parsing failed - ignore
-        }
-      }
+			// Apply output guardrails to prevent context blowout
+			// Skip if output is empty or tool is in skip list
+			if (output.output && typeof output.output === "string") {
+				const guardrailResult = guardrailOutput(toolName, output.output);
+				if (guardrailResult.truncated) {
+					output.output = guardrailResult.output;
+				}
+			}
 
-      // Clear coordinator context when epic is closed
-      const sessionId = input.sessionID || "unknown";
-      if (toolName === "hive_close" && output.output && isInCoordinatorContext(sessionId)) {
-        const ctx = getCoordinatorContext(sessionId);
-        try {
-          // Check if the closed cell is the active epic
-          const result = JSON.parse(output.output);
-          if (result.id === ctx.epicId) {
-            clearCoordinatorContext(sessionId);
-          }
-        } catch {
-          // Parsing failed - ignore
-        }
-      }
+			// Track Agent Mail state for cleanup
+			if (toolName === "agentmail_init" && output.output) {
+				try {
+					const result = JSON.parse(output.output);
+					if (result.agent) {
+						activeAgentMailState = {
+							projectKey: result.project?.human_key || "",
+							agentName: result.agent.name,
+							reservations: [],
+							startedAt: new Date().toISOString(),
+						};
+					}
+				} catch {
+					// Parsing failed - ignore
+				}
+			}
 
-      // Note: hive_sync should be called explicitly at session end
-      // Auto-sync was removed because bd CLI is deprecated
-      // The hive_sync tool handles flushing to JSONL and git commit/push
+			// Track reservations from output
+			if (
+				toolName === "agentmail_reserve" &&
+				output.output &&
+				activeAgentMailState
+			) {
+				// Extract reservation count from output if present
+				const match = output.output.match(/Reserved (\d+) path/);
+				if (match) {
+					// Track reservation for cleanup
+					activeAgentMailState.reservations.push(Date.now());
+				}
+			}
 
-      // ===== EVAL CAPTURE WIRING =====
-      // Wire orphaned capture functions to tool execution
-      // Pattern: dynamic import + try-catch + non-fatal (eval capture never blocks tool execution)
+			// Auto-release after swarm:complete
+			if (toolName === "swarm_complete" && activeAgentMailState) {
+				await releaseReservations();
+			}
 
-      const ctx = getCoordinatorContext();
-      const epicId = ctx.epicId || "unknown";
+			// Capture epic ID when epic is created (for coordinator context)
+			if (toolName === "hive_create_epic" && output.output) {
+				try {
+					const result = JSON.parse(output.output);
+					if (result.epic?.id) {
+						setCoordinatorContext({
+							isCoordinator: true,
+							epicId: result.epic.id,
+							sessionId: input.sessionID,
+						});
+					}
+				} catch {
+					// Parsing failed - ignore
+				}
+			}
 
-      // captureResearcherSpawned - Task tool with researcher subagent
-      // Note: In after hook, we only have output - args are not available
-      // We detect researcher tasks by checking the output for researcher-related content
-      if (toolName === "task") {
-        try {
-          const result = output.output ? JSON.parse(output.output) : {};
-          // Check if this was a researcher task by looking at the result
-          if (result.researcher_id || result.research_topic || result.tools_used) {
-            const { captureResearcherSpawned } = await import("./eval-capture.js");
-            await captureResearcherSpawned({
-              session_id: input.sessionID,
-              epic_id: epicId,
-              researcher_id: result.researcher_id || "unknown",
-              research_topic: result.research_topic || "unknown",
-              tools_used: result.tools_used || [],
-            });
-          }
-        } catch (err) {
-          // Non-fatal - eval capture should never block tool execution
-          // Also catches JSON parse errors for non-JSON output
-        }
-      }
+			// Clear coordinator context when epic is closed
+			const sessionId = input.sessionID || "unknown";
+			if (
+				toolName === "hive_close" &&
+				output.output &&
+				isInCoordinatorContext(sessionId)
+			) {
+				const ctx = getCoordinatorContext(sessionId);
+				try {
+					// Check if the closed cell is the active epic
+					const result = JSON.parse(output.output);
+					if (result.id === ctx.epicId) {
+						clearCoordinatorContext(sessionId);
+					}
+				} catch {
+					// Parsing failed - ignore
+				}
+			}
 
-      // captureSkillLoaded - skills_use tool
-      // Note: In after hook, we extract skill info from the output
-      if (toolName === "skills_use") {
-        try {
-          const { captureSkillLoaded } = await import("./eval-capture.js");
-          const result = output.output ? JSON.parse(output.output) : {};
-          const skillName = result.skill_name || result.name || "unknown";
-          const context = result.context;
-          await captureSkillLoaded({
-            session_id: input.sessionID,
-            epic_id: epicId,
-            skill_name: skillName,
-            context: context,
-          });
-        } catch (err) {
-          // Non-fatal - eval capture should never block tool execution
-        }
-      }
+			// Note: hive_sync should be called explicitly at session end
+			// Auto-sync was removed because swarm CLI is now used (bd CLI is deprecated)
+			// The hive_sync tool handles flushing to JSONL and git commit/push
 
-      // captureInboxChecked - swarmmail_inbox tool
-      if (toolName === "swarmmail_inbox") {
-        try {
-          const { captureInboxChecked } = await import("./eval-capture.js");
-          const result = output.output ? JSON.parse(output.output) : {};
-          await captureInboxChecked({
-            session_id: input.sessionID,
-            epic_id: epicId,
-            message_count: result.message_count || 0,
-            urgent_count: result.urgent_count || 0,
-          });
-        } catch (err) {
-          console.warn("[eval-capture] captureInboxChecked failed:", err);
-        }
-      }
+			// ===== EVAL CAPTURE WIRING =====
+			// Wire orphaned capture functions to tool execution
+			// Pattern: dynamic import + try-catch + non-fatal (eval capture never blocks tool execution)
 
-      // captureBlockerResolved + captureBlockerDetected - hive_update tool
-      // Note: In after hook, we extract all info from the output result
-      if (toolName === "hive_update") {
-        try {
-          const result = output.output ? JSON.parse(output.output) : {};
-          const newStatus = result.status;
-          const previousStatus = result.previous_status;
+			const ctx = getCoordinatorContext();
+			const epicId = ctx.epicId || "unknown";
 
-          // captureBlockerResolved - status changed FROM blocked
-          if (previousStatus === "blocked" && newStatus !== "blocked") {
-            const { captureBlockerResolved } = await import("./eval-capture.js");
-            await captureBlockerResolved({
-              session_id: input.sessionID,
-              epic_id: epicId,
-              worker_id: result.worker_id || "unknown",
-              subtask_id: result.id || "unknown",
-              blocker_type: result.blocker_type || "unknown",
-              resolution: result.resolution || "Status changed to " + newStatus,
-            });
-          }
+			// captureResearcherSpawned - Task tool with researcher subagent
+			// Note: In after hook, we only have output - args are not available
+			// We detect researcher tasks by checking the output for researcher-related content
+			if (toolName === "task") {
+				try {
+					const result = output.output ? JSON.parse(output.output) : {};
+					// Check if this was a researcher task by looking at the result
+					if (
+						result.researcher_id ||
+						result.research_topic ||
+						result.tools_used
+					) {
+						const { captureResearcherSpawned } = await import(
+							"./eval-capture.js"
+						);
+						await captureResearcherSpawned({
+							session_id: input.sessionID,
+							epic_id: epicId,
+							researcher_id: result.researcher_id || "unknown",
+							research_topic: result.research_topic || "unknown",
+							tools_used: result.tools_used || [],
+						});
+					}
+				} catch (err) {
+					// Non-fatal - eval capture should never block tool execution
+					// Also catches JSON parse errors for non-JSON output
+				}
+			}
 
-          // captureBlockerDetected - status changed TO blocked
-          if (newStatus === "blocked" && previousStatus !== "blocked") {
-            const { captureBlockerDetected } = await import("./eval-capture.js");
-            await captureBlockerDetected({
-              session_id: input.sessionID,
-              epic_id: epicId,
-              worker_id: result.worker_id || "unknown",
-              subtask_id: result.id || "unknown",
-              blocker_type: result.blocker_type || "unknown",
-              blocker_description: result.blocker_description || result.description || "No description provided",
-            });
-          }
-        } catch (err) {
-          // Non-fatal - eval capture should never block tool execution
-        }
-      }
+			// captureSkillLoaded - skills_use tool
+			// Note: In after hook, we extract skill info from the output
+			if (toolName === "skills_use") {
+				try {
+					const { captureSkillLoaded } = await import("./eval-capture.js");
+					const result = output.output ? JSON.parse(output.output) : {};
+					const skillName = result.skill_name || result.name || "unknown";
+					const context = result.context;
+					await captureSkillLoaded({
+						session_id: input.sessionID,
+						epic_id: epicId,
+						skill_name: skillName,
+						context: context,
+					});
+				} catch (err) {
+					// Non-fatal - eval capture should never block tool execution
+				}
+			}
 
-      // captureScopeChangeDecision - swarmmail_send with "Scope Change" in subject
-      // Note: In after hook, we detect scope change from the output
-      if (toolName === "swarmmail_send") {
-        try {
-          const result = output.output ? JSON.parse(output.output) : {};
-          // Check if this was a scope change message by looking at the result
-          if (result.scope_change || result.original_scope || result.new_scope) {
-            const { captureScopeChangeDecision } = await import("./eval-capture.js");
-            const threadId = result.thread_id || epicId;
-            
-            await captureScopeChangeDecision({
-              session_id: input.sessionID,
-              epic_id: threadId,
-              worker_id: result.worker_id || "unknown",
-              subtask_id: result.subtask_id || "unknown",
-              approved: result.approved ?? false,
-              original_scope: result.original_scope,
-              new_scope: result.new_scope,
-              requested_scope: result.requested_scope,
-              rejection_reason: result.rejection_reason,
-              estimated_time_add: result.estimated_time_add,
-            });
-          }
-        } catch (err) {
-          // Non-fatal - eval capture should never block tool execution
-        }
-      }
-    },
+			// captureInboxChecked - swarmmail_inbox tool
+			if (toolName === "swarmmail_inbox") {
+				try {
+					const { captureInboxChecked } = await import("./eval-capture.js");
+					const result = output.output ? JSON.parse(output.output) : {};
+					await captureInboxChecked({
+						session_id: input.sessionID,
+						epic_id: epicId,
+						message_count: result.message_count || 0,
+						urgent_count: result.urgent_count || 0,
+					});
+				} catch (err) {
+					console.warn("[eval-capture] captureInboxChecked failed:", err);
+				}
+			}
 
-    /**
-     * Compaction hook for swarm context preservation
-     *
-     * When OpenCode compacts session context, this hook injects swarm state
-     * to ensure coordinators can resume orchestration seamlessly.
-     *
-     * Uses SDK client to scan actual session messages for precise swarm state
-     * (epic IDs, subtask status, agent names) rather than relying solely on
-     * heuristic detection from hive/swarm-mail.
-     *
-     * Note: This hook is experimental and may not be in the published Hooks type yet.
-     */
-    "experimental.session.compacting": createCompactionHook(client),
-  } as Hooks & {
-    "experimental.session.compacting"?: (
-      input: { sessionID: string },
-      output: { context: string[] },
-    ) => Promise<void>;
-  };
+			// captureBlockerResolved + captureBlockerDetected - hive_update tool
+			// Note: In after hook, we extract all info from the output result
+			if (toolName === "hive_update") {
+				try {
+					const result = output.output ? JSON.parse(output.output) : {};
+					const newStatus = result.status;
+					const previousStatus = result.previous_status;
+
+					// captureBlockerResolved - status changed FROM blocked
+					if (previousStatus === "blocked" && newStatus !== "blocked") {
+						const { captureBlockerResolved } = await import(
+							"./eval-capture.js"
+						);
+						await captureBlockerResolved({
+							session_id: input.sessionID,
+							epic_id: epicId,
+							worker_id: result.worker_id || "unknown",
+							subtask_id: result.id || "unknown",
+							blocker_type: result.blocker_type || "unknown",
+							resolution: result.resolution || "Status changed to " + newStatus,
+						});
+					}
+
+					// captureBlockerDetected - status changed TO blocked
+					if (newStatus === "blocked" && previousStatus !== "blocked") {
+						const { captureBlockerDetected } = await import(
+							"./eval-capture.js"
+						);
+						await captureBlockerDetected({
+							session_id: input.sessionID,
+							epic_id: epicId,
+							worker_id: result.worker_id || "unknown",
+							subtask_id: result.id || "unknown",
+							blocker_type: result.blocker_type || "unknown",
+							blocker_description:
+								result.blocker_description ||
+								result.description ||
+								"No description provided",
+						});
+					}
+				} catch (err) {
+					// Non-fatal - eval capture should never block tool execution
+				}
+			}
+
+			// captureScopeChangeDecision - swarmmail_send with "Scope Change" in subject
+			// Note: In after hook, we detect scope change from the output
+			if (toolName === "swarmmail_send") {
+				try {
+					const result = output.output ? JSON.parse(output.output) : {};
+					// Check if this was a scope change message by looking at the result
+					if (
+						result.scope_change ||
+						result.original_scope ||
+						result.new_scope
+					) {
+						const { captureScopeChangeDecision } = await import(
+							"./eval-capture.js"
+						);
+						const threadId = result.thread_id || epicId;
+
+						await captureScopeChangeDecision({
+							session_id: input.sessionID,
+							epic_id: threadId,
+							worker_id: result.worker_id || "unknown",
+							subtask_id: result.subtask_id || "unknown",
+							approved: result.approved ?? false,
+							original_scope: result.original_scope,
+							new_scope: result.new_scope,
+							requested_scope: result.requested_scope,
+							rejection_reason: result.rejection_reason,
+							estimated_time_add: result.estimated_time_add,
+						});
+					}
+				} catch (err) {
+					// Non-fatal - eval capture should never block tool execution
+				}
+			}
+		},
+
+		/**
+		 * Compaction hook for swarm context preservation
+		 *
+		 * When OpenCode compacts session context, this hook injects swarm state
+		 * to ensure coordinators can resume orchestration seamlessly.
+		 *
+		 * Uses SDK client to scan actual session messages for precise swarm state
+		 * (epic IDs, subtask status, agent names) rather than relying solely on
+		 * heuristic detection from hive/swarm-mail.
+		 *
+		 * Note: This hook is experimental and may not be in the published Hooks type yet.
+		 */
+		"experimental.session.compacting": createCompactionHook(client),
+	} as Hooks & {
+		"experimental.session.compacting"?: (
+			input: { sessionID: string },
+			output: { context: string[] },
+		) => Promise<void>;
+	};
 };
 
 /**
@@ -533,24 +556,12 @@ export default SwarmPlugin;
 // =============================================================================
 
 /**
- * Re-export all schemas for type-safe usage
- */
-export * from "./schemas";
-
-/**
- * Re-export hive module (primary) and beads module (deprecated aliases)
+ * Re-export shared types from swarm-mail package
  *
  * Includes:
- * - hiveTools - All hive tool definitions (primary)
- * - beadsTools - Legacy aliases for backward compatibility (deprecated)
- * - Individual tool exports (hive_create, hive_query, etc.)
- * - Legacy aliases (hive_create, hive_query, etc.)
- * - HiveError, HiveValidationError (and BeadError, BeadValidationError aliases)
- *
- * DEPRECATED: Use hive_* tools instead of beads_* tools
+ * - MailSessionState - Shared session state type for Agent Mail and Swarm Mail
  */
-export * from "./hive";
-
+export type { MailSessionState } from "swarm-mail";
 /**
  * Re-export agent-mail module (legacy MCP-based)
  *
@@ -565,51 +576,35 @@ export * from "./hive";
  * DEPRECATED: Use swarm-mail module instead for embedded event-sourced implementation.
  */
 export {
-  agentMailTools,
-  AgentMailError,
-  AgentMailNotInitializedError,
-  FileReservationConflictError,
-  createAgentMailError,
-  setAgentMailProjectDirectory,
-  getAgentMailProjectDirectory,
-  mcpCallWithAutoInit,
-  isProjectNotFoundError,
-  isAgentNotFoundError,
-  type AgentMailState,
+	AgentMailError,
+	AgentMailNotInitializedError,
+	type AgentMailState,
+	agentMailTools,
+	createAgentMailError,
+	FileReservationConflictError,
+	getAgentMailProjectDirectory,
+	isAgentNotFoundError,
+	isProjectNotFoundError,
+	mcpCallWithAutoInit,
+	setAgentMailProjectDirectory,
 } from "./agent-mail";
-
 /**
- * Re-export swarm-mail module (embedded event-sourced)
+ * Re-export Hive module (primary) and cells module (deprecated beads aliases)
  *
  * Includes:
- * - swarmMailTools - All swarm mail tool definitions
- * - setSwarmMailProjectDirectory, getSwarmMailProjectDirectory - Directory management
- * - clearSessionState - Session cleanup
- * - SwarmMailState - Session state type
+ * - hiveTools - All hive tool definitions (primary)
+ * - beadsTools - Legacy aliases for backward compatibility (deprecated)
+ * - Individual tool exports (hive_create, hive_query, etc.)
+ * - Legacy aliases (hive_create, hive_query, etc.)
+ * - HiveError, HiveValidationError (and CellError, CellValidationError aliases)
  *
- * Features:
- * - Embedded PGLite storage (no external server dependency)
- * - Event sourcing for full audit trail
- * - Offset-based resumability
- * - Materialized views for fast queries
- * - File reservation with conflict detection
+ * DEPRECATED: Use hive_* tools instead of beads_* tools
  */
-export {
-  swarmMailTools,
-  setSwarmMailProjectDirectory,
-  getSwarmMailProjectDirectory,
-  clearSessionState,
-  type SwarmMailState,
-} from "./swarm-mail";
-
+export * from "./hive";
 /**
- * Re-export shared types from swarm-mail package
- *
- * Includes:
- * - MailSessionState - Shared session state type for Agent Mail and Swarm Mail
+ * Re-export all schemas for type-safe usage
  */
-export { type MailSessionState } from "swarm-mail";
-
+export * from "./schemas";
 /**
  * Re-export structured module
  *
@@ -618,12 +613,11 @@ export { type MailSessionState } from "swarm-mail";
  * - Utility functions for JSON extraction
  */
 export {
-  structuredTools,
-  extractJsonFromText,
-  formatZodErrors,
-  getSchemaByName,
+	extractJsonFromText,
+	formatZodErrors,
+	getSchemaByName,
+	structuredTools,
 } from "./structured";
-
 /**
  * Re-export swarm module
  *
@@ -642,20 +636,43 @@ export {
  * to avoid confusing the plugin loader which tries to call all exports as functions
  */
 export {
-  swarmTools,
-  SwarmError,
-  DecompositionError,
-  formatSubtaskPrompt,
-  formatSubtaskPromptV2,
-  formatEvaluationPrompt,
-  SUBTASK_PROMPT_V2,
-  // Strategy exports
-  STRATEGIES,
-  selectStrategy,
-  formatStrategyGuidelines,
-  type DecompositionStrategy,
-  type StrategyDefinition,
+	DecompositionError,
+	type DecompositionStrategy,
+	formatEvaluationPrompt,
+	formatStrategyGuidelines,
+	formatSubtaskPrompt,
+	formatSubtaskPromptV2,
+	// Strategy exports
+	STRATEGIES,
+	type StrategyDefinition,
+	SUBTASK_PROMPT_V2,
+	SwarmError,
+	selectStrategy,
+	swarmTools,
 } from "./swarm";
+/**
+ * Re-export swarm-mail module (embedded event-sourced)
+ *
+ * Includes:
+ * - swarmMailTools - All swarm mail tool definitions
+ * - setSwarmMailProjectDirectory, getSwarmMailProjectDirectory - Directory management
+ * - clearSessionState - Session cleanup
+ * - SwarmMailState - Session state type
+ *
+ * Features:
+ * - Embedded PGLite storage (no external server dependency)
+ * - Event sourcing for full audit trail
+ * - Offset-based resumability
+ * - Materialized views for fast queries
+ * - File reservation with conflict detection
+ */
+export {
+	clearSessionState,
+	getSwarmMailProjectDirectory,
+	type SwarmMailState,
+	setSwarmMailProjectDirectory,
+	swarmMailTools,
+} from "./swarm-mail";
 
 // =============================================================================
 // Unified Tool Registry for CLI
@@ -670,20 +687,23 @@ export {
  * Note: hiveTools includes both hive_* and beads_* (legacy aliases)
  * Note: hivemindTools includes both hivemind_* and deprecated semantic-memory_* + cass_* aliases
  */
-export const allTools: Record<string, ReturnType<typeof import("@opencode-ai/plugin").tool>> = {
-  ...hiveTools,
-  ...swarmMailTools,
-  ...structuredTools,
-  ...swarmTools,
-  ...worktreeTools,
-  ...reviewTools,
-  ...repoCrawlTools,
-  ...skillsTools,
-  ...mandateTools,
-  ...hivemindTools,
-  ...observabilityTools,
-  ...researchTools,
-  ...contributorTools,
+export const allTools: Record<
+	string,
+	ReturnType<typeof import("@opencode-ai/plugin").tool>
+> = {
+	...hiveTools,
+	...swarmMailTools,
+	...structuredTools,
+	...swarmTools,
+	...worktreeTools,
+	...reviewTools,
+	...repoCrawlTools,
+	...skillsTools,
+	...mandateTools,
+	...hivemindTools,
+	...observabilityTools,
+	...researchTools,
+	...contributorTools,
 } as const;
 
 /**
@@ -691,209 +711,28 @@ export const allTools: Record<string, ReturnType<typeof import("@opencode-ai/plu
  */
 export type CLIToolName = keyof typeof allTools;
 
+export type { Memory, SearchOptions, SearchResult } from "swarm-mail";
 /**
- * Re-export storage module
+ * Re-export CASS tools module
+ *
+ * Cross-Agent Session Search - search across all AI coding agent histories.
+ * Wraps the external `cass` CLI from Dicklesworthstone's repo.
  *
  * Includes:
- * - createStorage, createStorageWithFallback - Factory functions
- * - getStorage, setStorage, resetStorage - Global instance management
- * - InMemoryStorage, SemanticMemoryStorage - Storage implementations
- * - isSemanticMemoryAvailable - Availability check
- * - DEFAULT_STORAGE_CONFIG - Default configuration
+ * - cassTools - All CASS tools (search, view, expand, health, index, stats)
+ * - cass_search - Search across agent histories
+ * - cass_view - View specific session
+ * - cass_expand - Expand context around a line
+ * - cass_health - Check index health
+ * - cass_index - Build/rebuild index
+ * - cass_stats - Show index statistics
  *
- * Types:
- * - LearningStorage - Unified storage interface
- * - StorageConfig, StorageBackend, StorageCollections - Configuration types
+ * Events emitted:
+ * - cass_searched - When a search is performed
+ * - cass_viewed - When a session is viewed
+ * - cass_indexed - When the index is built/rebuilt
  */
-export {
-  createStorage,
-  createStorageWithFallback,
-  getStorage,
-  setStorage,
-  resetStorage,
-  InMemoryStorage,
-  SemanticMemoryStorage,
-  isSemanticMemoryAvailable,
-  DEFAULT_STORAGE_CONFIG,
-  type LearningStorage,
-  type StorageConfig,
-  type StorageBackend,
-  type StorageCollections,
-} from "./storage";
-
-/**
- * Re-export tool-availability module
- *
- * Includes:
- * - checkTool, isToolAvailable - Check individual tool availability
- * - checkAllTools - Check all tools at once
- * - withToolFallback, ifToolAvailable - Execute with graceful fallback
- * - formatToolAvailability - Format availability for display
- * - resetToolCache - Reset cached availability (for testing)
- *
- * Types:
- * - ToolName - Supported tool names
- * - ToolStatus, ToolAvailability - Status types
- */
-export {
-  checkTool,
-  isToolAvailable,
-  checkAllTools,
-  getToolAvailability,
-  withToolFallback,
-  ifToolAvailable,
-  warnMissingTool,
-  requireTool,
-  formatToolAvailability,
-  resetToolCache,
-  type ToolName,
-  type ToolStatus,
-  type ToolAvailability,
-} from "./tool-availability";
-
-/**
- * Re-export repo-crawl module
- *
- * Includes:
- * - repoCrawlTools - All GitHub API repository research tools
- * - repo_readme, repo_structure, repo_tree, repo_file, repo_search - Individual tools
- * - RepoCrawlError - Error class
- *
- * Features:
- * - Parse repos from various formats (owner/repo, URLs)
- * - Optional GITHUB_TOKEN auth for higher rate limits (5000 vs 60 req/hour)
- * - Tech stack detection from file patterns
- * - Graceful rate limit handling
- */
-export { repoCrawlTools, RepoCrawlError } from "./repo-crawl";
-
-/**
- * Re-export skills module
- *
- * Implements Anthropic's Agent Skills specification for OpenCode.
- *
- * Includes:
- * - skillsTools - All skills tools (list, use, execute, read)
- * - discoverSkills, getSkill, listSkills - Discovery functions
- * - parseFrontmatter - YAML frontmatter parser
- * - getSkillsContextForSwarm - Swarm integration helper
- * - findRelevantSkills - Task-based skill matching
- *
- * Types:
- * - Skill, SkillMetadata, SkillRef - Skill data types
- */
-export {
-  skillsTools,
-  discoverSkills,
-  getSkill,
-  listSkills,
-  parseFrontmatter,
-  setSkillsProjectDirectory,
-  invalidateSkillsCache,
-  getSkillsContextForSwarm,
-  findRelevantSkills,
-  type Skill,
-  type SkillMetadata,
-  type SkillRef,
-} from "./skills";
-
-/**
- * Re-export mandates module
- *
- * Agent voting system for collaborative knowledge curation.
- *
- * Includes:
- * - mandateTools - All mandate tools (file, vote, query, list, stats)
- * - MandateError - Error class
- *
- * Features:
- * - Submit ideas, tips, lore, snippets, and feature requests
- * - Vote on entries (upvote/downvote) with 90-day decay
- * - Semantic search for relevant mandates
- * - Status transitions based on consensus (candidate → established → mandate)
- * - Persistent storage with semantic-memory
- *
- * Types:
- * - MandateEntry, Vote, MandateScore - Core data types
- * - MandateStatus, MandateContentType - Enum types
- */
-export { mandateTools, MandateError } from "./mandates";
-
-/**
- * Re-export mandate-storage module
- *
- * Includes:
- * - createMandateStorage - Factory function
- * - getMandateStorage, setMandateStorage, resetMandateStorage - Global instance management
- * - updateMandateStatus, updateAllMandateStatuses - Status update helpers
- * - InMemoryMandateStorage, SemanticMemoryMandateStorage - Storage implementations
- *
- * Types:
- * - MandateStorage - Unified storage interface
- * - MandateStorageConfig, MandateStorageBackend, MandateStorageCollections - Configuration types
- */
-export {
-  createMandateStorage,
-  getMandateStorage,
-  setMandateStorage,
-  resetMandateStorage,
-  updateMandateStatus,
-  updateAllMandateStatuses,
-  InMemoryMandateStorage,
-  SemanticMemoryMandateStorage,
-  DEFAULT_MANDATE_STORAGE_CONFIG,
-  type MandateStorage,
-  type MandateStorageConfig,
-  type MandateStorageBackend,
-  type MandateStorageCollections,
-} from "./mandate-storage";
-
-/**
- * Re-export mandate-promotion module
- *
- * Includes:
- * - evaluatePromotion - Evaluate status transitions
- * - shouldPromote - Determine new status based on score
- * - formatPromotionResult - Format promotion result for display
- * - evaluateBatchPromotions, getStatusChanges, groupByTransition - Batch helpers
- *
- * Types:
- * - PromotionResult - Promotion evaluation result
- */
-export {
-  evaluatePromotion,
-  shouldPromote,
-  formatPromotionResult,
-  evaluateBatchPromotions,
-  getStatusChanges,
-  groupByTransition,
-  type PromotionResult,
-} from "./mandate-promotion";
-
-/**
- * Re-export output-guardrails module
- *
- * Includes:
- * - guardrailOutput - Main entry point for truncating tool output
- * - truncateWithBoundaries - Smart truncation preserving structure
- * - getToolLimit - Get character limit for a tool
- * - DEFAULT_GUARDRAIL_CONFIG - Default configuration
- *
- * Types:
- * - GuardrailConfig - Configuration interface
- * - GuardrailResult - Result of guardrail processing
- * - GuardrailMetrics - Analytics data
- */
-export {
-  guardrailOutput,
-  truncateWithBoundaries,
-  createMetrics,
-  DEFAULT_GUARDRAIL_CONFIG,
-  type GuardrailConfig,
-  type GuardrailResult,
-  type GuardrailMetrics,
-} from "./output-guardrails";
-
+export { cassTools } from "./cass-tools";
 /**
  * Re-export compaction-hook module
  *
@@ -912,13 +751,12 @@ export {
  * };
  * ```
  */
-export { 
-  SWARM_COMPACTION_CONTEXT, 
-  createCompactionHook,
-  scanSessionMessages,
-  type ScannedSwarmState,
+export {
+	createCompactionHook,
+	type ScannedSwarmState,
+	SWARM_COMPACTION_CONTEXT,
+	scanSessionMessages,
 } from "./compaction-hook";
-
 /**
  * Re-export compaction-observability module
  *
@@ -952,47 +790,60 @@ export {
  * ```
  */
 export {
-  CompactionPhase,
-  createMetricsCollector,
-  recordPhaseStart,
-  recordPhaseComplete,
-  recordPatternExtracted,
-  recordPatternSkipped,
-  getMetricsSummary,
-  type CompactionMetrics,
-  type CompactionMetricsSummary,
+	type CompactionMetrics,
+	type CompactionMetricsSummary,
+	CompactionPhase,
+	createMetricsCollector,
+	getMetricsSummary,
+	recordPatternExtracted,
+	recordPatternSkipped,
+	recordPhaseComplete,
+	recordPhaseStart,
 } from "./compaction-observability";
-
 /**
- * Re-export memory module
+ * Coordinator Guard - Runtime Violation Enforcement
  *
- * Includes:
- * - memoryTools - All semantic-memory tools (store, find, get, remove, validate, list, stats, check)
- * - createMemoryAdapter - Factory function for memory adapter
- * - resetMemoryCache - Cache management for testing
+ * Detects and REJECTS coordinator protocol violations at runtime.
+ * Unlike planning-guardrails (which only warns), the coordinator guard throws errors
+ * to prevent coordinators from performing work that should be delegated to workers.
+ *
+ * Functions:
+ * - checkCoordinatorGuard - Main entry point for guard checks
+ * - isCoordinator - Type guard for coordinator context
  *
  * Types:
- * - MemoryAdapter - Memory adapter interface
- * - StoreArgs, FindArgs, IdArgs, ListArgs - Tool argument types
- * - StoreResult, FindResult, StatsResult, HealthResult, OperationResult - Result types
+ * - CoordinatorGuardError - Custom error with violation details
+ * - GuardCheckResult - Result of guard check
  */
 export {
-  memoryTools,
-  createMemoryAdapter,
-  resetMemoryCache,
-  type MemoryAdapter,
-  type StoreArgs,
-  type FindArgs,
-  type IdArgs,
-  type ListArgs,
-  type StoreResult,
-  type FindResult,
-  type StatsResult,
-  type HealthResult,
-  type OperationResult,
-} from "./memory-tools";
-export type { Memory, SearchResult, SearchOptions } from "swarm-mail";
-
+	CoordinatorGuardError,
+	checkCoordinatorGuard,
+	type GuardCheckResult,
+	isCoordinator,
+} from "./coordinator-guard";
+/**
+ * Re-export eval-gates module
+ *
+ * Includes:
+ * - checkGate - Check if current score passes quality gate
+ * - DEFAULT_THRESHOLDS - Default regression thresholds by phase
+ *
+ * Types:
+ * - GateResult - Result from gate check
+ * - GateConfig - Configuration for gate thresholds
+ *
+ * Features:
+ * - Phase-based regression thresholds (Bootstrap: none, Stabilization: 10%, Production: 5%)
+ * - Configurable thresholds via GateConfig
+ * - Clear pass/fail messages with baseline comparison
+ * - Handles edge cases (division by zero, no history)
+ */
+export {
+	checkGate,
+	DEFAULT_THRESHOLDS,
+	type GateConfig,
+	type GateResult,
+} from "./eval-gates";
 /**
  * Re-export eval-history module
  *
@@ -1015,44 +866,19 @@ export type { Memory, SearchResult, SearchOptions } from "swarm-mail";
  * - EvalRunRecord - Single eval run record
  */
 export {
-  recordEvalRun,
-  getScoreHistory,
-  getPhase,
-  calculateVariance,
-  ensureEvalHistoryDir,
-  getEvalHistoryPath,
-  DEFAULT_EVAL_HISTORY_PATH,
-  VARIANCE_THRESHOLD,
-  BOOTSTRAP_THRESHOLD,
-  STABILIZATION_THRESHOLD,
-  type Phase,
-  type EvalRunRecord,
+	BOOTSTRAP_THRESHOLD,
+	calculateVariance,
+	DEFAULT_EVAL_HISTORY_PATH,
+	type EvalRunRecord,
+	ensureEvalHistoryDir,
+	getEvalHistoryPath,
+	getPhase,
+	getScoreHistory,
+	type Phase,
+	recordEvalRun,
+	STABILIZATION_THRESHOLD,
+	VARIANCE_THRESHOLD,
 } from "./eval-history";
-
-/**
- * Re-export eval-gates module
- *
- * Includes:
- * - checkGate - Check if current score passes quality gate
- * - DEFAULT_THRESHOLDS - Default regression thresholds by phase
- *
- * Types:
- * - GateResult - Result from gate check
- * - GateConfig - Configuration for gate thresholds
- *
- * Features:
- * - Phase-based regression thresholds (Bootstrap: none, Stabilization: 10%, Production: 5%)
- * - Configurable thresholds via GateConfig
- * - Clear pass/fail messages with baseline comparison
- * - Handles edge cases (division by zero, no history)
- */
-export {
-  checkGate,
-  DEFAULT_THRESHOLDS,
-  type GateResult,
-  type GateConfig,
-} from "./eval-gates";
-
 /**
  * Re-export logger infrastructure
  *
@@ -1079,8 +905,201 @@ export {
  * compactionLog.info("Compaction started");
  * ```
  */
-export { getLogger, createChildLogger, logger } from "./logger";
-
+export { createChildLogger, getLogger, logger } from "./logger";
+/**
+ * Re-export mandate-promotion module
+ *
+ * Includes:
+ * - evaluatePromotion - Evaluate status transitions
+ * - shouldPromote - Determine new status based on score
+ * - formatPromotionResult - Format promotion result for display
+ * - evaluateBatchPromotions, getStatusChanges, groupByTransition - Batch helpers
+ *
+ * Types:
+ * - PromotionResult - Promotion evaluation result
+ */
+export {
+	evaluateBatchPromotions,
+	evaluatePromotion,
+	formatPromotionResult,
+	getStatusChanges,
+	groupByTransition,
+	type PromotionResult,
+	shouldPromote,
+} from "./mandate-promotion";
+/**
+ * Re-export mandate-storage module
+ *
+ * Includes:
+ * - createMandateStorage - Factory function
+ * - getMandateStorage, setMandateStorage, resetMandateStorage - Global instance management
+ * - updateMandateStatus, updateAllMandateStatuses - Status update helpers
+ * - InMemoryMandateStorage, SemanticMemoryMandateStorage - Storage implementations
+ *
+ * Types:
+ * - MandateStorage - Unified storage interface
+ * - MandateStorageConfig, MandateStorageBackend, MandateStorageCollections - Configuration types
+ */
+export {
+	createMandateStorage,
+	DEFAULT_MANDATE_STORAGE_CONFIG,
+	getMandateStorage,
+	InMemoryMandateStorage,
+	type MandateStorage,
+	type MandateStorageBackend,
+	type MandateStorageCollections,
+	type MandateStorageConfig,
+	resetMandateStorage,
+	SemanticMemoryMandateStorage,
+	setMandateStorage,
+	updateAllMandateStatuses,
+	updateMandateStatus,
+} from "./mandate-storage";
+/**
+ * Re-export mandates module
+ *
+ * Agent voting system for collaborative knowledge curation.
+ *
+ * Includes:
+ * - mandateTools - All mandate tools (file, vote, query, list, stats)
+ * - MandateError - Error class
+ *
+ * Features:
+ * - Submit ideas, tips, lore, snippets, and feature requests
+ * - Vote on entries (upvote/downvote) with 90-day decay
+ * - Semantic search for relevant mandates
+ * - Status transitions based on consensus (candidate → established → mandate)
+ * - Persistent storage with semantic-memory
+ *
+ * Types:
+ * - MandateEntry, Vote, MandateScore - Core data types
+ * - MandateStatus, MandateContentType - Enum types
+ */
+export { MandateError, mandateTools } from "./mandates";
+/**
+ * Re-export memory module
+ *
+ * Includes:
+ * - memoryTools - All semantic-memory tools (store, find, get, remove, validate, list, stats, check)
+ * - createMemoryAdapter - Factory function for memory adapter
+ * - resetMemoryCache - Cache management for testing
+ *
+ * Types:
+ * - MemoryAdapter - Memory adapter interface
+ * - StoreArgs, FindArgs, IdArgs, ListArgs - Tool argument types
+ * - StoreResult, FindResult, StatsResult, HealthResult, OperationResult - Result types
+ */
+export {
+	createMemoryAdapter,
+	type FindArgs,
+	type FindResult,
+	type HealthResult,
+	type IdArgs,
+	type ListArgs,
+	type MemoryAdapter,
+	memoryTools,
+	type OperationResult,
+	resetMemoryCache,
+	type StatsResult,
+	type StoreArgs,
+	type StoreResult,
+} from "./memory-tools";
+/**
+ * Re-export output-guardrails module
+ *
+ * Includes:
+ * - guardrailOutput - Main entry point for truncating tool output
+ * - truncateWithBoundaries - Smart truncation preserving structure
+ * - getToolLimit - Get character limit for a tool
+ * - DEFAULT_GUARDRAIL_CONFIG - Default configuration
+ *
+ * Types:
+ * - GuardrailConfig - Configuration interface
+ * - GuardrailResult - Result of guardrail processing
+ * - GuardrailMetrics - Analytics data
+ */
+export {
+	createMetrics,
+	DEFAULT_GUARDRAIL_CONFIG,
+	type GuardrailConfig,
+	type GuardrailMetrics,
+	type GuardrailResult,
+	guardrailOutput,
+	truncateWithBoundaries,
+} from "./output-guardrails";
+/**
+ * Re-export repo-crawl module
+ *
+ * Includes:
+ * - repoCrawlTools - All GitHub API repository research tools
+ * - repo_readme, repo_structure, repo_tree, repo_file, repo_search - Individual tools
+ * - RepoCrawlError - Error class
+ *
+ * Features:
+ * - Parse repos from various formats (owner/repo, URLs)
+ * - Optional GITHUB_TOKEN auth for higher rate limits (5000 vs 60 req/hour)
+ * - Tech stack detection from file patterns
+ * - Graceful rate limit handling
+ */
+export { RepoCrawlError, repoCrawlTools } from "./repo-crawl";
+/**
+ * Re-export skills module
+ *
+ * Implements Anthropic's Agent Skills specification for OpenCode.
+ *
+ * Includes:
+ * - skillsTools - All skills tools (list, use, execute, read)
+ * - discoverSkills, getSkill, listSkills - Discovery functions
+ * - parseFrontmatter - YAML frontmatter parser
+ * - getSkillsContextForSwarm - Swarm integration helper
+ * - findRelevantSkills - Task-based skill matching
+ *
+ * Types:
+ * - Skill, SkillMetadata, SkillRef - Skill data types
+ */
+export {
+	discoverSkills,
+	findRelevantSkills,
+	getSkill,
+	getSkillsContextForSwarm,
+	invalidateSkillsCache,
+	listSkills,
+	parseFrontmatter,
+	type Skill,
+	type SkillMetadata,
+	type SkillRef,
+	setSkillsProjectDirectory,
+	skillsTools,
+} from "./skills";
+/**
+ * Re-export storage module
+ *
+ * Includes:
+ * - createStorage, createStorageWithFallback - Factory functions
+ * - getStorage, setStorage, resetStorage - Global instance management
+ * - InMemoryStorage, SemanticMemoryStorage - Storage implementations
+ * - isSemanticMemoryAvailable - Availability check
+ * - DEFAULT_STORAGE_CONFIG - Default configuration
+ *
+ * Types:
+ * - LearningStorage - Unified storage interface
+ * - StorageConfig, StorageBackend, StorageCollections - Configuration types
+ */
+export {
+	createStorage,
+	createStorageWithFallback,
+	DEFAULT_STORAGE_CONFIG,
+	getStorage,
+	InMemoryStorage,
+	isSemanticMemoryAvailable,
+	type LearningStorage,
+	resetStorage,
+	SemanticMemoryStorage,
+	type StorageBackend,
+	type StorageCollections,
+	type StorageConfig,
+	setStorage,
+} from "./storage";
 /**
  * Re-export swarm-research module
  *
@@ -1094,39 +1113,12 @@ export { getLogger, createChildLogger, logger } from "./logger";
  * - VersionInfo - Package version information
  */
 export {
-  discoverDocTools,
-  getInstalledVersions,
-  researchTools,
-  type DiscoveredTool,
-  type VersionInfo,
+	type DiscoveredTool,
+	discoverDocTools,
+	getInstalledVersions,
+	researchTools,
+	type VersionInfo,
 } from "./swarm-research";
-
-/**
- * Re-export swarm-validation module
- *
- * Provides validation event types and hooks for post-swarm validation.
- * Integrates with swarm-mail event sourcing to emit validation events.
- *
- * Includes:
- * - ValidationIssueSeverity - Zod schema for severity levels (error, warning, info)
- * - ValidationIssueCategory - Zod schema for issue categories
- * - ValidationIssueSchema - Zod schema for validation issues
- * - runPostSwarmValidation - Main validation hook
- * - reportIssue - Helper to emit validation_issue events
- *
- * Types:
- * - ValidationIssue - Validation issue with severity, category, message, and optional location
- * - ValidationContext - Context for validation execution
- */
-export {
-  ValidationIssueSeverity,
-  ValidationIssueCategory,
-  ValidationIssueSchema,
-  runPostSwarmValidation,
-  reportIssue,
-  type ValidationIssue,
-  type ValidationContext,
-} from "./swarm-validation";
 
 /**
  * Swarm Signature Detection
@@ -1136,7 +1128,7 @@ export {
  *
  * A SWARM is defined by this event sequence:
  * 1. hive_create_epic(epic_title, subtasks[]) → epic_id
- * 2. swarm_spawn_subtask(bead_id, epic_id, ...) → prompt (at least one)
+ * 2. swarm_spawn_subtask(cell_id, epic_id, ...) → prompt (at least one)
  *
  * The projection folds over events to produce ground truth state:
  * - Which epic is being coordinated
@@ -1156,57 +1148,68 @@ export {
  * - EpicState - Epic state
  */
 export {
-  projectSwarmState,
-  hasSwarmSignature,
-  isSwarmActive,
-  getSwarmSummary,
-  type SwarmProjection,
-  type ToolCallEvent,
-  type SubtaskState,
-  type SubtaskStatus,
-  type EpicState,
+	type EpicState,
+	getSwarmSummary,
+	hasSwarmSignature,
+	isSwarmActive,
+	projectSwarmState,
+	type SubtaskState,
+	type SubtaskStatus,
+	type SwarmProjection,
+	type ToolCallEvent,
 } from "./swarm-signature";
-
 /**
- * Coordinator Guard - Runtime Violation Enforcement
+ * Re-export swarm-validation module
  *
- * Detects and REJECTS coordinator protocol violations at runtime.
- * Unlike planning-guardrails (which only warns), the coordinator guard throws errors
- * to prevent coordinators from performing work that should be delegated to workers.
- *
- * Functions:
- * - checkCoordinatorGuard - Main entry point for guard checks
- * - isCoordinator - Type guard for coordinator context
- *
- * Types:
- * - CoordinatorGuardError - Custom error with violation details
- * - GuardCheckResult - Result of guard check
- */
-export {
-  checkCoordinatorGuard,
-  isCoordinator,
-  CoordinatorGuardError,
-  type GuardCheckResult,
-} from "./coordinator-guard";
-
-/**
- * Re-export CASS tools module
- *
- * Cross-Agent Session Search - search across all AI coding agent histories.
- * Wraps the external `cass` CLI from Dicklesworthstone's repo.
+ * Provides validation event types and hooks for post-swarm validation.
+ * Integrates with swarm-mail event sourcing to emit validation events.
  *
  * Includes:
- * - cassTools - All CASS tools (search, view, expand, health, index, stats)
- * - cass_search - Search across agent histories
- * - cass_view - View specific session
- * - cass_expand - Expand context around a line
- * - cass_health - Check index health
- * - cass_index - Build/rebuild index
- * - cass_stats - Show index statistics
+ * - ValidationIssueSeverity - Zod schema for severity levels (error, warning, info)
+ * - ValidationIssueCategory - Zod schema for issue categories
+ * - ValidationIssueSchema - Zod schema for validation issues
+ * - runPostSwarmValidation - Main validation hook
+ * - reportIssue - Helper to emit validation_issue events
  *
- * Events emitted:
- * - cass_searched - When a search is performed
- * - cass_viewed - When a session is viewed
- * - cass_indexed - When the index is built/rebuilt
+ * Types:
+ * - ValidationIssue - Validation issue with severity, category, message, and optional location
+ * - ValidationContext - Context for validation execution
  */
-export { cassTools } from "./cass-tools";
+export {
+	reportIssue,
+	runPostSwarmValidation,
+	type ValidationContext,
+	type ValidationIssue,
+	ValidationIssueCategory,
+	ValidationIssueSchema,
+	ValidationIssueSeverity,
+} from "./swarm-validation";
+/**
+ * Re-export tool-availability module
+ *
+ * Includes:
+ * - checkTool, isToolAvailable - Check individual tool availability
+ * - checkAllTools - Check all tools at once
+ * - withToolFallback, ifToolAvailable - Execute with graceful fallback
+ * - formatToolAvailability - Format availability for display
+ * - resetToolCache - Reset cached availability (for testing)
+ *
+ * Types:
+ * - ToolName - Supported tool names
+ * - ToolStatus, ToolAvailability - Status types
+ */
+export {
+	checkAllTools,
+	checkTool,
+	formatToolAvailability,
+	getToolAvailability,
+	ifToolAvailable,
+	isToolAvailable,
+	requireTool,
+	resetToolCache,
+	type ToolAvailability,
+	type ToolName,
+	type ToolStatus,
+	warnMissingTool,
+	withToolFallback,
+} from "./tool-availability";

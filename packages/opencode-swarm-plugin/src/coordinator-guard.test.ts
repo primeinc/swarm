@@ -113,7 +113,7 @@ describe("checkCoordinatorGuard", () => {
     const result = checkCoordinatorGuard({
       agentContext: "coordinator",
       toolName: "swarm_spawn_subtask",
-      toolArgs: { bead_id: "bd-123.1", epic_id: "bd-123" },
+      toolArgs: { cell_id: "bd-123.1", epic_id: "bd-123" },
     });
 
     expect(result.blocked).toBe(false);

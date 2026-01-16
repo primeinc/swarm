@@ -67,7 +67,7 @@ describe("replay-tools (RED phase - tests should FAIL)", () => {
 				decision_type: "worker_spawned",
 				payload: {
 					agent_name: "AgentA",
-					bead_id: `${epicId}.1`,
+					cell_id: `${epicId}.1`,
 					files: ["src/a.ts"],
 				},
 			},
@@ -89,7 +89,7 @@ describe("replay-tools (RED phase - tests should FAIL)", () => {
 				event_type: "OUTCOME",
 				outcome_type: "subtask_success",
 				payload: {
-					bead_id: `${epicId}.1`,
+					cell_id: `${epicId}.1`,
 					agent_name: "AgentA",
 					duration_ms: 3500,
 					files_touched: ["src/a.ts"],
@@ -389,7 +389,7 @@ describe("replay-tools (RED phase - tests should FAIL)", () => {
 			expect(formatted).toContain(epicId);
 		});
 
-		test("displays bead_id when present in payload", () => {
+		test("displays cell_id when present in payload", () => {
 			const events = [
 				{
 					session_id: "s1",
@@ -398,7 +398,7 @@ describe("replay-tools (RED phase - tests should FAIL)", () => {
 					event_type: "OUTCOME",
 					outcome_type: "subtask_success",
 					payload: {
-						bead_id: `${epicId}.1`,
+						cell_id: `${epicId}.1`,
 					},
 					delta_ms: 0,
 				},

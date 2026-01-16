@@ -1,5 +1,5 @@
 /**
- * Session Command - Chainlink-inspired session management
+ * Session Command - Hive session management (Chainlink-inspired)
  *
  * Commands:
  *   swarm session start [--cell <id>] [--json]
@@ -12,10 +12,7 @@
  */
 
 import * as p from "@clack/prompts";
-import {
-	getSwarmMailLibSQL,
-	createHiveAdapter,
-} from "swarm-mail";
+import { createHiveAdapter, getSwarmMailLibSQL } from "swarm-mail";
 
 // Color utilities (inline, same as swarm.ts)
 const cyan = (s: string) => `\x1b[36m${s}\x1b[0m`;
@@ -24,7 +21,7 @@ const yellow = (s: string) => `\x1b[33m${s}\x1b[0m`;
 const dim = (s: string) => `\x1b[2m${s}\x1b[0m`;
 
 /**
- * Main session command handler
+ * Main Hive session command handler
  */
 export async function session() {
 	const args = process.argv.slice(3);
@@ -304,7 +301,9 @@ async function sessionHistory(args: string[]) {
 			}
 
 			if (session.handoff_notes) {
-				p.log.message(dim(`    Notes: ${session.handoff_notes.slice(0, 60)}...`));
+				p.log.message(
+					dim(`    Notes: ${session.handoff_notes.slice(0, 60)}...`),
+				);
 			}
 
 			p.log.message(""); // Blank line
@@ -342,13 +341,13 @@ function formatDuration(ms: number): string {
  */
 function showHelp() {
 	console.log(`
-${cyan("swarm session")} - Manage work sessions with handoff notes
+${cyan("swarm session")} - Manage Hive work sessions with handoff notes
 
 ${cyan("Commands:")}
-  swarm session start [--cell <id>]  Start a new session
-  swarm session end [--notes "..."]  End current session with optional handoff notes
-  swarm session status               Show current session info
-  swarm session history [--limit n]  Show session history (default: 10)
+  swarm session start [--cell <id>]  Start a new Hive session
+  swarm session end [--notes "..."]  End current Hive session with optional handoff notes
+  swarm session status               Show current Hive session info
+  swarm session history [--limit n]  Show Hive session history (default: 10)
 
 ${cyan("Options:")}
   --json                             Output as JSON

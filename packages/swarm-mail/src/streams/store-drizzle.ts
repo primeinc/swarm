@@ -505,7 +505,7 @@ async function handleSubtaskOutcomeDrizzle(
 		? ((typeof row.outcomes === "string"
 				? JSON.parse(row.outcomes)
 				: row.outcomes) as Array<{
-				bead_id: string;
+				cell_id: string;
 				planned_files: string[];
 				actual_files: string[];
 				duration_ms: number;
@@ -517,7 +517,7 @@ async function handleSubtaskOutcomeDrizzle(
 
 	// Create new outcome
 	const newOutcome = {
-		bead_id: event.bead_id,
+		cell_id: event.cell_id,
 		planned_files: event.planned_files,
 		actual_files: event.actual_files,
 		duration_ms: event.duration_ms,
@@ -642,10 +642,10 @@ async function handleSwarmCheckpointedDrizzle(
 	await db
 		.insert(swarmContextsTable)
 		.values({
-			id: event.bead_id,
+			id: event.cell_id,
 			project_key: event.project_key,
 			epic_id: event.epic_id,
-			bead_id: event.bead_id,
+			cell_id: event.cell_id,
 			strategy: event.strategy,
 			files: JSON.stringify(event.files),
 			dependencies: JSON.stringify(event.dependencies),
@@ -689,7 +689,7 @@ async function handleSwarmRecoveredDrizzle(
 			and(
 				eq(swarmContextsTable.project_key, event.project_key),
 				eq(swarmContextsTable.epic_id, event.epic_id),
-				eq(swarmContextsTable.bead_id, event.bead_id),
+				eq(swarmContextsTable.cell_id, event.cell_id),
 			),
 		);
 }

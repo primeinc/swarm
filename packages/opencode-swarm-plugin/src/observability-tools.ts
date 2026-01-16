@@ -13,6 +13,7 @@
 
 import { tool } from "@opencode-ai/plugin";
 import {
+	type AnalyticsQuery,
 	agentActivity,
 	checkpointFrequency,
 	failedDecompositions,
@@ -21,11 +22,10 @@ import {
 	lockContention,
 	messageLatency,
 	recoverySuccess,
+	type SwarmMailAdapter,
 	scopeViolations,
 	strategySuccessRates,
 	taskDuration,
-	type AnalyticsQuery,
-	type SwarmMailAdapter,
 } from "swarm-mail";
 
 // ============================================================================
@@ -59,7 +59,7 @@ export interface SwarmQueryArgs {
 
 export interface SwarmDiagnoseArgs {
 	epic_id?: string;
-	bead_id?: string;
+	cell_id?: string;
 	include?: Array<
 		"blockers" | "conflicts" | "slow_tasks" | "errors" | "timeline"
 	>;
@@ -68,7 +68,9 @@ export interface SwarmDiagnoseArgs {
 export interface SwarmInsightsArgs {
 	scope: "epic" | "project" | "recent";
 	epic_id?: string;
-	metrics: Array<"success_rate" | "avg_duration" | "conflict_rate" | "retry_rate">;
+	metrics: Array<
+		"success_rate" | "avg_duration" | "conflict_rate" | "retry_rate"
+	>;
 }
 
 // ============================================================================
@@ -124,10 +126,7 @@ async function executeQuery(
 /**
  * Format results as summary (context-efficient)
  */
-function formatSummary(
-	queryType: string,
-	results: unknown[],
-): string {
+function formatSummary(queryType: string, results: unknown[]): string {
 	if (results.length === 0) {
 		return `No ${queryType} data found.`;
 	}
@@ -179,7 +178,9 @@ const swarm_analytics = tool({
 		format: tool.schema
 			.enum(["json", "summary"])
 			.optional()
-			.describe("Output format: 'json' (default) or 'summary' (context-efficient)"),
+			.describe(
+				"Output format: 'json' (default) or 'summary' (context-efficient)",
+			),
 	},
 	async execute(args: SwarmAnalyticsArgs): Promise<string> {
 		try {
@@ -252,12 +253,16 @@ const swarm_analytics = tool({
 				return formatSummary(args.query, results);
 			}
 
-			return JSON.stringify({
-				query: args.query,
-				filters,
-				count: results.length,
-				results,
-			}, null, 2);
+			return JSON.stringify(
+				{
+					query: args.query,
+					filters,
+					count: results.length,
+					results,
+				},
+				null,
+				2,
+			);
 		} catch (error) {
 			return JSON.stringify({
 				error: error instanceof Error ? error.message : String(error),
@@ -320,12 +325,16 @@ const swarm_query = tool({
 				return [headerRow, separator, ...dataRows].join("\n");
 			}
 
-			return JSON.stringify({
-				count: cappedRows.length,
-				total: rows.length,
-				capped: rows.length > 50,
-				results: cappedRows,
-			}, null, 2);
+			return JSON.stringify(
+				{
+					count: cappedRows.length,
+					total: rows.length,
+					capped: rows.length > 50,
+					results: cappedRows,
+				},
+				null,
+				2,
+			);
 		} catch (error) {
 			return JSON.stringify({
 				error: error instanceof Error ? error.message : String(error),
@@ -343,14 +352,8 @@ const swarm_diagnose = tool({
 	description:
 		"Auto-diagnose issues for a specific epic or task. Returns structured diagnosis with blockers, conflicts, slow tasks, errors, and timeline.",
 	args: {
-		epic_id: tool.schema
-			.string()
-			.optional()
-			.describe("Epic ID to diagnose"),
-		bead_id: tool.schema
-			.string()
-			.optional()
-			.describe("Task ID to diagnose"),
+		epic_id: tool.schema.string().optional().describe("Epic ID to diagnose"),
+		cell_id: tool.schema.string().optional().describe("Task ID to diagnose"),
 		include: tool.schema
 			.array(
 				tool.schema.enum([
@@ -372,7 +375,11 @@ const swarm_diagnose = tool({
 			// Get the underlying database adapter
 			const db = await swarmMail.getDatabase();
 
-			const diagnosis: Array<{ type: string; message: string; severity: string }> = [];
+			const diagnosis: Array<{
+				type: string;
+				message: string;
+				severity: string;
+			}> = [];
 			const include = args.include || [
 				"blockers",
 				"conflicts",
@@ -385,19 +392,19 @@ const swarm_diagnose = tool({
 			if (include.includes("blockers")) {
 				const blockerQuery = `
 					SELECT json_extract(data, '$.agent_name') as agent,
-					       json_extract(data, '$.bead_id') as bead_id,
+					       json_extract(data, '$.cell_id') as cell_id,
 					       timestamp
 					FROM events
 					WHERE type = 'task_blocked'
 					${args.epic_id ? "AND json_extract(data, '$.epic_id') = ?" : ""}
-					${args.bead_id ? "AND json_extract(data, '$.bead_id') = ?" : ""}
+					${args.cell_id ? "AND json_extract(data, '$.cell_id') = ?" : ""}
 					ORDER BY timestamp DESC
 					LIMIT 10
 				`;
 
 				const params = [];
 				if (args.epic_id) params.push(args.epic_id);
-				if (args.bead_id) params.push(args.bead_id);
+				if (args.cell_id) params.push(args.cell_id);
 
 				const blockers = await db.query(blockerQuery, params);
 				if (blockers.rows.length > 0) {
@@ -417,13 +424,13 @@ const swarm_diagnose = tool({
 					WHERE type = 'subtask_outcome'
 					AND json_extract(data, '$.success') = 0
 					${args.epic_id ? "AND json_extract(data, '$.epic_id') = ?" : ""}
-					${args.bead_id ? "AND json_extract(data, '$.bead_id') = ?" : ""}
+					${args.cell_id ? "AND json_extract(data, '$.cell_id') = ?" : ""}
 					LIMIT 10
 				`;
 
 				const params = [];
 				if (args.epic_id) params.push(args.epic_id);
-				if (args.bead_id) params.push(args.bead_id);
+				if (args.cell_id) params.push(args.cell_id);
 
 				const errors = await db.query(errorQuery, params);
 				if (errors.rows.length > 0) {
@@ -442,25 +449,29 @@ const swarm_diagnose = tool({
 					SELECT timestamp, type, json_extract(data, '$.agent_name') as agent
 					FROM events
 					${args.epic_id ? "WHERE json_extract(data, '$.epic_id') = ?" : ""}
-					${args.bead_id ? (args.epic_id ? "AND" : "WHERE") + " json_extract(data, '$.bead_id') = ?" : ""}
+					${args.cell_id ? (args.epic_id ? "AND" : "WHERE") + " json_extract(data, '$.cell_id') = ?" : ""}
 					ORDER BY timestamp DESC
 					LIMIT 20
 				`;
 
 				const params = [];
 				if (args.epic_id) params.push(args.epic_id);
-				if (args.bead_id) params.push(args.bead_id);
+				if (args.cell_id) params.push(args.cell_id);
 
 				const events = await db.query(timelineQuery, params);
 				timeline = events.rows;
 			}
 
-			return JSON.stringify({
-				epic_id: args.epic_id,
-				bead_id: args.bead_id,
-				diagnosis,
-				timeline: include.includes("timeline") ? timeline : undefined,
-			}, null, 2);
+			return JSON.stringify(
+				{
+					epic_id: args.epic_id,
+					cell_id: args.cell_id,
+					diagnosis,
+					timeline: include.includes("timeline") ? timeline : undefined,
+				},
+				null,
+				2,
+			);
 		} catch (error) {
 			return JSON.stringify({
 				error: error instanceof Error ? error.message : String(error),
@@ -526,7 +537,10 @@ const swarm_insights = tool({
 					${args.epic_id ? "AND json_extract(data, '$.epic_id') = ?" : ""}
 				`;
 
-				const result = await db.query(query, args.epic_id ? [args.epic_id] : []);
+				const result = await db.query(
+					query,
+					args.epic_id ? [args.epic_id] : [],
+				);
 				const row = result.rows[0] as { successes: number; total: number };
 
 				if (row && row.total > 0) {
@@ -555,7 +569,10 @@ const swarm_insights = tool({
 					${args.epic_id ? "AND json_extract(data, '$.epic_id') = ?" : ""}
 				`;
 
-				const result = await db.query(query, args.epic_id ? [args.epic_id] : []);
+				const result = await db.query(
+					query,
+					args.epic_id ? [args.epic_id] : [],
+				);
 				const row = result.rows[0] as { avg_duration: number };
 
 				if (row?.avg_duration) {
@@ -571,11 +588,15 @@ const swarm_insights = tool({
 				}
 			}
 
-			return JSON.stringify({
-				scope: args.scope,
-				epic_id: args.epic_id,
-				insights,
-			}, null, 2);
+			return JSON.stringify(
+				{
+					scope: args.scope,
+					epic_id: args.epic_id,
+					insights,
+				},
+				null,
+				2,
+			);
 		} catch (error) {
 			return JSON.stringify({
 				error: error instanceof Error ? error.message : String(error),
@@ -615,23 +636,33 @@ export function formatSwarmStats(stats: SwarmStatsData): string {
 	const lines: string[] = [];
 
 	// Header with ASCII art
-	lines.push("\u250C\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510");
+	lines.push(
+		"\u250C\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510",
+	);
 	lines.push("\u2502        🐝  SWARM STATISTICS  🐝         \u2502");
-	lines.push("\u251C\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2524");
+	lines.push(
+		"\u251C\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2524",
+	);
 
 	// Overall stats
 	const totalStr = stats.overall.totalSwarms.toString().padEnd(4);
 	const rateStr = `${Math.round(stats.overall.successRate)}%`.padStart(3);
 	lines.push(`│ Total Swarms: ${totalStr} Success: ${rateStr}      │`);
-	
+
 	const durationStr = stats.overall.avgDurationMin.toFixed(1);
-	lines.push(`\u2502 Avg Duration: ${durationStr}min${" ".repeat(23 - durationStr.length)}\u2502`);
-	lines.push("\u251C\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2524");
+	lines.push(
+		`\u2502 Avg Duration: ${durationStr}min${" ".repeat(23 - durationStr.length)}\u2502`,
+	);
+	lines.push(
+		"\u251C\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2524",
+	);
 
 	// Strategy breakdown
 	lines.push("\u2502 BY STRATEGY                             \u2502");
 	if (stats.byStrategy.length === 0) {
-		lines.push("\u2502 \u251C\u2500 No data yet                          \u2502");
+		lines.push(
+			"\u2502 \u251C\u2500 No data yet                          \u2502",
+		);
 	} else {
 		for (const strategy of stats.byStrategy) {
 			const label = strategy.strategy.padEnd(15);
@@ -640,19 +671,33 @@ export function formatSwarmStats(stats: SwarmStatsData): string {
 			lines.push(`\u2502 \u251C\u2500 ${label} ${rate} ${counts}     \u2502`);
 		}
 	}
-	lines.push("\u251C\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2524");
+	lines.push(
+		"\u251C\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2524",
+	);
 
 	// Coordinator health
 	lines.push("\u2502 COORDINATOR HEALTH                      \u2502");
-	const violationStr = `${Math.round(stats.coordinator.violationRate)}%`.padStart(3);
-	const spawnStr = `${Math.round(stats.coordinator.spawnEfficiency)}%`.padStart(4);
-	const reviewStr = `${Math.round(stats.coordinator.reviewThoroughness)}%`.padStart(3);
-	
-	lines.push(`\u2502 Violation Rate:   ${violationStr}${" ".repeat(19 - violationStr.length)}\u2502`);
-	lines.push(`\u2502 Spawn Efficiency: ${spawnStr}${" ".repeat(17 - spawnStr.length)}\u2502`);
-	lines.push(`\u2502 Review Rate:      ${reviewStr}${" ".repeat(19 - reviewStr.length)}\u2502`);
-	lines.push("\u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518");
-	
+	const violationStr =
+		`${Math.round(stats.coordinator.violationRate)}%`.padStart(3);
+	const spawnStr = `${Math.round(stats.coordinator.spawnEfficiency)}%`.padStart(
+		4,
+	);
+	const reviewStr =
+		`${Math.round(stats.coordinator.reviewThoroughness)}%`.padStart(3);
+
+	lines.push(
+		`\u2502 Violation Rate:   ${violationStr}${" ".repeat(19 - violationStr.length)}\u2502`,
+	);
+	lines.push(
+		`\u2502 Spawn Efficiency: ${spawnStr}${" ".repeat(17 - spawnStr.length)}\u2502`,
+	);
+	lines.push(
+		`\u2502 Review Rate:      ${reviewStr}${" ".repeat(19 - reviewStr.length)}\u2502`,
+	);
+	lines.push(
+		"\u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518",
+	);
+
 	lines.push("");
 	lines.push(`📊 Stats for last ${stats.recentDays} days`);
 
@@ -691,7 +736,12 @@ export function parseTimePeriod(period: string): number {
  */
 export function aggregateByStrategy(
 	outcomes: Array<{ strategy: string | null; success: boolean }>,
-): Array<{ strategy: string; total: number; successRate: number; successes: number }> {
+): Array<{
+	strategy: string;
+	total: number;
+	successRate: number;
+	successes: number;
+}> {
 	const grouped: Record<string, { total: number; successes: number }> = {};
 
 	for (const outcome of outcomes) {
@@ -729,7 +779,7 @@ export interface SwarmHistoryRecord {
 
 /**
  * Query swarm history from swarm events
- * 
+ *
  * Constructs epic-level view from decomposition_generated and subtask_outcome events:
  * - decomposition_generated: epic_id, task (title), strategy, subtask_count
  * - subtask_outcome: count successful completed tasks per epic
@@ -862,16 +912,24 @@ export function formatSwarmHistory(records: SwarmHistoryRecord[]): string {
 		time: formatRelativeTime(r.timestamp),
 		status: r.overall_success ? "✅" : "❌",
 		title:
-			r.epic_title.length > 30 ? `${r.epic_title.slice(0, 27)}...` : r.epic_title,
+			r.epic_title.length > 30
+				? `${r.epic_title.slice(0, 27)}...`
+				: r.epic_title,
 		strategy: r.strategy,
 		tasks: `${r.completed_count}/${r.task_count} tasks`,
 	}));
 
 	// Box drawing characters (using Unicode escapes to avoid encoding issues)
 	const lines: string[] = [];
-	lines.push("\u250C\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510");
-	lines.push("\u2502                    SWARM HISTORY                            \u2502");
-	lines.push("\u251C\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2524");
+	lines.push(
+		"\u250C\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510",
+	);
+	lines.push(
+		"\u2502                    SWARM HISTORY                            \u2502",
+	);
+	lines.push(
+		"\u251C\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2524",
+	);
 
 	for (const row of rows) {
 		const statusCol = `${row.time.padEnd(8)} ${row.status}`;
@@ -883,7 +941,9 @@ export function formatSwarmHistory(records: SwarmHistoryRecord[]): string {
 		lines.push(line);
 	}
 
-	lines.push("\u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518");
+	lines.push(
+		"\u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518",
+	);
 
 	return lines.join("\n");
 }

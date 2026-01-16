@@ -63,7 +63,7 @@ describe("hasSwarmSignature", () => {
     const events: ToolCallEvent[] = [
       createEvent(
         "swarm_spawn_subtask",
-        { bead_id: "epic-123.1", epic_id: "epic-123" },
+        { cell_id: "epic-123.1", epic_id: "epic-123" },
         "{}"
       ),
     ];
@@ -75,7 +75,7 @@ describe("hasSwarmSignature", () => {
       createEvent("hive_create_epic", { epic_title: "Test" }, epicCreatedOutput),
       createEvent(
         "swarm_spawn_subtask",
-        { bead_id: "epic-123.1", epic_id: "epic-123" },
+        { cell_id: "epic-123.1", epic_id: "epic-123" },
         "{}"
       ),
     ];
@@ -86,7 +86,7 @@ describe("hasSwarmSignature", () => {
     const events: ToolCallEvent[] = [
       createEvent(
         "swarm_spawn_subtask",
-        { bead_id: "epic-123.1", epic_id: "epic-123" },
+        { cell_id: "epic-123.1", epic_id: "epic-123" },
         "{}"
       ),
       createEvent("hive_create_epic", { epic_title: "Test" }, epicCreatedOutput),
@@ -101,7 +101,7 @@ describe("hasSwarmSignature", () => {
       createEvent("read", { path: "/foo" }, "content"),
       createEvent(
         "swarm_spawn_subtask",
-        { bead_id: "epic-123.1", epic_id: "epic-123" },
+        { cell_id: "epic-123.1", epic_id: "epic-123" },
         "{}"
       ),
       createEvent("edit", { path: "/foo" }, "ok"),
@@ -157,7 +157,7 @@ describe("projectSwarmState", () => {
       createEvent(
         "swarm_spawn_subtask",
         {
-          bead_id: "epic-123.1",
+          cell_id: "epic-123.1",
           epic_id: "epic-123",
           subtask_title: "Create schema",
           files: ["src/schema.ts"],
@@ -180,7 +180,7 @@ describe("projectSwarmState", () => {
       createEvent("hive_create_epic", { epic_title: "Test" }, epicCreatedOutput),
       createEvent(
         "swarm_spawn_subtask",
-        { bead_id: "epic-123.1", subtask_title: "Task 1" },
+        { cell_id: "epic-123.1", subtask_title: "Task 1" },
         "{}"
       ),
       createEvent("hive_start", { id: "epic-123.1" }, "{}"),
@@ -196,10 +196,10 @@ describe("projectSwarmState", () => {
       createEvent("hive_create_epic", { epic_title: "Test" }, epicCreatedOutput),
       createEvent(
         "swarm_spawn_subtask",
-        { bead_id: "epic-123.1", subtask_title: "Task 1" },
+        { cell_id: "epic-123.1", subtask_title: "Task 1" },
         "{}"
       ),
-      createEvent("swarm_complete", { bead_id: "epic-123.1" }, "{}", 3000),
+      createEvent("swarm_complete", { cell_id: "epic-123.1" }, "{}", 3000),
     ];
 
     const projection = projectSwarmState(events);
@@ -214,10 +214,10 @@ describe("projectSwarmState", () => {
       createEvent("hive_create_epic", { epic_title: "Test" }, epicCreatedOutput),
       createEvent(
         "swarm_spawn_subtask",
-        { bead_id: "epic-123.1", subtask_title: "Task 1" },
+        { cell_id: "epic-123.1", subtask_title: "Task 1" },
         "{}"
       ),
-      createEvent("swarm_complete", { bead_id: "epic-123.1" }, "{}"),
+      createEvent("swarm_complete", { cell_id: "epic-123.1" }, "{}"),
       createEvent("hive_close", { id: "epic-123.1" }, "{}"),
     ];
 
@@ -233,7 +233,7 @@ describe("projectSwarmState", () => {
       createEvent("hive_create_epic", { epic_title: "Test" }, epicCreatedOutput),
       createEvent(
         "swarm_spawn_subtask",
-        { bead_id: "epic-123.1" },
+        { cell_id: "epic-123.1" },
         "{}"
       ),
     ];
@@ -254,7 +254,7 @@ describe("projectSwarmState", () => {
     const spawnOnly = projectSwarmState([
       createEvent(
         "swarm_spawn_subtask",
-        { bead_id: "epic-123.1", epic_id: "epic-123" },
+        { cell_id: "epic-123.1", epic_id: "epic-123" },
         "{}"
       ),
     ]);
@@ -265,7 +265,7 @@ describe("projectSwarmState", () => {
       createEvent("hive_create_epic", { epic_title: "Test" }, epicCreatedOutput),
       createEvent(
         "swarm_spawn_subtask",
-        { bead_id: "epic-123.1" },
+        { cell_id: "epic-123.1" },
         "{}"
       ),
     ]);
@@ -277,16 +277,16 @@ describe("projectSwarmState", () => {
       createEvent("hive_create_epic", { epic_title: "Test" }, epicCreatedOutput),
       createEvent(
         "swarm_spawn_subtask",
-        { bead_id: "epic-123.1", subtask_title: "Task 1" },
+        { cell_id: "epic-123.1", subtask_title: "Task 1" },
         "{}"
       ),
       createEvent(
         "swarm_spawn_subtask",
-        { bead_id: "epic-123.2", subtask_title: "Task 2" },
+        { cell_id: "epic-123.2", subtask_title: "Task 2" },
         "{}"
       ),
       createEvent("hive_start", { id: "epic-123.1" }, "{}"),
-      createEvent("swarm_complete", { bead_id: "epic-123.1" }, "{}"),
+      createEvent("swarm_complete", { cell_id: "epic-123.1" }, "{}"),
       createEvent("hive_close", { id: "epic-123.1" }, "{}"),
     ];
 
@@ -327,7 +327,7 @@ describe("isSwarmActive", () => {
       createEvent("hive_create_epic", { epic_title: "Test" }, epicCreatedOutput),
       createEvent(
         "swarm_spawn_subtask",
-        { bead_id: "epic-123.1" },
+        { cell_id: "epic-123.1" },
         "{}"
       ),
     ]);
@@ -339,7 +339,7 @@ describe("isSwarmActive", () => {
       createEvent("hive_create_epic", { epic_title: "Test" }, epicCreatedOutput),
       createEvent(
         "swarm_spawn_subtask",
-        { bead_id: "epic-123.1" },
+        { cell_id: "epic-123.1" },
         "{}"
       ),
       createEvent("hive_start", { id: "epic-123.1" }, "{}"),
@@ -352,10 +352,10 @@ describe("isSwarmActive", () => {
       createEvent("hive_create_epic", { epic_title: "Test" }, epicCreatedOutput),
       createEvent(
         "swarm_spawn_subtask",
-        { bead_id: "epic-123.1" },
+        { cell_id: "epic-123.1" },
         "{}"
       ),
-      createEvent("swarm_complete", { bead_id: "epic-123.1" }, "{}"),
+      createEvent("swarm_complete", { cell_id: "epic-123.1" }, "{}"),
     ]);
     expect(isSwarmActive(projection)).toBe(true);
   });
@@ -365,10 +365,10 @@ describe("isSwarmActive", () => {
       createEvent("hive_create_epic", { epic_title: "Test" }, epicCreatedOutput),
       createEvent(
         "swarm_spawn_subtask",
-        { bead_id: "epic-123.1" },
+        { cell_id: "epic-123.1" },
         "{}"
       ),
-      createEvent("swarm_complete", { bead_id: "epic-123.1" }, "{}"),
+      createEvent("swarm_complete", { cell_id: "epic-123.1" }, "{}"),
       createEvent("hive_close", { id: "epic-123.1" }, "{}"),
       createEvent("hive_close", { id: "epic-123.2" }, "{}"), // Close the other subtask too
     ]);
@@ -395,7 +395,7 @@ describe("getSwarmSummary", () => {
       ),
       createEvent(
         "swarm_spawn_subtask",
-        { bead_id: "epic-123.1", subtask_title: "Task 1" },
+        { cell_id: "epic-123.1", subtask_title: "Task 1" },
         "{}"
       ),
     ]);
@@ -412,7 +412,7 @@ describe("getSwarmSummary", () => {
       createEvent("hive_create_epic", { epic_title: "Test" }, epicCreatedOutput),
       createEvent(
         "swarm_spawn_subtask",
-        { bead_id: "epic-123.1" },
+        { cell_id: "epic-123.1" },
         "{}"
       ),
       createEvent("hive_close", { id: "epic-123.1" }, "{}"),
@@ -456,13 +456,13 @@ describe("edge cases", () => {
       createEvent("hive_create_epic", { epic_title: "Test" }, epicCreatedOutput),
       createEvent(
         "swarm_spawn_subtask",
-        { bead_id: "epic-123.1" },
+        { cell_id: "epic-123.1" },
         "{}"
       ),
       // Duplicate spawn
       createEvent(
         "swarm_spawn_subtask",
-        { bead_id: "epic-123.1" },
+        { cell_id: "epic-123.1" },
         "{}"
       ),
     ];
@@ -477,7 +477,7 @@ describe("edge cases", () => {
     const events: ToolCallEvent[] = [
       createEvent(
         "swarm_spawn_subtask",
-        { bead_id: "epic-123.1", epic_id: "epic-123", subtask_title: "Task 1" },
+        { cell_id: "epic-123.1", epic_id: "epic-123", subtask_title: "Task 1" },
         "{}"
       ),
       createEvent("hive_create_epic", { epic_title: "Test" }, epicCreatedOutput),

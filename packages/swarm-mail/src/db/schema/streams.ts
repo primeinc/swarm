@@ -236,7 +236,7 @@ export const swarmContextsTable = sqliteTable("swarm_contexts", {
 	id: text("id").primaryKey(),
 	project_key: text("project_key").notNull(),
 	epic_id: text("epic_id").notNull(),
-	bead_id: text("bead_id").notNull(),
+	cell_id: text("cell_id").notNull(),
 	strategy: text("strategy").notNull(),
 	files: text("files").notNull(), // JSON array
 	dependencies: text("dependencies").notNull(), // JSON array
@@ -262,7 +262,7 @@ export const decisionTracesTable = sqliteTable(
 		id: text("id").primaryKey(), // dt-{nanoid}
 		decision_type: text("decision_type").notNull(),
 		epic_id: text("epic_id"),
-		bead_id: text("bead_id"),
+		cell_id: text("cell_id"),
 		agent_name: text("agent_name").notNull(),
 		project_key: text("project_key").notNull(),
 		decision: text("decision").notNull(), // JSON

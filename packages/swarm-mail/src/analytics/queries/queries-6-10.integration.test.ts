@@ -27,13 +27,13 @@ describe("Analytics Queries 6-10 Integration", () => {
 			// Task lifecycle events for task-duration
 			{
 				type: "task_started",
-				data: { bead_id: "task-1", agent_name: "AgentA" },
+				data: { cell_id: "task-1", agent_name: "AgentA" },
 				timestamp: 1000,
 			},
 			{
 				type: "task_completed",
 				data: {
-					bead_id: "task-1",
+					cell_id: "task-1",
 					agent_name: "AgentA",
 					files_touched: ["src/a.ts", "src/b.ts"],
 				},
@@ -41,13 +41,13 @@ describe("Analytics Queries 6-10 Integration", () => {
 			},
 			{
 				type: "task_started",
-				data: { bead_id: "task-2", agent_name: "AgentB" },
+				data: { cell_id: "task-2", agent_name: "AgentB" },
 				timestamp: 2000,
 			},
 			{
 				type: "task_completed",
 				data: {
-					bead_id: "task-2",
+					cell_id: "task-2",
 					agent_name: "AgentB",
 					files_touched: ["src/c.ts"],
 				},

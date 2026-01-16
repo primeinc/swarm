@@ -101,7 +101,7 @@ Implement async worker spawning using OpenCode's existing API + SwarmMail event 
 │  2. SPAWN WORKERS (non-blocking)                                            │
 │     for each subtask:                                                       │
 │       swarm_spawn_async({                                                   │
-│         bead_id: "bd-xxx.0",                                                │
+│         cell_id: "bd-xxx.0",                                                │
 │         prompt: workerPrompt,                                               │
 │         files: ["src/auth/**"]                                              │
 │       })                                                                    │
@@ -170,7 +170,7 @@ Implement async worker spawning using OpenCode's existing API + SwarmMail event 
 export const WorkerSpawnedEvent = z.object({
   type: z.literal("worker_spawned"),
   session_id: z.string(),
-  bead_id: z.string(),
+  cell_id: z.string(),
   epic_id: z.string(),
   worktree_path: z.string().optional(),
   files: z.array(z.string()),
@@ -181,7 +181,7 @@ export const WorkerSpawnedEvent = z.object({
 export const WorkerProgressEvent = z.object({
   type: z.literal("worker_progress"),
   session_id: z.string(),
-  bead_id: z.string(),
+  cell_id: z.string(),
   progress_percent: z.number().min(0).max(100),
   message: z.string().optional(),
   files_touched: z.array(z.string()).optional(),
@@ -191,7 +191,7 @@ export const WorkerProgressEvent = z.object({
 export const WorkerCompletedEvent = z.object({
   type: z.literal("worker_completed"),
   session_id: z.string(),
-  bead_id: z.string(),
+  cell_id: z.string(),
   epic_id: z.string(),
   status: z.enum(["success", "failed", "blocked"]),
   summary: z.string(),
@@ -203,7 +203,7 @@ export const WorkerCompletedEvent = z.object({
 export const WorkerFailedEvent = z.object({
   type: z.literal("worker_failed"),
   session_id: z.string(),
-  bead_id: z.string(),
+  cell_id: z.string(),
   epic_id: z.string(),
   error: z.string(),
   stack: z.string().optional(),
@@ -235,7 +235,7 @@ Use swarm_poll_workers() to check completion status.
 IMPORTANT: Each worker gets its own git worktree for file isolation.`,
 
   args: {
-    bead_id: z.string().describe("Cell ID for this subtask (e.g., 'bd-xxx.0')"),
+    cell_id: z.string().describe("Cell ID for this subtask (e.g., 'bd-xxx.0')"),
     epic_id: z.string().describe("Parent epic ID"),
     title: z.string().describe("Subtask title"),
     description: z.string().optional().describe("Detailed task description"),
@@ -272,18 +272,18 @@ IMPORTANT: Each worker gets its own git worktree for file isolation.`,
     }
 
     // 2. Create worktree for isolation
-    const worktreePath = await createWorktree(projectPath, args.bead_id);
+    const worktreePath = await createWorktree(projectPath, args.cell_id);
 
     // 3. Generate worker prompt with handoff contract
     const handoff = generateWorkerHandoff({
-      task_id: args.bead_id,
+      task_id: args.cell_id,
       files_owned: args.files,
       epic_summary: args.shared_context || "",
       your_role: args.title,
     });
 
     const workerPrompt = formatAsyncWorkerPrompt({
-      bead_id: args.bead_id,
+      cell_id: args.cell_id,
       epic_id: args.epic_id,
       title: args.title,
       description: args.description,
@@ -315,7 +315,7 @@ IMPORTANT: Each worker gets its own git worktree for file isolation.`,
     await swarmMail.appendEvent({
       type: "worker_spawned",
       session_id: sessionId,
-      bead_id: args.bead_id,
+      cell_id: args.cell_id,
       epic_id: args.epic_id,
       worktree_path: worktreePath,
       files: args.files,
@@ -326,7 +326,7 @@ IMPORTANT: Each worker gets its own git worktree for file isolation.`,
     return {
       success: true,
       session_id: sessionId,
-      bead_id: args.bead_id,
+      cell_id: args.cell_id,
       worktree_path: worktreePath,
       message: `Worker spawned in background session ${sessionId}`,
     };
@@ -334,7 +334,7 @@ IMPORTANT: Each worker gets its own git worktree for file isolation.`,
 });
 
 function formatAsyncWorkerPrompt(params: {
-  bead_id: string;
+  cell_id: string;
   epic_id: string;
   title: string;
   description?: string;
@@ -344,7 +344,7 @@ function formatAsyncWorkerPrompt(params: {
   return `
 # ASYNC WORKER SESSION
 
-You are a swarm worker executing task **${params.bead_id}** as part of epic **${params.epic_id}**.
+You are a swarm worker executing task **${params.cell_id}** as part of epic **${params.epic_id}**.
 
 ## Your Task
 **${params.title}**
@@ -378,7 +378,7 @@ This isolates your changes from other workers. Commit freely.
 2. **PROGRESS**: Report progress periodically
    \`\`\`
    swarm_progress({ 
-     bead_id: "${params.bead_id}",
+     cell_id: "${params.cell_id}",
      progress_percent: 50,
      message: "Implemented core logic"
    })
@@ -388,7 +388,7 @@ This isolates your changes from other workers. Commit freely.
    \`\`\`
    swarmmail_send({
      to: ["coordinator"],
-     subject: "BLOCKED: ${params.bead_id}",
+     subject: "BLOCKED: ${params.cell_id}",
      body: "Need X to proceed",
      importance: "high"
    })
@@ -397,7 +397,7 @@ This isolates your changes from other workers. Commit freely.
 4. **COMPLETE**: Use swarm_complete (NOT hive_close)
    \`\`\`
    swarm_complete({
-     bead_id: "${params.bead_id}",
+     cell_id: "${params.cell_id}",
      summary: "What you did",
      files_touched: ["list", "of", "files"]
    })
@@ -469,7 +469,7 @@ Checks both swarm-mail events AND OpenCode session status.`,
 
     for (const worker of epicWorkers) {
       const sessionId = worker.session_id;
-      const beadId = worker.bead_id;
+      const beadId = worker.cell_id;
 
       // Check if we have a completion event
       const completionEvent = completedEvents.find(
@@ -486,7 +486,7 @@ Checks both swarm-mail events AND OpenCode session status.`,
 
         results[status].push({
           session_id: sessionId,
-          bead_id: beadId,
+          cell_id: beadId,
           status,
           summary: completionEvent.summary || completionEvent.error,
           files_touched: completionEvent.files_touched,
@@ -507,7 +507,7 @@ Checks both swarm-mail events AND OpenCode session status.`,
           // Mark as completed but flag for review
           results.completed.push({
             session_id: sessionId,
-            bead_id: beadId,
+            cell_id: beadId,
             status: "completed",
             summary: "Session idle (no explicit completion)",
             needs_review: true,
@@ -516,7 +516,7 @@ Checks both swarm-mail events AND OpenCode session status.`,
           // Still running
           results.in_progress.push({
             session_id: sessionId,
-            bead_id: beadId,
+            cell_id: beadId,
             status: "in_progress",
             started_at: worker.timestamp,
           });
@@ -525,7 +525,7 @@ Checks both swarm-mail events AND OpenCode session status.`,
         // Session may not exist anymore
         results.failed.push({
           session_id: sessionId,
-          bead_id: beadId,
+          cell_id: beadId,
           status: "failed",
           error: `Session not found: ${error}`,
         });
@@ -637,8 +637,8 @@ async execute(args, ctx) {
   await swarmMail.appendEvent({
     type: "worker_completed",
     session_id: getCurrentSessionId(), // Need to track this
-    bead_id: args.bead_id,
-    epic_id: await getEpicIdForBead(args.bead_id),
+    cell_id: args.cell_id,
+    epic_id: await getEpicIdForBead(args.cell_id),
     status: verificationPassed ? "success" : "failed",
     summary: args.summary,
     files_touched: args.files_touched || [],
@@ -667,7 +667,7 @@ async function coordinateSwarm(task: string) {
   const spawned = [];
   for (const subtask of decomposition.subtasks) {
     const result = await swarm_spawn_async({
-      bead_id: subtask.id,
+      cell_id: subtask.id,
       epic_id: epic.id,
       title: subtask.title,
       files: subtask.files,
@@ -688,14 +688,14 @@ async function coordinateSwarm(task: string) {
     // Handle completed workers
     for (const completed of status.completed) {
       if (!completed.reviewed) {
-        await swarm_review({ task_id: completed.bead_id });
-        await swarm_worktree_merge({ task_id: completed.bead_id });
+        await swarm_review({ task_id: completed.cell_id });
+        await swarm_worktree_merge({ task_id: completed.cell_id });
       }
     }
 
     // Handle failures
     for (const failed of status.failed) {
-      console.error(`Worker ${failed.bead_id} failed: ${failed.error}`);
+      console.error(`Worker ${failed.cell_id} failed: ${failed.error}`);
       // Could respawn or escalate
     }
 

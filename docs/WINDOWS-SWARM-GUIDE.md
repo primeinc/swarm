@@ -99,7 +99,7 @@ await swarmmail_reserve({
 // 4. Report progress
 await swarm_progress({
   agent_name: "worker-1",
-  bead_id: "task-123",
+  cell_id: "task-123",
   project_key: "C:\\Users\\will\\dev\\swarm-tools",
   status: "in_progress",
   progress_percent: 50,
@@ -109,7 +109,7 @@ await swarm_progress({
 // 5. Complete task
 await swarm_complete({
   agent_name: "worker-1",
-  bead_id: "task-123",
+  cell_id: "task-123",
   project_key: "C:\\Users\\will\\dev\\swarm-tools",
   summary: "Fixed all TypeScript errors",
   files_touched: ["src\\ddp\\DDPClient.ts"]
@@ -147,13 +147,13 @@ The Bug Registry includes:
 ```typescript
 // ❌ BAD - Parallel writes fail
 await Promise.all([
-  swarm_complete({ bead_id: "task1", ... }),
-  swarm_complete({ bead_id: "task2", ... })
+  swarm_complete({ cell_id: "task1", ... }),
+  swarm_complete({ cell_id: "task2", ... })
 ]);
 
 // ✅ GOOD - Sequential writes
-await swarm_complete({ bead_id: "task1", ... });
-await swarm_complete({ bead_id: "task2", ... });
+await swarm_complete({ cell_id: "task1", ... });
+await swarm_complete({ cell_id: "task2", ... });
 ```
 
 **Details:** [BUG-001 in Bug Registry](./windows/BUG-REGISTRY.md#bug-001-sqlite-sqlite_busy-on-parallel-writes)
@@ -418,7 +418,7 @@ const testResult = await runTests();
 // ========================================
 await swarm_progress({
   agent_name: "worker-typescript",
-  bead_id: "swarm-tools--lcljz-task-123",
+  cell_id: "swarm-tools--lcljz-task-123",
   project_key: "C:\\Users\\will\\dev\\swarm-tools",
   status: "in_progress",
   progress_percent: 50,
@@ -476,7 +476,7 @@ await hive_session_end({
 // ========================================
 await swarm_complete({
   agent_name: "worker-typescript",
-  bead_id: "swarm-tools--lcljz-task-123",
+  cell_id: "swarm-tools--lcljz-task-123",
   project_key: "C:\\Users\\will\\dev\\swarm-tools",
   summary: "Fixed all 5 TypeScript errors in DDPClient reconnection logic. All tests passing.",
   files_touched: normalizePaths([
@@ -802,10 +802,10 @@ Always log full error context in catch blocks:
 
 ```typescript
 try {
-  await swarm_complete({ bead_id, ... });
+  await swarm_complete({ cell_id, ... });
 } catch (error) {
   logger.error('Swarm completion failed', {
-    bead_id,
+    cell_id,
     agent_name,
     error: error instanceof Error ? error.message : String(error),
     stack: error instanceof Error ? error.stack : undefined,

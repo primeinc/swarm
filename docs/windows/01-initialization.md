@@ -509,7 +509,7 @@ swarmmail_reserve(
 ```typescript
 swarm_progress(
   agent_name: "worker-init-test",
-  bead_id: "swarm-tools--lcljz-mkdcme9jsxa",
+  cell_id: "swarm-tools--lcljz-mkdcme9jsxa",
   project_key: "C:\\Users\\will\\dev\\swarm-tools",
   status: "in_progress",
   progress_percent: 25,

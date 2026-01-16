@@ -386,7 +386,7 @@ describe("DurableStreamServer SSE streaming", () => {
 			createEvent("task_completed", {
 				project_key: projectKey,
 				agent_name: "TestAgent",
-				bead_id: uniqueId,
+				cell_id: uniqueId,
 				summary: "Live SSE test",
 				success: true,
 			}),

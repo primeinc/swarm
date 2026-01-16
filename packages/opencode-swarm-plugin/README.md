@@ -936,7 +936,7 @@ LIMIT 24;
 ```sql
 -- Failed tasks with reasons
 SELECT 
-  json_extract(data, '$.bead_id') as task,
+  json_extract(data, '$.cell_id') as task,
   json_extract(data, '$.reason') as failure_reason,
   timestamp
 FROM events
@@ -984,7 +984,7 @@ swarm query --preset file-conflicts
 
 ```bash
 # 1. Find the task in events
-swarm query --sql "SELECT * FROM events WHERE json_extract(data, '$.bead_id') = 'mjmas411jtj' ORDER BY timestamp"
+swarm query --sql "SELECT * FROM events WHERE json_extract(data, '$.cell_id') = 'mjmas411jtj' ORDER BY timestamp"
 
 # 2. Check for file reservation conflicts
 swarm query --preset file_conflicts
@@ -1099,7 +1099,7 @@ CREATE INDEX idx_events_project_type ON events(project_key, type);
   "type": "task_completed",
   "project_key": "/path/to/project", 
   "timestamp": 1703001299999,
-  "data": "{\"agent_name\":\"BlueLake\",\"bead_id\":\"mjmas411jtj\",\"summary\":\"Updated both READMEs with CLI reference and event schema\",\"files_touched\":[\"packages/opencode-swarm-plugin/README.md\",\"packages/swarm-mail/README.md\"],\"success\":true}"
+  "data": "{\"agent_name\":\"BlueLake\",\"cell_id\":\"mjmas411jtj\",\"summary\":\"Updated both READMEs with CLI reference and event schema\",\"files_touched\":[\"packages/opencode-swarm-plugin/README.md\",\"packages/swarm-mail/README.md\"],\"success\":true}"
 }
 ```
 

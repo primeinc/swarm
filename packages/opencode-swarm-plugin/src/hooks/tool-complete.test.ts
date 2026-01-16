@@ -63,7 +63,7 @@ describe("handleToolComplete", () => {
       
       const output: ToolHookOutput = {
         output: JSON.stringify({
-          bead_id: "bead-123",
+          cell_id: "bead-123",
           success: true,
           files_touched: ["src/test.ts"],
         }),
@@ -81,7 +81,7 @@ describe("handleToolComplete", () => {
       
       const output: ToolHookOutput = {
         output: JSON.stringify({
-          bead_id: "bead-456",
+          cell_id: "bead-456",
           worker_name: "TestWorker",
         }),
       };
@@ -189,7 +189,7 @@ describe("handleToolComplete", () => {
       const outputs: ToolHookOutput[] = [
         { output: JSON.stringify({ id: "cell-1", title: "Cell 1" }) },
         { output: JSON.stringify({ id: "cell-2", status: "closed" }) },
-        { output: JSON.stringify({ bead_id: "bead-3", success: true }) },
+        { output: JSON.stringify({ cell_id: "bead-3", success: true }) },
       ];
 
       // Execute all concurrently

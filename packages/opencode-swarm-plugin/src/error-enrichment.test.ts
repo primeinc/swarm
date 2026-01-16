@@ -53,7 +53,7 @@ describe("error-enrichment", () => {
 				line: 42,
 				agent: "BlueLake",
 				epic_id: "mjmas3zxlmg",
-				bead_id: "mjmas408i87",
+				cell_id: "mjmas408i87",
 				recent_events: [
 					{ type: "SPAWN", timestamp: "2025-12-25T10:00:00Z", message: "Worker spawned" },
 					{ type: "RESERVE", timestamp: "2025-12-25T10:01:00Z", message: "Reserved files" },
@@ -67,7 +67,7 @@ describe("error-enrichment", () => {
 			expect(error.context.line).toBe(42);
 			expect(error.context.agent).toBe("BlueLake");
 			expect(error.context.epic_id).toBe("mjmas3zxlmg");
-			expect(error.context.bead_id).toBe("mjmas408i87");
+			expect(error.context.cell_id).toBe("mjmas408i87");
 			expect(error.context.recent_events).toHaveLength(2);
 			expect(error.context.recent_events![0].type).toBe("SPAWN");
 		});
@@ -75,11 +75,11 @@ describe("error-enrichment", () => {
 		test("accepts partial context (minimal construction)", () => {
 			const error = new SwarmError("minimal error", {
 				agent: "SilverFire",
-				bead_id: "mjmas408i87",
+				cell_id: "mjmas408i87",
 			});
 
 			expect(error.context.agent).toBe("SilverFire");
-			expect(error.context.bead_id).toBe("mjmas408i87");
+			expect(error.context.cell_id).toBe("mjmas408i87");
 			expect(error.context.file).toBeUndefined();
 			expect(error.context.line).toBeUndefined();
 		});
@@ -87,7 +87,7 @@ describe("error-enrichment", () => {
 		test("serializes to JSON with context", () => {
 			const error = new SwarmError("serialize me", {
 				agent: "TestAgent",
-				bead_id: "test-123",
+				cell_id: "test-123",
 			});
 
 			const json = JSON.stringify(error);
@@ -115,7 +115,7 @@ describe("error-enrichment", () => {
 			const plainError = new Error("plain error");
 			const context: SwarmErrorContext = {
 				agent: "TestAgent",
-				bead_id: "test-456",
+				cell_id: "test-456",
 			};
 
 			const enriched = enrichError(plainError, context);
@@ -123,7 +123,7 @@ describe("error-enrichment", () => {
 			expect(enriched).toBeInstanceOf(SwarmError);
 			expect(enriched.message).toBe("plain error");
 			expect(enriched.context.agent).toBe("TestAgent");
-			expect(enriched.context.bead_id).toBe("test-456");
+			expect(enriched.context.cell_id).toBe("test-456");
 		});
 
 		test("preserves original stack trace when enriching", () => {
@@ -141,13 +141,13 @@ describe("error-enrichment", () => {
 			});
 
 			const reEnriched = enrichError(swarmError, {
-				bead_id: "new-bead",
+				cell_id: "new-bead",
 				file: "src/test.ts",
 			});
 
 			// Should merge contexts
 			expect(reEnriched.context.agent).toBe("Agent1");
-			expect(reEnriched.context.bead_id).toBe("new-bead");
+			expect(reEnriched.context.cell_id).toBe("new-bead");
 			expect(reEnriched.context.file).toBe("src/test.ts");
 		});
 
@@ -360,7 +360,7 @@ describe("error-enrichment", () => {
 		test("handles SwarmError instances with context", () => {
 			const error = new SwarmError("Agent not registered", {
 				agent: "TestAgent",
-				bead_id: "test-123",
+				cell_id: "test-123",
 			});
 
 			const suggestion = suggestFix(error);

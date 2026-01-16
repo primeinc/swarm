@@ -204,7 +204,7 @@ const TABLE_COLUMNS: Record<string, string> = {
 	eval_records:
 		"project_key, task, context, strategy, epic_title, subtasks, outcomes, overall_success, total_duration_ms, total_errors, human_accepted, human_modified, human_notes, file_overlap_count, scope_accuracy, time_balance_ratio, created_at, updated_at",
 	swarm_contexts:
-		"project_key, epic_id, bead_id, strategy, files, dependencies, directives, recovery, created_at, checkpointed_at, recovered_at, recovered_from_checkpoint, updated_at",
+		"project_key, epic_id, cell_id, strategy, files, dependencies, directives, recovery, created_at, checkpointed_at, recovered_at, recovered_from_checkpoint, updated_at",
 	deferred: "url, resolved, value, error, expires_at, created_at",
 };
 

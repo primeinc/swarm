@@ -414,7 +414,7 @@ export interface EvalRecord {
 		priority?: number;
 	}>;
 	outcomes?: Array<{
-		bead_id: string;
+		cell_id: string;
 		planned_files: string[];
 		actual_files: string[];
 		duration_ms: number;

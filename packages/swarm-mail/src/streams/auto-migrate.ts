@@ -160,7 +160,7 @@ export async function migrateLibSQLToGlobal(
 		eval_records:
 			"id, project_key, task, context, strategy, epic_title, subtasks, outcomes, overall_success, total_duration_ms, total_errors, human_accepted, human_modified, human_notes, file_overlap_count, scope_accuracy, time_balance_ratio, created_at, updated_at",
 		swarm_contexts:
-			"id, project_key, epic_id, bead_id, strategy, files, dependencies, directives, recovery, created_at, checkpointed_at, recovered_at, recovered_from_checkpoint, updated_at",
+			"id, project_key, epic_id, cell_id, strategy, files, dependencies, directives, recovery, created_at, checkpointed_at, recovered_at, recovered_from_checkpoint, updated_at",
 		deferred: "id, url, resolved, value, error, expires_at, created_at",
 	};
 
@@ -269,7 +269,7 @@ export async function migrateLocalDbToGlobal(
 		eval_records:
 			"id, project_key, task, context, strategy, epic_title, subtasks, outcomes, overall_success, total_duration_ms, total_errors, human_accepted, human_modified, human_notes, file_overlap_count, scope_accuracy, time_balance_ratio, created_at, updated_at",
 		swarm_contexts:
-			"id, project_key, epic_id, bead_id, strategy, files, dependencies, directives, recovery, created_at, checkpointed_at, recovered_at, recovered_from_checkpoint, updated_at",
+			"id, project_key, epic_id, cell_id, strategy, files, dependencies, directives, recovery, created_at, checkpointed_at, recovered_at, recovered_from_checkpoint, updated_at",
 		deferred: "id, url, resolved, value, error, expires_at, created_at",
 	};
 

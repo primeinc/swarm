@@ -6,7 +6,7 @@ async function run() {
 	const metadata = {
 		criterion: "type_safe",
 		type: "helpful",
-		bead_id: "test-bead",
+		cell_id: "test-cell",
 		timestamp: new Date().toISOString(),
 	};
 

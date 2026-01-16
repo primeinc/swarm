@@ -85,7 +85,7 @@ describe("eval_records table integration", () => {
 			id: "ctx-test-123",
 			project_key: "/test/project",
 			epic_id: "epic-123",
-			bead_id: "bead-456",
+			cell_id: "bead-456",
 			strategy: "test-based",
 			files: JSON.stringify(["test.ts"]),
 			dependencies: JSON.stringify([]),
@@ -106,7 +106,7 @@ describe("eval_records table integration", () => {
 		expect(contexts[0]).toMatchObject({
 			id: "ctx-test-123",
 			epic_id: "epic-123",
-			bead_id: "bead-456",
+			cell_id: "bead-456",
 		});
 	});
 });

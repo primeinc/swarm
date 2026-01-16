@@ -196,7 +196,7 @@ describe("captureSubtaskOutcome integration", () => {
       {
         project_key: testProjectPath,
         agent_name: "TestAgent",
-        bead_id: beadId,
+        cell_id: beadId,
         summary: "Implemented OAuth service with JWT strategy",
         files_touched: actualFiles,
         skip_verification: true, // Skip verification for test
@@ -254,7 +254,7 @@ describe("captureSubtaskOutcome integration", () => {
       {
         project_key: testProjectPath,
         agent_name: "TestAgent",
-        bead_id: beadId,
+        cell_id: beadId,
         summary: "Fixed the bug",
         start_time: Date.now() - 1000,
         skip_verification: true,
@@ -337,7 +337,7 @@ describe("subtask_outcome event emission", () => {
       {
         project_key: testProjectPath,
         agent_name: "TestAgent",
-        bead_id: beadId,
+        cell_id: beadId,
         summary: "Implemented X service",
         files_touched: ["src/x.ts"],
         skip_verification: true,
@@ -370,7 +370,7 @@ describe("subtask_outcome event emission", () => {
     const event = events[0] as any;
     expect(event.type).toBe("subtask_outcome");
     expect(event.epic_id).toBe(epicId);
-    expect(event.bead_id).toBe(beadId);
+    expect(event.cell_id).toBe(beadId);
     expect(event.success).toBe(true);
     expect(event.duration_ms).toBeGreaterThan(0);
   });
@@ -403,7 +403,7 @@ describe("subtask_outcome event emission", () => {
       {
         project_key: testProjectPath,
         agent_name: "TestAgent",
-        bead_id: beadId,
+        cell_id: beadId,
         summary: "Implemented Y service",
         files_touched: ["src/y.ts", "src/y.test.ts"],
         skip_verification: true,
@@ -434,7 +434,7 @@ describe("subtask_outcome event emission", () => {
     expect(parsed.length).toBe(1);
     
     const outcome = parsed[0];
-    expect(outcome.bead_id).toBe(beadId);
+    expect(outcome.cell_id).toBe(beadId);
     expect(outcome.success).toBe(true);
     expect(outcome.duration_ms).toBeGreaterThan(0);
     expect(outcome.planned_files).toEqual(["src/y.ts"]);
@@ -467,7 +467,7 @@ describe("finalizeEvalRecord integration", () => {
 
     // Call swarm_record_outcome with epic_id and project_path
     await swarm_record_outcome.execute({
-      bead_id: testBeadId,
+      cell_id: testBeadId,
       duration_ms: 120000,
       error_count: 0,
       retry_count: 0,
@@ -497,7 +497,7 @@ describe("finalizeEvalRecord integration", () => {
 
     // Call without epic_id or project_path
     await swarm_record_outcome.execute({
-      bead_id: testBeadId,
+      cell_id: testBeadId,
       duration_ms: 120000,
       error_count: 0,
       retry_count: 0,
@@ -537,7 +537,7 @@ describe("finalizeEvalRecord integration", () => {
 
     // Call with epic_id and project_path
     const result = await swarm_record_outcome.execute({
-      bead_id: testBeadId,
+      cell_id: testBeadId,
       duration_ms: 120000,
       error_count: 0,
       retry_count: 0,
@@ -683,7 +683,7 @@ describe("anti-pattern auto-deprecation integration", () => {
       {
         project_key: testProjectPath,
         agent_name: "TestAgent",
-        bead_id: beadId,
+        cell_id: beadId,
         summary: "Implemented user CRUD",
         files_touched: ["src/user-service.ts"],
         skip_verification: true,
@@ -730,7 +730,7 @@ describe("anti-pattern auto-deprecation integration", () => {
       {
         project_key: testProjectPath,
         agent_name: "TestAgent",
-        bead_id: beadId,
+        cell_id: beadId,
         summary: "Fixed auth bug",
         files_touched: ["src/auth.ts"],
         skip_verification: true,
@@ -779,7 +779,7 @@ describe("anti-pattern auto-deprecation integration", () => {
       {
         project_key: testProjectPath,
         agent_name: "TestAgent",
-        bead_id: bead1Id,
+        cell_id: bead1Id,
         summary: "Completed auth service",
         files_touched: ["src/service.ts"],
         skip_verification: true,
@@ -802,7 +802,7 @@ describe("anti-pattern auto-deprecation integration", () => {
       {
         project_key: testProjectPath,
         agent_name: "TestAgent",
-        bead_id: bead2Id,
+        cell_id: bead2Id,
         summary: "Completed auth controller",
         files_touched: ["src/controller.ts"],
         skip_verification: true,

@@ -260,13 +260,13 @@ async function testRecordOutcome(): Promise<TestResult> {
 	console.log(`\n🧪 ${testName}`);
 	
 	try {
-		const testBeadId = 'swarm-tools--test-bead-abc123';
+		const testBeadId = 'swarm-tools--test-cell-abc123';
 		const testDuration = 300000; // 5 minutes
 		const testFiles = ['src/test.ts', 'docs/test.md'];
 		
 		// Expected behavior when calling (SUCCESS):
 		// swarm_record_outcome(
-		//   bead_id=testBeadId,
+		//   cell_id=testBeadId,
 		//   duration_ms=testDuration,
 		//   success=true,
 		//   strategy="feature-based",
@@ -284,7 +284,7 @@ async function testRecordOutcome(): Promise<TestResult> {
 		
 		// Expected behavior when calling (FAILURE):
 		// swarm_record_outcome(
-		//   bead_id=testBeadId,
+		//   cell_id=testBeadId,
 		//   duration_ms=testDuration,
 		//   success=false,
 		//   strategy="file-based",
@@ -324,7 +324,7 @@ async function testRecordOutcome(): Promise<TestResult> {
 				testBeadId,
 				testDuration,
 				testFiles: testFiles.map(f => path.normalize(f)),
-				requiredFields: ['bead_id', 'duration_ms', 'success'],
+				requiredFields: ['cell_id', 'duration_ms', 'success'],
 				optionalFields: ['strategy', 'files_touched', 'error_count', 'retry_count', 'criteria'],
 				useCases,
 			},
@@ -445,7 +445,7 @@ async function testDatabaseAccess(): Promise<TestResult> {
 		// Database schema (expected):
 		// CREATE TABLE outcomes (
 		//   id INTEGER PRIMARY KEY,
-		//   bead_id TEXT NOT NULL,
+		//   cell_id TEXT NOT NULL,
 		//   strategy TEXT,
 		//   success BOOLEAN,
 		//   duration_ms INTEGER,

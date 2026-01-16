@@ -1049,10 +1049,10 @@ function projectCells(events: AgentEvent[]): Map<string, Cell> {
   for (const event of events) {
     switch (event.type) {
       case 'task_started':
-        cells.set(event.bead_id, { ...cells.get(event.bead_id), status: 'in_progress' });
+        cells.set(event.cell_id, { ...cells.get(event.cell_id), status: 'in_progress' });
         break;
       case 'task_completed':
-        cells.set(event.bead_id, { ...cells.get(event.bead_id), status: 'closed' });
+        cells.set(event.cell_id, { ...cells.get(event.cell_id), status: 'closed' });
         break;
       // ...
     }

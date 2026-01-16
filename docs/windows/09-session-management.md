@@ -326,7 +326,7 @@ await swarmmail_reserve(
 // Step 5: Report progress
 await swarm_progress(
   agent_name: "worker-typescript",
-  bead_id: "swarm-tools--lcljz-mkdcmebjtas",
+  cell_id: "swarm-tools--lcljz-mkdcmebjtas",
   project_key: "C:\\Users\\will\\dev\\swarm-tools",
   status: "in_progress",
   progress_percent: 50,
@@ -352,7 +352,7 @@ await hive_session_end(
 // Step 7: Complete task (releases file reservations)
 await swarm_complete(
   agent_name: "worker-typescript",
-  bead_id: "swarm-tools--lcljz-mkdcmebjtas",
+  cell_id: "swarm-tools--lcljz-mkdcmebjtas",
   project_key: "C:\\Users\\will\\dev\\swarm-tools",
   summary: "Fixed 3/5 TypeScript errors, 2 remaining",
   files_touched: [
@@ -879,7 +879,7 @@ swarmmail_reserve(
 ```typescript
 swarm_progress(
   agent_name: "worker-session-mgmt",
-  bead_id: "swarm-tools--lcljz-mkdcmebjtas",
+  cell_id: "swarm-tools--lcljz-mkdcmebjtas",
   project_key: "C:\\Users\\will\\dev\\swarm-tools",
   status: "in_progress",
   progress_percent: 50,

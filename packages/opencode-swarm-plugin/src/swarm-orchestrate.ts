@@ -62,8 +62,8 @@ import {
 import {
 	type AgentProgress,
 	AgentProgressSchema,
-	type Bead,
-	BeadSchema,
+	type Cell,
+	CellSchema,
 	type Evaluation,
 	EvaluationSchema,
 	type SpawnedAgent,
@@ -111,7 +111,7 @@ export function generateWorkerHandoff(params: {
 }): WorkerHandoff {
 	const handoff: WorkerHandoff = {
 		contract: {
-			task_id: params.task_id,
+			cell_id: params.task_id,
 			files_owned: params.files_owned,
 			files_readonly: params.files_readonly || [],
 			dependencies_completed: params.dependencies_completed || [],
@@ -275,33 +275,18 @@ async function getSubtaskFilesOwned(
 }
 
 /**
- * Query beads for subtasks of an epic using HiveAdapter (not bd CLI)
+ * Query cells for subtasks of an epic using HiveAdapter (not bd CLI)
  */
 async function queryEpicSubtasks(
 	projectKey: string,
 	epicId: string,
-): Promise<Bead[]> {
+): Promise<Cell[]> {
 	try {
 		const adapter = await getHiveAdapter(projectKey);
 		const cells = await adapter.queryCells(projectKey, { parent_id: epicId });
-		// Map Cell (from HiveAdapter) to Bead schema format
-		// Cell uses `type` and numeric timestamps, Bead uses `issue_type` and ISO strings
 		return cells
-			.filter((cell) => cell.status !== "tombstone") // Exclude deleted cells
-			.map((cell) => ({
-				id: cell.id,
-				title: cell.title,
-				description: cell.description || "",
-				status: cell.status as "open" | "in_progress" | "blocked" | "closed",
-				priority: cell.priority,
-				issue_type: cell.type as "bug" | "feature" | "task" | "epic" | "chore",
-				created_at: new Date(cell.created_at).toISOString(),
-				updated_at: cell.updated_at
-					? new Date(cell.updated_at).toISOString()
-					: undefined,
-				dependencies: [], // Dependencies fetched separately if needed
-				metadata: {},
-			}));
+			.filter((cell) => cell.status !== "tombstone")
+			.map((cell) => CellSchema.parse(cell));
 	} catch (error) {
 		console.error(
 			`[swarm] ERROR: Failed to query subtasks for epic ${epicId}:`,
@@ -666,7 +651,7 @@ export const swarm_init = tool({
 		const report = formatToolAvailability(availability);
 
 		// Check critical tools
-		const beadsAvailable = availability.get("beads")?.status.available ?? false;
+		const cellsAvailable = availability.get("hive")?.status.available ?? false;
 		const agentMailAvailable =
 			availability.get("agent-mail")?.status.available ?? false;
 
@@ -674,9 +659,9 @@ export const swarm_init = tool({
 		const warnings: string[] = [];
 		const degradedFeatures: string[] = [];
 
-		if (!beadsAvailable) {
+		if (!cellsAvailable) {
 			warnings.push(
-				"⚠️  beads (bd) not available - issue tracking disabled, swarm coordination will be limited",
+				"⚠️  hive not available - issue tracking disabled, swarm coordination will be limited",
 			);
 			degradedFeatures.push("issue tracking", "progress persistence");
 		}
@@ -780,9 +765,9 @@ export const swarm_init = tool({
 					degradedFeatures.length > 0 ? degradedFeatures : undefined,
 				recommendations: {
 					skills: skillsGuidance,
-					beads: beadsAvailable
-						? "✓ Use beads for all task tracking"
-						: "Install beads: npm i -g @joelhooks/beads",
+					cells: cellsAvailable
+						? "✓ Use cells for all task tracking"
+						: "Install hive: npm i -g @joelhooks/hive",
 					agent_mail: agentMailAvailable
 						? "✓ Use Agent Mail for coordination"
 						: "Start Agent Mail: agent-mail serve",
@@ -807,13 +792,13 @@ export const swarm_init = tool({
 export const swarm_status = tool({
 	description: "Get status of a swarm by epic ID",
 	args: {
-		epic_id: tool.schema.string().describe("Epic bead ID (e.g., bd-abc123)"),
+		epic_id: tool.schema.string().describe("Epic cell ID (e.g., cell-abc123)"),
 		project_key: tool.schema
 			.string()
 			.describe("Project path (for Agent Mail queries)"),
 	},
 	async execute(args) {
-		// Query subtasks from beads
+		// Query subtasks from cells
 		const subtasks = await queryEpicSubtasks(args.project_key, args.epic_id);
 
 		// Count statuses
@@ -826,10 +811,10 @@ export const swarm_status = tool({
 
 		const agents: SpawnedAgent[] = [];
 
-		for (const bead of subtasks) {
+		for (const cell of subtasks) {
 			// Map cell status to agent status
 			let agentStatus: SpawnedAgent["status"] = "pending";
-			switch (bead.status) {
+			switch (cell.status) {
 				case "in_progress":
 					agentStatus = "running";
 					statusCounts.running++;
@@ -848,8 +833,8 @@ export const swarm_status = tool({
 			}
 
 			agents.push({
-				bead_id: bead.id,
-				agent_name: "", // We don't track this in beads
+				cell_id: cell.id,
+				agent_name: "", // We don't track this in cells
 				status: agentStatus,
 				files: [], // Would need to parse from description
 			});
@@ -900,7 +885,9 @@ export const swarm_progress = tool({
 	args: {
 		project_key: tool.schema.string().describe("Project path"),
 		agent_name: tool.schema.string().describe("Your Agent Mail name"),
-		bead_id: tool.schema.string().describe("Subtask bead ID"),
+		cell_id: tool.schema
+			.string()
+			.describe("Subtask cell ID (e.g., cell-abc123.1)"),
 		status: tool.schema
 			.enum(["in_progress", "blocked", "completed", "failed"])
 			.describe("Current status"),
@@ -922,7 +909,7 @@ export const swarm_progress = tool({
 	async execute(args) {
 		// Build progress report
 		const progress: AgentProgress = {
-			bead_id: args.bead_id,
+			cell_id: args.cell_id,
 			agent_name: args.agent_name,
 			status: args.status,
 			progress_percent: args.progress_percent,
@@ -941,7 +928,7 @@ export const swarm_progress = tool({
 				const newStatus = args.status === "blocked" ? "blocked" : "in_progress";
 				await adapter.changeCellStatus(
 					args.project_key,
-					args.bead_id,
+					args.cell_id,
 					newStatus,
 				);
 			} catch (error) {
@@ -952,17 +939,17 @@ export const swarm_progress = tool({
 			}
 		}
 
-		// Extract epic ID from bead ID (e.g., bd-abc123.1 -> bd-abc123)
-		const epicId = args.bead_id.includes(".")
-			? args.bead_id.split(".")[0]
-			: args.bead_id;
+		// Extract epic ID from cell ID (e.g., cell-abc123.1 -> cell-abc123)
+		const epicId = args.cell_id.includes(".")
+			? args.cell_id.split(".")[0]
+			: args.cell_id;
 
 		// Send progress message to thread using embedded swarm-mail
 		await sendSwarmMessage({
 			projectPath: args.project_key,
 			fromAgent: args.agent_name,
 			toAgents: [], // Coordinator will pick it up from thread
-			subject: `Progress: ${args.bead_id} - ${args.status}`,
+			subject: `Progress: ${args.cell_id} - ${args.status}`,
 			body: formatProgressMessage(validated),
 			threadId: epicId,
 			importance: args.status === "blocked" ? "high" : "normal",
@@ -981,7 +968,7 @@ export const swarm_progress = tool({
 					// Create checkpoint event directly (non-fatal if it fails)
 					const checkpoint = {
 						epic_id: epicId,
-						bead_id: args.bead_id,
+						cell_id: args.cell_id,
 						strategy: "file-based" as const,
 						files: args.files_touched,
 						dependencies: [] as string[],
@@ -1005,33 +992,39 @@ export const swarm_progress = tool({
 					await appendEvent(checkpointEvent, args.project_key);
 
 					// Emit checkpoint_created event for observability
-					const checkpointId = `ckpt-${Date.now()}-${args.bead_id}`;
+					const checkpointId = `ckpt-${Date.now()}-${args.cell_id}`;
 					const createdEvent = createEvent("checkpoint_created", {
 						project_key: args.project_key,
-						epic_id: epicId,
-						bead_id: args.bead_id,
 						agent_name: args.agent_name,
-						checkpoint_id: checkpointId,
-						trigger: "progress",
+						epic_id: epicId,
+						cell_id: args.cell_id,
 						progress_percent: args.progress_percent,
+						trigger: "progress",
+						checkpoint_id: checkpointId,
 						files_snapshot: args.files_touched,
 					});
 					await appendEvent(createdEvent, args.project_key);
-
-					// NOTE: The event handler (handleSwarmCheckpointed in store.ts) updates
-					// the swarm_contexts table. We follow event sourcing pattern here.
 					checkpointCreated = true;
 				} catch (error) {
-					// Non-fatal - log and continue
-					console.warn(
-						`[swarm_progress] Auto-checkpoint failed at ${args.progress_percent}%:`,
+					console.error(
+						`[swarm_progress] Auto-checkpoint failed for ${args.cell_id}:`,
 						error,
 					);
 				}
 			}
 		}
 
-		return `Progress reported: ${args.status}${args.progress_percent !== undefined ? ` (${args.progress_percent}%)` : ""}${checkpointCreated ? " [checkpoint created]" : ""}`;
+		return JSON.stringify(
+			{
+				success: true,
+				cell_id: args.cell_id,
+				status: args.status,
+				progress_percent: args.progress_percent,
+				checkpoint_created: checkpointCreated,
+			},
+			null,
+			2,
+		);
 	},
 });
 
@@ -1054,7 +1047,7 @@ export const swarm_broadcast = tool({
 		agent_name: tool.schema
 			.string()
 			.describe("Name of the agent broadcasting the message"),
-		epic_id: tool.schema.string().describe("Epic ID (e.g., bd-abc123)"),
+		epic_id: tool.schema.string().describe("Epic cell ID (e.g., cell-abc123)"),
 		message: tool.schema
 			.string()
 			.describe("Context update to share (what changed, what was learned)"),
@@ -1068,14 +1061,14 @@ export const swarm_broadcast = tool({
 			.describe("Files this context relates to"),
 	},
 	async execute(args) {
-		// Extract bead_id from context if available (for traceability)
-		const beadId = "unknown"; // Context not currently available in tool execution
+		// Extract cell_id from context if available (for traceability)
+		const cellId = "unknown"; // Context not currently available in tool execution
 
 		// Format the broadcast message
 		const body = [
 			`## Context Update`,
 			"",
-			`**From**: ${args.agent_name} (${beadId})`,
+			`**From**: ${args.agent_name} (${cellId})`,
 			`**Priority**: ${args.importance.toUpperCase()}`,
 			"",
 			args.message,
@@ -1112,7 +1105,7 @@ export const swarm_broadcast = tool({
 				broadcast: true,
 				epic_id: args.epic_id,
 				from: args.agent_name,
-				bead_id: beadId,
+				cell_id: cellId,
 				importance: args.importance,
 				recipients: "all agents in epic",
 				ack_required: args.importance === "blocker",
@@ -1134,7 +1127,7 @@ export const swarm_broadcast = tool({
  * 5. ONLY THEN: Close the cell
  *
  * Closes cell, releases reservations, notifies coordinator, and resolves
- * a DurableDeferred keyed by bead_id for cross-agent task completion signaling.
+ * a DurableDeferred keyed by cell_id for cross-agent task completion signaling.
  *
  * ## DurableDeferred Integration
  *
@@ -1144,8 +1137,8 @@ export const swarm_broadcast = tool({
  * const swarmMail = await getSwarmMailLibSQL(projectPath);
  * const db = await swarmMail.getDatabase();
  *
- * // Create deferred keyed by bead_id
- * const deferredUrl = `deferred:${beadId}`;
+ * // Create deferred keyed by cell_id
+ * const deferredUrl = `deferred:${cellId}`;
  * await db.query(
  *   `INSERT INTO deferred (url, resolved, expires_at, created_at) VALUES (?, 0, ?, ?)`,
  *   [deferredUrl, Date.now() + 3600000, Date.now()]
@@ -1169,7 +1162,7 @@ export const swarm_complete = tool({
 	args: {
 		project_key: tool.schema.string().describe("Project path"),
 		agent_name: tool.schema.string().describe("Your Agent Mail name"),
-		bead_id: tool.schema.string().describe("Subtask bead ID"),
+		cell_id: tool.schema.string().describe("Subtask cell ID"),
 		summary: tool.schema.string().describe("Brief summary of work done"),
 		evaluation: tool.schema
 			.string()
@@ -1211,13 +1204,13 @@ export const swarm_complete = tool({
 	},
 	async execute(args, _ctx) {
 		// Extract epic ID early for error notifications and review gate
-		const epicId = args.bead_id.includes(".")
-			? args.bead_id.split(".")[0]
-			: args.bead_id;
+		const epicId = args.cell_id.includes(".")
+			? args.cell_id.split(".")[0]
+			: args.cell_id;
 
 		// Check review gate (unless skipped) - BEFORE try block so errors are clear
 		if (!args.skip_review) {
-			const reviewStatusResult = getReviewStatus(args.bead_id);
+			const reviewStatusResult = getReviewStatus(args.cell_id);
 
 			if (!reviewStatusResult.approved) {
 				// Check if review was even attempted
@@ -1230,7 +1223,7 @@ export const swarm_complete = tool({
 							message:
 								"Task completed but awaiting coordinator review before finalization.",
 							next_steps: [
-								`Request review with swarm_review(project_key="${args.project_key}", epic_id="${epicId}", task_id="${args.bead_id}", files_touched=[...])`,
+								`Request review with swarm_review(project_key="${args.project_key}", epic_id="${epicId}", task_id="${args.cell_id}", files_touched=[...])`,
 								"Wait for coordinator to review and approve with swarm_review_feedback",
 								"Once approved, call swarm_complete again to finalize",
 								"Or use skip_review=true to bypass (not recommended for production work)",
@@ -1250,7 +1243,7 @@ export const swarm_complete = tool({
 						message: `Task reviewed but changes requested. ${reviewStatusResult.remaining_attempts} attempt(s) remaining.`,
 						next_steps: [
 							"Address the feedback from the reviewer",
-							`Request another review with swarm_review(project_key="${args.project_key}", epic_id="${epicId}", task_id="${args.bead_id}", files_touched=[...])`,
+							`Request another review with swarm_review(project_key="${args.project_key}", epic_id="${epicId}", task_id="${args.cell_id}", files_touched=[...])`,
 							"Once approved, call swarm_complete again to finalize",
 						],
 					},
@@ -1261,29 +1254,29 @@ export const swarm_complete = tool({
 		}
 
 		try {
-			// Validate bead_id exists and is not already closed (EARLY validation)
+			// Validate cell_id exists and is not already closed (EARLY validation)
 			// NOTE: Use args.project_key directly - cells are stored with the original path
 			// (e.g., "/Users/joel/Code/project"), not a mangled version.
 
 			// Use HiveAdapter for validation (not bd CLI)
 			const adapter = await getHiveAdapter(args.project_key);
 
-			// 1. Check if bead exists
-			const cell = await adapter.getCell(args.project_key, args.bead_id);
+			// 1. Check if cell exists
+			const cell = await adapter.getCell(args.project_key, args.cell_id);
 			if (!cell) {
 				return JSON.stringify({
 					success: false,
-					error: `Bead not found: ${args.bead_id}`,
-					hint: "Check the bead ID is correct. Use hive_query to list open cells.",
+					error: `Cell not found: ${args.cell_id}`,
+					hint: "Check the cell ID is correct. Use hive_query to list open cells.",
 				});
 			}
 
-			// 2. Check if bead is already closed
+			// 2. Check if cell is already closed
 			if (cell.status === "closed") {
 				return JSON.stringify({
 					success: false,
-					error: `Bead already closed: ${args.bead_id}`,
-					hint: "This bead was already completed. No action needed.",
+					error: `Cell already closed: ${args.cell_id}`,
+					hint: "This cell was already completed. No action needed.",
 				});
 			}
 
@@ -1373,16 +1366,16 @@ Continuing with completion, but this should be fixed for future subtasks.`;
 
 			if (args.files_touched && args.files_touched.length > 0) {
 				// Extract epic ID from subtask ID
-				const isSubtask = args.bead_id.includes(".");
+				const isSubtask = args.cell_id.includes(".");
 
 				if (isSubtask) {
-					const epicId = args.bead_id.split(".")[0];
+					const epicId = args.cell_id.split(".")[0];
 
 					// Query decomposition event for files_owned
 					const filesOwned = await getSubtaskFilesOwned(
 						args.project_key,
 						epicId,
-						args.bead_id,
+						args.cell_id,
 					);
 
 					if (filesOwned) {
@@ -1453,7 +1446,7 @@ This will be recorded as a negative learning signal.`;
 
 			// Close the cell using HiveAdapter (not bd CLI)
 			try {
-				await adapter.closeCell(args.project_key, args.bead_id, args.summary);
+				await adapter.closeCell(args.project_key, args.cell_id, args.summary);
 			} catch (closeError) {
 				const errorMessage =
 					closeError instanceof Error ? closeError.message : String(closeError);
@@ -1463,14 +1456,14 @@ This will be recorded as a negative learning signal.`;
 						error: "Failed to close cell",
 						failed_step: "closeCell",
 						details: errorMessage,
-						bead_id: args.bead_id,
+						cell_id: args.cell_id,
 						project_key: args.project_key,
 						recovery: {
 							steps: [
 								`1. Check cell exists: hive_query()`,
 								`2. Check cell status (might already be closed)`,
-								`3. If cell is blocked, unblock first: hive_update(id="${args.bead_id}", status="in_progress")`,
-								`4. Try closing directly: hive_close(id="${args.bead_id}", reason="...")`,
+								`3. If cell is blocked, unblock first: hive_update(id="${args.cell_id}", status="in_progress")`,
+								`4. Try closing directly: hive_close(id="${args.cell_id}", reason="...")`,
 							],
 							hint: "Cell may already be closed, or the ID is incorrect.",
 						},
@@ -1488,9 +1481,9 @@ This will be recorded as a negative learning signal.`;
 				const swarmMail = await getSwarmMailLibSQL(args.project_key);
 				const db = await swarmMail.getDatabase();
 
-				// Resolve deferred keyed by bead_id
+				// Resolve deferred keyed by cell_id
 				// Coordinator should have created this deferred before spawning worker
-				const deferredUrl = `deferred:${args.bead_id}`;
+				const deferredUrl = `deferred:${args.cell_id}`;
 
 				// Check if deferred exists before resolving
 				const checkResult = await db.query<{ url: string; resolved: number }>(
@@ -1513,7 +1506,7 @@ This will be recorded as a negative learning signal.`;
 					// Deferred doesn't exist - worker was likely not spawned via swarm pattern
 					// This is non-fatal - just log for debugging
 					console.info(
-						`[swarm_complete] No deferred found for ${args.bead_id} - task may not be part of active swarm`,
+						`[swarm_complete] No deferred found for ${args.cell_id} - task may not be part of active swarm`,
 					);
 				}
 			} catch (error) {
@@ -1555,19 +1548,19 @@ This will be recorded as a negative learning signal.`;
 			// start_time is now required, so we can calculate duration directly
 			const completionDurationMs = Date.now() - args.start_time;
 
-			// Determine epic ID: use parent_id if available, otherwise fall back to extracting from bead_id
+			// Determine epic ID: use parent_id if available, otherwise fall back to extracting from cell_id
 			// (New hive cell IDs don't follow epicId.subtaskNum pattern - they're independent IDs)
 			const eventEpicId =
 				cell.parent_id ||
-				(args.bead_id.includes(".")
-					? args.bead_id.split(".")[0]
-					: args.bead_id);
+				(args.cell_id.includes(".")
+					? args.cell_id.split(".")[0]
+					: args.cell_id);
 
 			try {
 				const event = createEvent("subtask_outcome", {
 					project_key: args.project_key,
 					epic_id: eventEpicId,
-					bead_id: args.bead_id,
+					cell_id: args.cell_id,
 					planned_files: args.planned_files || [],
 					actual_files: args.files_touched || [],
 					duration_ms: completionDurationMs,
@@ -1593,7 +1586,7 @@ This will be recorded as a negative learning signal.`;
 				const workerCompletedEvent = createEvent("worker_completed", {
 					project_key: args.project_key,
 					epic_id: eventEpicId,
-					bead_id: args.bead_id,
+					cell_id: args.cell_id,
 					worker_agent: args.agent_name,
 					success: true,
 					duration_ms: completionDurationMs,
@@ -1609,12 +1602,12 @@ This will be recorded as a negative learning signal.`;
 			}
 
 			// Automatic memory capture (MANDATORY on successful completion)
-			// Extract strategy from bead metadata if available
+			// Extract strategy from cell metadata if available
 			let capturedStrategy: LearningDecompositionStrategy | undefined;
 
 			// Build memory information from task completion
 			const memoryInfo = formatMemoryStoreOnSuccess(
-				args.bead_id,
+				args.cell_id,
 				args.summary,
 				args.files_touched || [],
 				capturedStrategy,
@@ -1687,7 +1680,7 @@ This will be recorded as a negative learning signal.`;
 				// Build outcome signals
 				const durationMs = args.start_time ? Date.now() - args.start_time : 0;
 				const signals = OutcomeSignalsSchema.parse({
-					bead_id: args.bead_id,
+					cell_id: args.cell_id,
 					duration_ms: durationMs,
 					error_count: args.error_count ?? 0,
 					retry_count: args.retry_count ?? 0,
@@ -1749,13 +1742,13 @@ This will be recorded as a negative learning signal.`;
 					InMemoryPatternStorage,
 				} = await import("./anti-patterns");
 
-				// Determine epic ID: use parent_id if available, otherwise fall back to extracting from bead_id
+				// Determine epic ID: use parent_id if available, otherwise fall back to extracting from cell_id
 				// The cell was already fetched earlier, so we can reuse it
 				const epicIdForPattern =
 					cell.parent_id ||
-					(args.bead_id.includes(".")
-						? args.bead_id.split(".")[0]
-						: args.bead_id);
+					(args.cell_id.includes(".")
+						? args.cell_id.split(".")[0]
+						: args.cell_id);
 
 				// Get epic to extract patterns from description
 				const epicCell = await adapter.getCell(
@@ -1790,7 +1783,7 @@ This will be recorded as a negative learning signal.`;
 							const result = recordPatternObservation(
 								pattern,
 								true, // success=true (swarm_complete only runs on success)
-								args.bead_id,
+								args.cell_id,
 							);
 
 							// Update storage with new counts
@@ -1817,13 +1810,13 @@ This will be recorded as a negative learning signal.`;
 			}
 
 			// Extract epic ID (for message sending)
-			const epicId = args.bead_id.includes(".")
-				? args.bead_id.split(".")[0]
-				: args.bead_id;
+			const epicId = args.cell_id.includes(".")
+				? args.cell_id.split(".")[0]
+				: args.cell_id;
 
 			// Send completion message using embedded swarm-mail with memory capture status
 			const completionBody = [
-				`## Subtask Complete: ${args.bead_id}`,
+				`## Subtask Complete: ${args.cell_id}`,
 				"",
 				`**Summary**: ${args.summary}`,
 				"",
@@ -1847,7 +1840,7 @@ This will be recorded as a negative learning signal.`;
 					projectPath: args.project_key,
 					fromAgent: args.agent_name,
 					toAgents: [], // Thread broadcast
-					subject: `Complete: ${args.bead_id}`,
+					subject: `Complete: ${args.cell_id}`,
 					body: completionBody,
 					threadId: epicId,
 					importance: "normal",
@@ -1864,7 +1857,7 @@ This will be recorded as a negative learning signal.`;
 			// Build success response with hivemind integration
 			const response = {
 				success: true,
-				bead_id: args.bead_id,
+				cell_id: args.cell_id,
 				closed: true,
 				reservations_released: reservationsReleased,
 				reservations_released_count: reservationsReleasedCount,
@@ -1954,13 +1947,13 @@ Files touched: ${args.files_touched?.join(", ") || "none recorded"}`,
 				const { captureSubtaskOutcome } = await import("./eval-capture.js");
 				const durationMs = args.start_time ? Date.now() - args.start_time : 0;
 
-				// Determine epic ID: use parent_id if available, otherwise fall back to extracting from bead_id
+				// Determine epic ID: use parent_id if available, otherwise fall back to extracting from cell_id
 				const evalEpicId = cell.parent_id || epicId;
 
 				captureSubtaskOutcome({
 					epicId: evalEpicId,
 					projectPath: args.project_key,
-					beadId: args.bead_id,
+					cellId: args.cell_id,
 					title: cell.title,
 					plannedFiles: args.planned_files || [],
 					actualFiles: args.files_touched || [],
@@ -1987,7 +1980,7 @@ Files touched: ${args.files_touched?.join(", ") || "none recorded"}`,
 					event_type: "OUTCOME",
 					outcome_type: "subtask_success",
 					payload: {
-						bead_id: args.bead_id,
+						cell_id: args.cell_id,
 						duration_ms: durationMs,
 						files_touched: args.files_touched || [],
 						verification_passed: verificationResult?.passed ?? false,
@@ -2016,10 +2009,10 @@ Files touched: ${args.files_touched?.join(", ") || "none recorded"}`,
 			} else if (errorMessage.includes("evaluation")) {
 				failedStep = "Self-evaluation parsing";
 			} else if (
-				errorMessage.includes("bead") ||
+				errorMessage.includes("cell") ||
 				errorMessage.includes("close")
 			) {
-				failedStep = "Bead close";
+				failedStep = "Cell close";
 			} else if (
 				errorMessage.includes("memory") ||
 				errorMessage.includes("semantic")
@@ -2041,7 +2034,7 @@ Files touched: ${args.files_touched?.join(", ") || "none recorded"}`,
 			const errorBody = [
 				`## ⚠️ SWARM_COMPLETE FAILED`,
 				"",
-				`**Bead**: ${args.bead_id}`,
+				`**Cell**: ${args.cell_id}`,
 				`**Agent**: ${args.agent_name}`,
 				`**Failed Step**: ${failedStep}`,
 				"",
@@ -2074,7 +2067,7 @@ Files touched: ${args.files_touched?.join(", ") || "none recorded"}`,
 					projectPath: args.project_key,
 					fromAgent: args.agent_name,
 					toAgents: [], // Thread broadcast to coordinator
-					subject: `FAILED: swarm_complete for ${args.bead_id}`,
+					subject: `FAILED: swarm_complete for ${args.cell_id}`,
 					body: errorBody,
 					threadId: epicId,
 					importance: "urgent",
@@ -2083,7 +2076,7 @@ Files touched: ${args.files_touched?.join(", ") || "none recorded"}`,
 			} catch (mailError) {
 				// Even swarm mail failed - log to console as last resort
 				console.error(
-					`[swarm_complete] CRITICAL: Failed to notify coordinator of failure for ${args.bead_id}:`,
+					`[swarm_complete] CRITICAL: Failed to notify coordinator of failure for ${args.cell_id}:`,
 					mailError,
 				);
 				console.error(`[swarm_complete] Original error:`, error);
@@ -2099,7 +2092,7 @@ Files touched: ${args.files_touched?.join(", ") || "none recorded"}`,
 					event_type: "OUTCOME",
 					outcome_type: "subtask_failed",
 					payload: {
-						bead_id: args.bead_id,
+						cell_id: args.cell_id,
 						duration_ms: durationMs,
 						failed_step: failedStep,
 						error_message: errorMessage.slice(0, 500),
@@ -2120,11 +2113,11 @@ Files touched: ${args.files_touched?.join(", ") || "none recorded"}`,
 					success: false,
 					error: `swarm_complete failed: ${errorMessage}`,
 					failed_step: failedStep,
-					bead_id: args.bead_id,
+					cell_id: args.cell_id,
 					agent_name: args.agent_name,
 					coordinator_notified: notificationSent,
 					stack_trace: errorStack?.slice(0, 500),
-					hint: "Check the error message above. Common issues: bead not found, session not initialized.",
+					hint: "Check the error message above. Common issues: cell not found, session not initialized.",
 					context: {
 						summary: args.summary,
 						files_touched: args.files_touched || [],
@@ -2170,7 +2163,7 @@ export const swarm_record_outcome = tool({
 	description:
 		"Record subtask outcome for implicit feedback scoring. Tracks duration, errors, retries to learn decomposition quality.",
 	args: {
-		bead_id: tool.schema.string().describe("Subtask bead ID"),
+		cell_id: tool.schema.string().describe("Subtask cell ID"),
 		duration_ms: tool.schema
 			.number()
 			.int()
@@ -2238,7 +2231,7 @@ export const swarm_record_outcome = tool({
 	async execute(args) {
 		// Build outcome signals
 		const signals: OutcomeSignals = {
-			bead_id: args.bead_id,
+			cell_id: args.cell_id,
 			duration_ms: args.duration_ms,
 			error_count: args.error_count ?? 0,
 			retry_count: args.retry_count ?? 0,
@@ -2266,7 +2259,7 @@ export const swarm_record_outcome = tool({
 		);
 
 		// Get error patterns from accumulator
-		const errorStats = await globalErrorAccumulator.getErrorStats(args.bead_id);
+		const errorStats = await globalErrorAccumulator.getErrorStats(args.cell_id);
 
 		// Finalize eval record if project_path and epic_id provided
 		let finalizedRecord: EvalRecord | null = null;
@@ -2575,7 +2568,7 @@ export const swarm_accumulate_error = tool({
 	description:
 		"Record an error during subtask execution. Errors feed into retry prompts.",
 	args: {
-		bead_id: tool.schema.string().describe("Cell ID where error occurred"),
+		cell_id: tool.schema.string().describe("Cell ID where error occurred"),
 		error_type: tool.schema
 			.enum(["validation", "timeout", "conflict", "tool_failure", "unknown"])
 			.describe("Category of error"),
@@ -2592,7 +2585,7 @@ export const swarm_accumulate_error = tool({
 	},
 	async execute(args) {
 		const entry = await globalErrorAccumulator.recordError(
-			args.bead_id,
+			args.cell_id,
 			args.error_type as ErrorType,
 			args.message,
 			{
@@ -2619,16 +2612,16 @@ export const swarm_accumulate_error = tool({
 });
 
 /**
- * Get accumulated errors for a bead to feed into retry prompts
+ * Get accumulated errors for a cell to feed into retry prompts
  *
  * Returns formatted error context that can be injected into retry prompts
  * to help agents learn from past failures.
  */
 export const swarm_get_error_context = tool({
 	description:
-		"Get accumulated errors for a bead. Returns formatted context for retry prompts.",
+		"Get accumulated errors for a cell. Returns formatted context for retry prompts.",
 	args: {
-		bead_id: tool.schema.string().describe("Cell ID to get errors for"),
+		cell_id: tool.schema.string().describe("Cell ID to get errors for"),
 		include_resolved: tool.schema
 			.boolean()
 			.optional()
@@ -2636,15 +2629,15 @@ export const swarm_get_error_context = tool({
 	},
 	async execute(args) {
 		const errorContext = await globalErrorAccumulator.getErrorContext(
-			args.bead_id,
+			args.cell_id,
 			args.include_resolved ?? false,
 		);
 
-		const stats = await globalErrorAccumulator.getErrorStats(args.bead_id);
+		const stats = await globalErrorAccumulator.getErrorStats(args.cell_id);
 
 		return JSON.stringify(
 			{
-				bead_id: args.bead_id,
+				cell_id: args.cell_id,
 				error_context: errorContext,
 				stats: {
 					total_errors: stats.total,
@@ -2689,7 +2682,7 @@ export const swarm_resolve_error = tool({
 });
 
 /**
- * Check if a bead has struck out (3 consecutive failures)
+ * Check if a cell has struck out (3 consecutive failures)
  *
  * The 3-Strike Rule:
  * IF 3+ fixes have failed:
@@ -2708,9 +2701,9 @@ export const swarm_resolve_error = tool({
  */
 export const swarm_check_strikes = tool({
 	description:
-		"Check 3-strike status for a bead. Records failures, detects architectural problems, generates architecture review prompts.",
+		"Check 3-strike status for a cell. Records failures, detects architectural problems, generates architecture review prompts.",
 	args: {
-		bead_id: tool.schema.string().describe("Cell ID to check"),
+		cell_id: tool.schema.string().describe("Cell ID to check"),
 		action: tool.schema
 			.enum(["check", "add_strike", "clear", "get_prompt"])
 			.describe(
@@ -2728,15 +2721,15 @@ export const swarm_check_strikes = tool({
 	async execute(args) {
 		switch (args.action) {
 			case "check": {
-				const count = await getStrikes(args.bead_id, globalStrikeStorage);
+				const count = await getStrikes(args.cell_id, globalStrikeStorage);
 				const strikedOut = await isStrikedOut(
-					args.bead_id,
+					args.cell_id,
 					globalStrikeStorage,
 				);
 
 				return JSON.stringify(
 					{
-						bead_id: args.bead_id,
+						cell_id: args.cell_id,
 						strike_count: count,
 						is_striked_out: strikedOut,
 						message: strikedOut
@@ -2765,7 +2758,7 @@ export const swarm_check_strikes = tool({
 				}
 
 				const record = await addStrike(
-					args.bead_id,
+					args.cell_id,
 					args.attempt,
 					args.reason,
 					globalStrikeStorage,
@@ -2775,7 +2768,7 @@ export const swarm_check_strikes = tool({
 
 				// Build response with memory storage hint on 3-strike
 				const response: Record<string, unknown> = {
-					bead_id: args.bead_id,
+					cell_id: args.cell_id,
 					strike_count: record.strike_count,
 					is_striked_out: strikedOut,
 					failures: record.failures,
@@ -2790,7 +2783,7 @@ export const swarm_check_strikes = tool({
 				// Add hivemind storage hint on 3-strike
 				if (strikedOut) {
 					response.memory_store = formatMemoryStoreOn3Strike(
-						args.bead_id,
+						args.cell_id,
 						record.failures,
 					);
 				}
@@ -2799,11 +2792,11 @@ export const swarm_check_strikes = tool({
 			}
 
 			case "clear": {
-				await clearStrikes(args.bead_id, globalStrikeStorage);
+				await clearStrikes(args.cell_id, globalStrikeStorage);
 
 				return JSON.stringify(
 					{
-						bead_id: args.bead_id,
+						cell_id: args.cell_id,
 						strike_count: 0,
 						is_striked_out: false,
 						message: "Strikes cleared. Fresh start.",
@@ -2815,14 +2808,14 @@ export const swarm_check_strikes = tool({
 
 			case "get_prompt": {
 				const prompt = await getArchitecturePrompt(
-					args.bead_id,
+					args.cell_id,
 					globalStrikeStorage,
 				);
 
 				if (!prompt) {
 					return JSON.stringify(
 						{
-							bead_id: args.bead_id,
+							cell_id: args.cell_id,
 							has_prompt: false,
 							message: "No architecture prompt (not struck out yet)",
 						},
@@ -2833,7 +2826,7 @@ export const swarm_check_strikes = tool({
 
 				return JSON.stringify(
 					{
-						bead_id: args.bead_id,
+						cell_id: args.cell_id,
 						has_prompt: true,
 						architecture_review_prompt: prompt,
 						message:
@@ -2859,10 +2852,10 @@ export const swarm_check_strikes = tool({
 /**
  * Swarm context shape stored in swarm_contexts table
  */
-interface SwarmBeadContext {
+interface SwarmCellContext {
 	id: string;
 	epic_id: string;
-	bead_id: string;
+	cell_id: string;
 	strategy: "file-based" | "feature-based" | "risk-based";
 	files: string[];
 	dependencies: string[];
@@ -2901,8 +2894,8 @@ export const swarm_checkpoint = tool({
 	args: {
 		project_key: tool.schema.string().describe("Project path"),
 		agent_name: tool.schema.string().describe("Agent name"),
-		bead_id: tool.schema.string().describe("Subtask bead ID"),
-		epic_id: tool.schema.string().describe("Epic bead ID"),
+		cell_id: tool.schema.string().describe("Subtask cell ID"),
+		epic_id: tool.schema.string().describe("Epic cell ID"),
 		files_modified: tool.schema
 			.array(tool.schema.string())
 			.describe("Files modified so far"),
@@ -2928,14 +2921,14 @@ export const swarm_checkpoint = tool({
 		try {
 			// Build checkpoint data
 			const checkpoint: Omit<
-				SwarmBeadContext,
+				SwarmCellContext,
 				"id" | "created_at" | "updated_at"
 			> = {
 				epic_id: args.epic_id,
-				bead_id: args.bead_id,
+				cell_id: args.cell_id,
 				strategy: "file-based", // TODO: Extract from decomposition metadata
 				files: args.files_modified,
-				dependencies: [], // TODO: Extract from bead metadata
+				dependencies: [], // TODO: Extract from cell metadata
 				directives: args.directives || {},
 				recovery: {
 					last_checkpoint: Date.now(),
@@ -2950,7 +2943,7 @@ export const swarm_checkpoint = tool({
 			const event = createEvent("swarm_checkpointed", {
 				project_key: args.project_key,
 				epic_id: args.epic_id,
-				bead_id: args.bead_id,
+				cell_id: args.cell_id,
 				strategy: checkpoint.strategy,
 				files: checkpoint.files,
 				dependencies: checkpoint.dependencies,
@@ -2972,8 +2965,8 @@ export const swarm_checkpoint = tool({
 				{
 					success: true,
 					checkpoint_timestamp: now,
-					summary: `Checkpoint saved for ${args.bead_id} at ${args.progress_percent}%`,
-					bead_id: args.bead_id,
+					summary: `Checkpoint saved for ${args.cell_id} at ${args.progress_percent}%`,
+					cell_id: args.cell_id,
 					epic_id: args.epic_id,
 					files_tracked: args.files_modified.length,
 				},
@@ -2983,7 +2976,7 @@ export const swarm_checkpoint = tool({
 		} catch (error) {
 			// Non-fatal - log warning and continue
 			console.warn(
-				`[swarm_checkpoint] Failed to checkpoint ${args.bead_id}:`,
+				`[swarm_checkpoint] Failed to checkpoint ${args.cell_id}:`,
 				error,
 			);
 			return JSON.stringify(
@@ -2991,7 +2984,7 @@ export const swarm_checkpoint = tool({
 					success: false,
 					warning: "Checkpoint failed but continuing",
 					error: error instanceof Error ? error.message : String(error),
-					bead_id: args.bead_id,
+					cell_id: args.cell_id,
 					note: "This is non-fatal. Work can continue without checkpoint.",
 				},
 				null,
@@ -3015,7 +3008,7 @@ export const swarm_recover = tool({
 		"Recover swarm context from last checkpoint. Returns context or null if not found.",
 	args: {
 		project_key: tool.schema.string().describe("Project path"),
-		epic_id: tool.schema.string().describe("Epic bead ID to recover"),
+		epic_id: tool.schema.string().describe("Epic cell ID to recover"),
 	},
 	async execute(args) {
 		try {
@@ -3027,7 +3020,7 @@ export const swarm_recover = tool({
 			const result = await db.query<{
 				id: string;
 				epic_id: string;
-				bead_id: string;
+				cell_id: string;
 				strategy: string;
 				files: string;
 				dependencies: string;
@@ -3060,17 +3053,17 @@ export const swarm_recover = tool({
 			const parseIfString = <T>(val: unknown): T =>
 				typeof val === "string" ? JSON.parse(val) : (val as T);
 
-			const context: SwarmBeadContext = {
+			const context: SwarmCellContext = {
 				id: row.id,
 				epic_id: row.epic_id,
-				bead_id: row.bead_id,
-				strategy: row.strategy as SwarmBeadContext["strategy"],
+				cell_id: row.cell_id,
+				strategy: row.strategy as SwarmCellContext["strategy"],
 				files: parseIfString<string[]>(row.files),
 				dependencies: parseIfString<string[]>(row.dependencies),
-				directives: parseIfString<SwarmBeadContext["directives"]>(
+				directives: parseIfString<SwarmCellContext["directives"]>(
 					row.directives,
 				),
-				recovery: parseIfString<SwarmBeadContext["recovery"]>(row.recovery),
+				recovery: parseIfString<SwarmCellContext["recovery"]>(row.recovery),
 				created_at: row.created_at,
 				updated_at: row.updated_at,
 			};
@@ -3079,7 +3072,7 @@ export const swarm_recover = tool({
 			const event = createEvent("swarm_recovered", {
 				project_key: args.project_key,
 				epic_id: args.epic_id,
-				bead_id: context.bead_id,
+				cell_id: context.cell_id,
 				recovered_from_checkpoint: context.recovery.last_checkpoint,
 			});
 

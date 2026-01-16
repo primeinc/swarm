@@ -23,9 +23,9 @@ import { z } from "zod";
  * { passed: false, feedback: "Missing error handling in auth flow", score: 0.3 }
  */
 export const CriterionEvaluationSchema = z.object({
-  passed: z.boolean(),
-  feedback: z.string(),
-  score: z.number().min(0).max(1).optional(), // 0-1 normalized score
+	passed: z.boolean(),
+	feedback: z.string(),
+	score: z.number().min(0).max(1).optional(), // 0-1 normalized score
 });
 export type CriterionEvaluation = z.infer<typeof CriterionEvaluationSchema>;
 
@@ -36,20 +36,20 @@ export type CriterionEvaluation = z.infer<typeof CriterionEvaluationSchema>;
  * Lower weights indicate criteria that have been historically unreliable.
  */
 export const WeightedCriterionEvaluationSchema =
-  CriterionEvaluationSchema.extend({
-    /**
-     * Current weight after 90-day half-life decay.
-     * Range: 0-1 where 1 = recent/validated, 0 = old/unreliable.
-     * Weights decay over time unless revalidated via semantic-memory_validate.
-     */
-    weight: z.number().min(0).max(1).default(1),
-    /** Weighted score = score * weight */
-    weighted_score: z.number().min(0).max(1).optional(),
-    /** Whether this criterion is deprecated due to high failure rate */
-    deprecated: z.boolean().default(false),
-  });
+	CriterionEvaluationSchema.extend({
+		/**
+		 * Current weight after 90-day half-life decay.
+		 * Range: 0-1 where 1 = recent/validated, 0 = old/unreliable.
+		 * Weights decay over time unless revalidated via semantic-memory_validate.
+		 */
+		weight: z.number().min(0).max(1).default(1),
+		/** Weighted score = score * weight */
+		weighted_score: z.number().min(0).max(1).optional(),
+		/** Whether this criterion is deprecated due to high failure rate */
+		deprecated: z.boolean().default(false),
+	});
 export type WeightedCriterionEvaluation = z.infer<
-  typeof WeightedCriterionEvaluationSchema
+	typeof WeightedCriterionEvaluationSchema
 >;
 
 /**
@@ -59,11 +59,11 @@ export type WeightedCriterionEvaluation = z.infer<
  * Used by coordinator to determine if work is acceptable.
  */
 export const EvaluationSchema = z.object({
-  passed: z.boolean(),
-  criteria: z.record(z.string(), CriterionEvaluationSchema),
-  overall_feedback: z.string(),
-  retry_suggestion: z.string().nullable(),
-  timestamp: z.string().datetime({ offset: true }).optional(), // ISO-8601 with timezone
+	passed: z.boolean(),
+	criteria: z.record(z.string(), CriterionEvaluationSchema),
+	overall_feedback: z.string(),
+	retry_suggestion: z.string().nullable(),
+	timestamp: z.string().datetime({ offset: true }).optional(), // ISO-8601 with timezone
 });
 export type Evaluation = z.infer<typeof EvaluationSchema>;
 
@@ -74,10 +74,10 @@ export type Evaluation = z.infer<typeof EvaluationSchema>;
  * Can be overridden per-task or per-project.
  */
 export const DEFAULT_CRITERIA = [
-  "type_safe",
-  "no_bugs",
-  "patterns",
-  "readable",
+	"type_safe",
+	"no_bugs",
+	"patterns",
+	"readable",
 ] as const;
 export type DefaultCriterion = (typeof DEFAULT_CRITERIA)[number];
 
@@ -85,11 +85,11 @@ export type DefaultCriterion = (typeof DEFAULT_CRITERIA)[number];
  * Evaluation request arguments
  */
 export const EvaluationRequestSchema = z.object({
-  bead_id: z.string(),
-  subtask_title: z.string(),
-  files_touched: z.array(z.string()),
-  /** ISO-8601 timestamp when evaluation was requested */
-  requested_at: z.string().datetime().optional(),
+	cell_id: z.string(),
+	subtask_title: z.string(),
+	files_touched: z.array(z.string()),
+	/** ISO-8601 timestamp when evaluation was requested */
+	requested_at: z.string().datetime().optional(),
 });
 export type EvaluationRequest = z.infer<typeof EvaluationRequestSchema>;
 
@@ -99,17 +99,17 @@ export type EvaluationRequest = z.infer<typeof EvaluationRequestSchema>;
  * Used when applying learned weights to evaluation criteria.
  */
 export const WeightedEvaluationSchema = z.object({
-  passed: z.boolean(),
-  criteria: z.record(z.string(), WeightedCriterionEvaluationSchema),
-  overall_feedback: z.string(),
-  retry_suggestion: z.string().nullable(),
-  timestamp: z.string().datetime({ offset: true }).optional(), // ISO-8601 with timezone
-  /** Average weight across all criteria (indicates overall confidence) */
-  average_weight: z.number().min(0).max(1).optional(),
-  /** Raw score before weighting */
-  raw_score: z.number().min(0).max(1).optional(),
-  /** Weighted score after applying criterion weights */
-  weighted_score: z.number().min(0).max(1).optional(),
+	passed: z.boolean(),
+	criteria: z.record(z.string(), WeightedCriterionEvaluationSchema),
+	overall_feedback: z.string(),
+	retry_suggestion: z.string().nullable(),
+	timestamp: z.string().datetime({ offset: true }).optional(), // ISO-8601 with timezone
+	/** Average weight across all criteria (indicates overall confidence) */
+	average_weight: z.number().min(0).max(1).optional(),
+	/** Raw score before weighting */
+	raw_score: z.number().min(0).max(1).optional(),
+	/** Weighted score after applying criterion weights */
+	weighted_score: z.number().min(0).max(1).optional(),
 });
 export type WeightedEvaluation = z.infer<typeof WeightedEvaluationSchema>;
 
@@ -117,18 +117,18 @@ export type WeightedEvaluation = z.infer<typeof WeightedEvaluationSchema>;
  * Aggregated evaluation results for a swarm
  */
 export const SwarmEvaluationResultSchema = z.object({
-  epic_id: z.string(),
-  total: z.number().int().min(0),
-  passed: z.number().int().min(0),
-  failed: z.number().int().min(0),
-  evaluations: z.array(
-    z.object({
-      bead_id: z.string(),
-      evaluation: EvaluationSchema,
-    }),
-  ),
-  overall_passed: z.boolean(),
-  retry_needed: z.array(z.string()), // Cell IDs that need retry
+	epic_id: z.string(),
+	total: z.number().int().min(0),
+	passed: z.number().int().min(0),
+	failed: z.number().int().min(0),
+	evaluations: z.array(
+		z.object({
+			cell_id: z.string(),
+			evaluation: EvaluationSchema,
+		}),
+	),
+	overall_passed: z.boolean(),
+	retry_needed: z.array(z.string()), // Cell IDs that need retry
 });
 export type SwarmEvaluationResult = z.infer<typeof SwarmEvaluationResultSchema>;
 
@@ -136,11 +136,11 @@ export type SwarmEvaluationResult = z.infer<typeof SwarmEvaluationResultSchema>;
  * Validation result with retry info
  */
 export const ValidationResultSchema = z.object({
-  success: z.boolean(),
-  data: z.unknown().optional(),
-  attempts: z.number().int().min(1),
-  errors: z.array(z.string()).optional(),
-  extractionMethod: z.string().optional(),
+	success: z.boolean(),
+	data: z.unknown().optional(),
+	attempts: z.number().int().min(1),
+	errors: z.array(z.string()).optional(),
+	extractionMethod: z.string().optional(),
 });
 export type ValidationResult = z.infer<typeof ValidationResultSchema>;
 
@@ -154,13 +154,13 @@ export type ValidationResult = z.infer<typeof ValidationResultSchema>;
  * @see "Patterns for Building AI Agents" p.46
  */
 export const FailureModeSchema = z.enum([
-  "timeout", // Task exceeded time limit
-  "conflict", // File reservation conflict
-  "validation", // Output failed schema validation
-  "tool_failure", // Tool call returned error
-  "context_overflow", // Ran out of context window
-  "dependency_blocked", // Waiting on another subtask
-  "user_cancelled", // User interrupted
-  "unknown", // Unclassified
+	"timeout", // Task exceeded time limit
+	"conflict", // File reservation conflict
+	"validation", // Output failed schema validation
+	"tool_failure", // Tool call returned error
+	"context_overflow", // Ran out of context window
+	"dependency_blocked", // Waiting on another subtask
+	"user_cancelled", // User interrupted
+	"unknown", // Unclassified
 ]);
 export type FailureMode = z.infer<typeof FailureModeSchema>;

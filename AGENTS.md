@@ -1165,7 +1165,7 @@ throw new SwarmError("File reservation failed", {
   line: 42,
   agent: "DarkHawk",
   epic_id: "mjmas3zxlmg",
-  bead_id: "mjmas40ys7g",
+  cell_id: "mjmas40ys7g",
   recent_events: [
     { type: "worker_spawned", timestamp: "2025-12-25T10:00:00Z", message: "Worker started" },
     { type: "reservation_attempted", timestamp: "2025-12-25T10:01:00Z", message: "Tried to reserve src/auth.ts" }
@@ -1179,7 +1179,7 @@ try {
   throw enrichError(error, {
     agent: "BlueLake",
     epic_id: "mjmas3zxlmg",
-    bead_id: "mjmas40ys7g"
+    cell_id: "mjmas40ys7g"
   });
 }
 ```
@@ -1192,7 +1192,7 @@ try {
 | `line` | Line number | `42` |
 | `agent` | Agent that encountered error | `"DarkHawk"` |
 | `epic_id` | Epic being worked on | `"mjmas3zxlmg"` |
-| `bead_id` | Specific task/cell | `"mjmas40ys7g"` |
+| `cell_id` | Specific task/cell | `"mjmas40ys7g"` |
 | `recent_events` | Last N events before error | `[{type, timestamp, message}]` |
 
 ### Automatic Fix Suggestions

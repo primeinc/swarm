@@ -30,7 +30,7 @@ export const scopeViolations: AnalyticsQuery & {
 	sql: `
     SELECT 
       json_extract(data, '$.agent_name') as agent,
-      json_extract(data, '$.bead_id') as task_id,
+      json_extract(data, '$.cell_id') as task_id,
       json_extract(data, '$.files_touched') as files_touched,
       timestamp,
       project_key
@@ -48,7 +48,7 @@ export const scopeViolations: AnalyticsQuery & {
 				sql: `
           SELECT 
             json_extract(data, '$.agent_name') as agent,
-            json_extract(data, '$.bead_id') as task_id,
+            json_extract(data, '$.cell_id') as task_id,
             json_extract(data, '$.files_touched') as files_touched,
             timestamp,
             project_key

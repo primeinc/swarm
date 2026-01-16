@@ -568,7 +568,7 @@ export async function createTestLibSQLDb(): Promise<{
     CREATE TABLE IF NOT EXISTS swarm_contexts (
       id TEXT,
       epic_id TEXT NOT NULL,
-      bead_id TEXT NOT NULL,
+      cell_id TEXT NOT NULL,
       strategy TEXT NOT NULL,
       files TEXT NOT NULL,
       dependencies TEXT NOT NULL,
@@ -587,7 +587,7 @@ export async function createTestLibSQLDb(): Promise<{
     CREATE INDEX IF NOT EXISTS idx_swarm_contexts_project ON swarm_contexts(project_key)
   `);
 	await client.execute(`
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_swarm_contexts_unique ON swarm_contexts(project_key, epic_id, bead_id)
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_swarm_contexts_unique ON swarm_contexts(project_key, epic_id, cell_id)
   `);
 
 	// ========================================================================

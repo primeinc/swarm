@@ -104,7 +104,7 @@ beforeAll(() => {
       timestamp: "2025-01-03T10:00:00.000Z",
       event_type: "DECISION",
       decision_type: "worker_spawned",
-      payload: { worker: "BlueLake", bead_id: "epic-3.1" },
+      payload: { worker: "BlueLake", cell_id: "epic-3.1" },
     },
   ]);
 });

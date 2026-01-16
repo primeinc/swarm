@@ -178,7 +178,7 @@ describe("COORDINATOR_PROMPT", () => {
 describe("formatSubtaskPromptV2", () => {
   test("substitutes all placeholders correctly", async () => {
     const result = await formatSubtaskPromptV2({
-      bead_id: "test-project-abc123-bead456",
+      cell_id: "test-project-abc123-bead456",
       epic_id: "test-project-abc123-epic789",
       subtask_title: "Test Subtask",
       subtask_description: "Do the test thing",
@@ -197,7 +197,7 @@ describe("formatSubtaskPromptV2", () => {
 
   test("includes memory query step with MANDATORY emphasis", async () => {
     const result = await formatSubtaskPromptV2({
-      bead_id: "test-project-abc123-def456",
+      cell_id: "test-project-abc123-def456",
       epic_id: "test-project-abc123-ghi789",
       subtask_title: "Test",
       subtask_description: "",
@@ -216,7 +216,7 @@ describe("swarm_spawn_subtask tool", () => {
     const { swarm_spawn_subtask } = await import("./swarm-prompts");
     
     const result = await swarm_spawn_subtask.execute({
-      bead_id: "test-project-abc123-task1",
+      cell_id: "test-project-abc123-task1",
       epic_id: "test-project-abc123-epic1",
       subtask_title: "Implement feature X",
       subtask_description: "Add feature X to the system",
@@ -234,7 +234,7 @@ describe("swarm_spawn_subtask tool", () => {
     const { swarm_spawn_subtask } = await import("./swarm-prompts");
     
     const result = await swarm_spawn_subtask.execute({
-      bead_id: "test-project-abc123-task1",
+      cell_id: "test-project-abc123-task1",
       epic_id: "test-project-abc123-epic1",
       subtask_title: "Implement feature X",
       files: ["src/feature.ts"],
@@ -260,7 +260,7 @@ describe("swarm_spawn_subtask tool", () => {
     const { swarm_spawn_subtask } = await import("./swarm-prompts");
     
     const result = await swarm_spawn_subtask.execute({
-      bead_id: "test-project-abc123-task1",
+      cell_id: "test-project-abc123-task1",
       epic_id: "test-project-abc123-epic1",
       subtask_title: "Implement feature X",
       files: ["src/feature.ts", "src/feature.test.ts"],
@@ -288,7 +288,7 @@ describe("swarm_spawn_subtask tool", () => {
     const { swarm_spawn_subtask } = await import("./swarm-prompts");
     
     const result = await swarm_spawn_subtask.execute({
-      bead_id: "test-project-abc123-task1",
+      cell_id: "test-project-abc123-task1",
       epic_id: "test-project-abc123-epic1",
       subtask_title: "Implement feature X",
       files: ["src/feature.ts"],
@@ -696,7 +696,7 @@ describe("swarm_spawn_retry tool", () => {
     const { swarm_spawn_retry } = await import("./swarm-prompts");
     
     const result = await swarm_spawn_retry.execute({
-      bead_id: "test-project-abc123-task1",
+      cell_id: "test-project-abc123-task1",
       epic_id: "test-project-abc123-epic1",
       original_prompt: "Original task: implement feature X",
       attempt: 1,
@@ -718,7 +718,7 @@ describe("swarm_spawn_retry tool", () => {
     const { swarm_spawn_retry } = await import("./swarm-prompts");
     
     const result = await swarm_spawn_retry.execute({
-      bead_id: "test-project-abc123-task1",
+      cell_id: "test-project-abc123-task1",
       epic_id: "test-project-abc123-epic1",
       original_prompt: "Original task",
       attempt: 2,
@@ -741,7 +741,7 @@ describe("swarm_spawn_retry tool", () => {
 +const x = null;`;
 
     const result = await swarm_spawn_retry.execute({
-      bead_id: "test-project-abc123-task1",
+      cell_id: "test-project-abc123-task1",
       epic_id: "test-project-abc123-epic1",
       original_prompt: "Original task",
       attempt: 1,
@@ -760,7 +760,7 @@ describe("swarm_spawn_retry tool", () => {
     
     await expect(async () => {
       await swarm_spawn_retry.execute({
-        bead_id: "test-project-abc123-task1",
+        cell_id: "test-project-abc123-task1",
         epic_id: "test-project-abc123-epic1",
         original_prompt: "Original task",
         attempt: 4,
@@ -779,7 +779,7 @@ describe("swarm_spawn_retry tool", () => {
     ];
 
     const result = await swarm_spawn_retry.execute({
-      bead_id: "test-project-abc123-task1",
+      cell_id: "test-project-abc123-task1",
       epic_id: "test-project-abc123-epic1",
       original_prompt: "Original task",
       attempt: 1,
@@ -799,7 +799,7 @@ describe("swarm_spawn_retry tool", () => {
     const { swarm_spawn_retry } = await import("./swarm-prompts");
     
     const result = await swarm_spawn_retry.execute({
-      bead_id: "test-project-abc123-task1",
+      cell_id: "test-project-abc123-task1",
       epic_id: "test-project-abc123-epic1",
       original_prompt: "Original task",
       attempt: 1,
@@ -810,7 +810,7 @@ describe("swarm_spawn_retry tool", () => {
 
     const parsed = JSON.parse(result);
     expect(parsed).toHaveProperty("prompt");
-    expect(parsed).toHaveProperty("bead_id", "test-project-abc123-task1");
+    expect(parsed).toHaveProperty("cell_id", "test-project-abc123-task1");
     expect(parsed).toHaveProperty("attempt", 1);
     expect(parsed).toHaveProperty("max_attempts", 3);
     expect(parsed).toHaveProperty("files");
@@ -821,7 +821,7 @@ describe("swarm_spawn_retry tool", () => {
     const { swarm_spawn_retry } = await import("./swarm-prompts");
     
     const result = await swarm_spawn_retry.execute({
-      bead_id: "test-project-abc123-task1",
+      cell_id: "test-project-abc123-task1",
       epic_id: "test-project-abc123-epic1",
       original_prompt: "Original task",
       attempt: 1,
@@ -840,7 +840,7 @@ describe("swarm_spawn_retry tool", () => {
     const { swarm_spawn_retry } = await import("./swarm-prompts");
     
     const result = await swarm_spawn_retry.execute({
-      bead_id: "test-project-abc123-task1",
+      cell_id: "test-project-abc123-task1",
       epic_id: "test-project-abc123-epic1",
       original_prompt: "Original task",
       attempt: 1,
@@ -1316,7 +1316,7 @@ describe("getPromptInsights", () => {
 
     test("formatSubtaskPromptV2 includes file insights in shared_context", async () => {
       const result = await formatSubtaskPromptV2({
-        bead_id: "test-123",
+        cell_id: "test-123",
         epic_id: "epic-456",
         subtask_title: "Implement auth",
         subtask_description: "Add authentication flow",
@@ -1432,7 +1432,7 @@ describe("getPromptInsights", () => {
 			// Now call formatSubtaskPromptV2 with those files
 			const { formatSubtaskPromptV2 } = await import("./swarm-prompts");
 			const prompt = await formatSubtaskPromptV2({
-				bead_id: "test-123",
+				cell_id: "test-123",
 				epic_id: "epic-456",
 				subtask_title: "Test prompt generation",
 				subtask_description: "Verify file history warnings are included",

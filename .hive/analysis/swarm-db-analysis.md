@@ -206,7 +206,7 @@ Triggers (`cells_insert`, `cells_update`, `cells_delete`) maintain compatibility
 | `id` | TEXT PK | Trace ID |
 | `decision_type` | TEXT | Type of decision made |
 | `epic_id` | TEXT | Related epic (if any) |
-| `bead_id` | TEXT | Related bead (if any) |
+| `cell_id` | TEXT | Related bead (if any) |
 | `agent_name` | TEXT | Agent making decision |
 | `project_key` | TEXT | Project context |
 | `decision` | TEXT | The decision made |
@@ -328,7 +328,7 @@ Triggers (`cells_insert`, `cells_update`, `cells_delete`) maintain compatibility
 | `id` | TEXT PK | Context ID |
 | `project_key` | TEXT | Project context |
 | `epic_id` | TEXT | Related epic |
-| `bead_id` | TEXT | Related bead |
+| `cell_id` | TEXT | Related bead |
 | `strategy` | TEXT | Decomposition strategy |
 | `files` | TEXT | JSON array of files |
 | `dependencies` | TEXT | JSON dependencies |

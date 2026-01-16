@@ -31,12 +31,13 @@
  * @module decision-trace-integration
  */
 
-import { 
-  createDecisionTrace, 
-  createEntityLink,
-  type DecisionTraceInput,
-  type EntityLinkInput,
+import {
+	createDecisionTrace,
+	createEntityLink,
+	type DecisionTraceInput,
+	type EntityLinkInput,
 } from "swarm-mail";
+
 // ============================================================================
 // Database Helper
 // ============================================================================
@@ -48,8 +49,8 @@ import {
  * This avoids creating new connections per trace call.
  */
 async function getTraceDb(projectPath?: string) {
-  const { getOrCreateAdapter } = await import("swarm-mail");
-  return getOrCreateAdapter(undefined, projectPath);
+	const { getOrCreateAdapter } = await import("swarm-mail");
+	return getOrCreateAdapter(undefined, projectPath);
 }
 
 // ============================================================================
@@ -65,23 +66,27 @@ async function getTraceDb(projectPath?: string) {
  * @returns Array of memory IDs (empty if none found)
  */
 export function extractMemoryIds(
-  precedentCited?: { memoryId?: string; memoryIds?: string[]; similarity?: number } | null,
+	precedentCited?: {
+		memoryId?: string;
+		memoryIds?: string[];
+		similarity?: number;
+	} | null,
 ): string[] {
-  if (!precedentCited) {
-    return [];
-  }
-  
-  // Check for array field first
-  if (precedentCited.memoryIds && Array.isArray(precedentCited.memoryIds)) {
-    return precedentCited.memoryIds;
-  }
-  
-  // Check for single memoryId field
-  if (precedentCited.memoryId) {
-    return [precedentCited.memoryId];
-  }
-  
-  return [];
+	if (!precedentCited) {
+		return [];
+	}
+
+	// Check for array field first
+	if (precedentCited.memoryIds && Array.isArray(precedentCited.memoryIds)) {
+		return precedentCited.memoryIds;
+	}
+
+	// Check for single memoryId field
+	if (precedentCited.memoryId) {
+		return [precedentCited.memoryId];
+	}
+
+	return [];
 }
 
 // ============================================================================
@@ -92,30 +97,30 @@ export function extractMemoryIds(
  * Input for tracing strategy selection decisions
  */
 export interface StrategySelectionInput {
-  projectKey: string;
-  agentName: string;
-  epicId?: string;
-  beadId?: string;
-  strategy: string;
-  reasoning: string;
-  confidence?: number;
-  taskPreview?: string;
-  inputsGathered?: Array<{
-    source: string;
-    query?: string;
-    results?: number;
-  }>;
-  alternatives?: Array<{
-    strategy: string;
-    score?: number;
-    reason?: string;
-  }>;
-  precedentCited?: {
-    memoryId?: string;
-    memoryIds?: string[];
-    similarity?: number;
-    cassResults?: number;
-  };
+	projectKey: string;
+	agentName: string;
+	epicId?: string;
+	cellId?: string;
+	strategy: string;
+	reasoning: string;
+	confidence?: number;
+	taskPreview?: string;
+	inputsGathered?: Array<{
+		source: string;
+		query?: string;
+		results?: number;
+	}>;
+	alternatives?: Array<{
+		strategy: string;
+		score?: number;
+		reason?: string;
+	}>;
+	precedentCited?: {
+		memoryId?: string;
+		memoryIds?: string[];
+		similarity?: number;
+		cassResults?: number;
+	};
 }
 
 /**
@@ -128,47 +133,47 @@ export interface StrategySelectionInput {
  * @returns Created decision trace ID
  */
 export async function traceStrategySelection(
-  input: StrategySelectionInput,
+	input: StrategySelectionInput,
 ): Promise<string> {
-  try {
-    const db = await getTraceDb(input.projectKey);
+	try {
+		const db = await getTraceDb(input.projectKey);
 
-    const trace = await createDecisionTrace(db, {
-      decision_type: "strategy_selection",
-      epic_id: input.epicId,
-      bead_id: input.beadId,
-      agent_name: input.agentName,
-      project_key: input.projectKey,
-      decision: {
-        strategy: input.strategy,
-        confidence: input.confidence,
-        task_preview: input.taskPreview,
-      },
-      rationale: input.reasoning,
-      inputs_gathered: input.inputsGathered,
-      alternatives: input.alternatives,
-      precedent_cited: input.precedentCited,
-    });
+		const trace = await createDecisionTrace(db, {
+			decision_type: "strategy_selection",
+			epic_id: input.epicId,
+			cell_id: input.cellId,
+			agent_name: input.agentName,
+			project_key: input.projectKey,
+			decision: {
+				strategy: input.strategy,
+				confidence: input.confidence,
+				task_preview: input.taskPreview,
+			},
+			rationale: input.reasoning,
+			inputs_gathered: input.inputsGathered,
+			alternatives: input.alternatives,
+			precedent_cited: input.precedentCited,
+		});
 
-    // Create entity links for memory precedents
-    const memoryIds = extractMemoryIds(input.precedentCited);
-    for (const memoryId of memoryIds) {
-      await createEntityLink(db, {
-        source_decision_id: trace.id,
-        target_entity_type: "memory",
-        target_entity_id: memoryId,
-        link_type: "cites_precedent",
-        strength: input.precedentCited?.similarity ?? 1.0,
-        context: "Cited as precedent for strategy selection",
-      });
-    }
+		// Create entity links for memory precedents
+		const memoryIds = extractMemoryIds(input.precedentCited);
+		for (const memoryId of memoryIds) {
+			await createEntityLink(db, {
+				source_decision_id: trace.id,
+				target_entity_type: "memory",
+				target_entity_id: memoryId,
+				link_type: "cites_precedent",
+				strength: input.precedentCited?.similarity ?? 1.0,
+				context: "Cited as precedent for strategy selection",
+			});
+		}
 
-    return trace.id;
-  } catch (error) {
-    // Non-fatal - log and continue
-    console.warn("[decision-trace] Failed to trace strategy_selection:", error);
-    return "";
-  }
+		return trace.id;
+	} catch (error) {
+		// Non-fatal - log and continue
+		console.warn("[decision-trace] Failed to trace strategy_selection:", error);
+		return "";
+	}
 }
 
 // ============================================================================
@@ -179,17 +184,17 @@ export async function traceStrategySelection(
  * Input for tracing worker spawn decisions
  */
 export interface WorkerSpawnInput {
-  projectKey: string;
-  agentName: string;
-  epicId: string;
-  beadId: string;
-  workerName?: string;
-  subtaskTitle: string;
-  files: string[];
-  model?: string;
-  spawnOrder?: number;
-  isParallel?: boolean;
-  rationale?: string;
+	projectKey: string;
+	agentName: string;
+	epicId: string;
+	cellId: string;
+	workerName?: string;
+	subtaskTitle: string;
+	files: string[];
+	model?: string;
+	spawnOrder?: number;
+	isParallel?: boolean;
+	rationale?: string;
 }
 
 /**
@@ -202,46 +207,47 @@ export interface WorkerSpawnInput {
  * @returns Created decision trace ID
  */
 export async function traceWorkerSpawn(
-  input: WorkerSpawnInput,
+	input: WorkerSpawnInput,
 ): Promise<string> {
-  try {
-    const db = await getTraceDb(input.projectKey);
+	try {
+		const db = await getTraceDb(input.projectKey);
 
-    const trace = await createDecisionTrace(db, {
-      decision_type: "worker_spawn",
-      epic_id: input.epicId,
-      bead_id: input.beadId,
-      agent_name: input.agentName,
-      project_key: input.projectKey,
-      decision: {
-        worker: input.workerName || "worker",
-        subtask_title: input.subtaskTitle,
-        files: input.files,
-        model: input.model,
-        spawn_order: input.spawnOrder,
-        is_parallel: input.isParallel,
-      },
-      rationale: input.rationale || `Spawning worker for: ${input.subtaskTitle}`,
-    });
+		const trace = await createDecisionTrace(db, {
+			decision_type: "worker_spawn",
+			epic_id: input.epicId,
+			cell_id: input.cellId,
+			agent_name: input.agentName,
+			project_key: input.projectKey,
+			decision: {
+				worker: input.workerName || "worker",
+				subtask_title: input.subtaskTitle,
+				files: input.files,
+				model: input.model,
+				spawn_order: input.spawnOrder,
+				is_parallel: input.isParallel,
+			},
+			rationale:
+				input.rationale || `Spawning worker for: ${input.subtaskTitle}`,
+		});
 
-    // Create entity links for assigned files
-    for (const file of input.files) {
-      await createEntityLink(db, {
-        source_decision_id: trace.id,
-        target_entity_type: "file",
-        target_entity_id: file,
-        link_type: "assigns_file",
-        strength: 1.0,
-        context: `File assigned to worker ${input.workerName || "worker"}`,
-      });
-    }
+		// Create entity links for assigned files
+		for (const file of input.files) {
+			await createEntityLink(db, {
+				source_decision_id: trace.id,
+				target_entity_type: "file",
+				target_entity_id: file,
+				link_type: "assigns_file",
+				strength: 1.0,
+				context: `File assigned to worker ${input.workerName || "worker"}`,
+			});
+		}
 
-    return trace.id;
-  } catch (error) {
-    // Non-fatal - log and continue
-    console.warn("[decision-trace] Failed to trace worker_spawn:", error);
-    return "";
-  }
+		return trace.id;
+	} catch (error) {
+		// Non-fatal - log and continue
+		console.warn("[decision-trace] Failed to trace worker_spawn:", error);
+		return "";
+	}
 }
 
 // ============================================================================
@@ -252,22 +258,22 @@ export async function traceWorkerSpawn(
  * Input for tracing review decisions
  */
 export interface ReviewDecisionInput {
-  projectKey: string;
-  agentName: string;
-  epicId: string;
-  beadId: string;
-  workerId: string;
-  status: "approved" | "needs_changes";
-  summary?: string;
-  issues?: Array<{
-    file: string;
-    line?: number;
-    issue: string;
-    suggestion?: string;
-  }>;
-  attemptNumber?: number;
-  remainingAttempts?: number;
-  rationale?: string;
+	projectKey: string;
+	agentName: string;
+	epicId: string;
+	cellId: string;
+	workerId: string;
+	status: "approved" | "needs_changes";
+	summary?: string;
+	issues?: Array<{
+		file: string;
+		line?: number;
+		issue: string;
+		suggestion?: string;
+	}>;
+	attemptNumber?: number;
+	remainingAttempts?: number;
+	rationale?: string;
 }
 
 /**
@@ -280,47 +286,47 @@ export interface ReviewDecisionInput {
  * @returns Created decision trace ID
  */
 export async function traceReviewDecision(
-  input: ReviewDecisionInput,
+	input: ReviewDecisionInput,
 ): Promise<string> {
-  try {
-    const db = await getTraceDb(input.projectKey);
+	try {
+		const db = await getTraceDb(input.projectKey);
 
-    const trace = await createDecisionTrace(db, {
-      decision_type: "review_decision",
-      epic_id: input.epicId,
-      bead_id: input.beadId,
-      agent_name: input.agentName,
-      project_key: input.projectKey,
-      decision: {
-        status: input.status,
-        worker_id: input.workerId,
-        issues_count: input.issues?.length || 0,
-        attempt_number: input.attemptNumber,
-        remaining_attempts: input.remainingAttempts,
-      },
-      rationale: input.rationale || input.summary || `Review ${input.status}`,
-      inputs_gathered: input.issues
-        ? [{ source: "code_review", issues: input.issues }]
-        : undefined,
-    });
+		const trace = await createDecisionTrace(db, {
+			decision_type: "review_decision",
+			epic_id: input.epicId,
+			cell_id: input.cellId,
+			agent_name: input.agentName,
+			project_key: input.projectKey,
+			decision: {
+				status: input.status,
+				worker_id: input.workerId,
+				issues_count: input.issues?.length || 0,
+				attempt_number: input.attemptNumber,
+				remaining_attempts: input.remainingAttempts,
+			},
+			rationale: input.rationale || input.summary || `Review ${input.status}`,
+			inputs_gathered: input.issues
+				? [{ source: "code_review", issues: input.issues }]
+				: undefined,
+		});
 
-    // Create entity link to the worker agent being reviewed
-    await createEntityLink(db, {
-      source_decision_id: trace.id,
-      target_entity_type: "agent",
-      target_entity_id: input.workerId,
-      link_type: "reviewed_work_by",
-      strength: 1.0,
-      context: `Review ${input.status} for ${input.workerId}`,
-    });
+		// Create entity link to the worker agent being reviewed
+		await createEntityLink(db, {
+			source_decision_id: trace.id,
+			target_entity_type: "agent",
+			target_entity_id: input.workerId,
+			link_type: "reviewed_work_by",
+			strength: 1.0,
+			context: `Review ${input.status} for ${input.workerId}`,
+		});
 
-    await db.close?.();
-    return trace.id;
-  } catch (error) {
-    // Non-fatal - log and continue
-    console.warn("[decision-trace] Failed to trace review_decision:", error);
-    return "";
-  }
+		await db.close?.();
+		return trace.id;
+	} catch (error) {
+		// Non-fatal - log and continue
+		console.warn("[decision-trace] Failed to trace review_decision:", error);
+		return "";
+	}
 }
 
 // ============================================================================
@@ -331,14 +337,14 @@ export async function traceReviewDecision(
  * Input for tracing file selection decisions
  */
 export interface FileSelectionInput {
-  projectKey: string;
-  agentName: string;
-  epicId?: string;
-  beadId: string;
-  filesSelected: string[];
-  filesOwned: string[];
-  rationale?: string;
-  scopeExpanded?: boolean;
+	projectKey: string;
+	agentName: string;
+	epicId?: string;
+	cellId: string;
+	filesSelected: string[];
+	filesOwned: string[];
+	rationale?: string;
+	scopeExpanded?: boolean;
 }
 
 /**
@@ -350,32 +356,33 @@ export interface FileSelectionInput {
  * @returns Created decision trace ID
  */
 export async function traceFileSelection(
-  input: FileSelectionInput,
+	input: FileSelectionInput,
 ): Promise<string> {
-  try {
-    const db = await getTraceDb(input.projectKey);
+	try {
+		const db = await getTraceDb(input.projectKey);
 
-    const trace = await createDecisionTrace(db, {
-      decision_type: "file_selection",
-      epic_id: input.epicId,
-      bead_id: input.beadId,
-      agent_name: input.agentName,
-      project_key: input.projectKey,
-      decision: {
-        files_selected: input.filesSelected,
-        files_owned: input.filesOwned,
-        scope_expanded: input.scopeExpanded,
-      },
-      rationale: input.rationale || `Selected ${input.filesSelected.length} files`,
-    });
+		const trace = await createDecisionTrace(db, {
+			decision_type: "file_selection",
+			epic_id: input.epicId,
+			cell_id: input.cellId,
+			agent_name: input.agentName,
+			project_key: input.projectKey,
+			decision: {
+				files_selected: input.filesSelected,
+				files_owned: input.filesOwned,
+				scope_expanded: input.scopeExpanded,
+			},
+			rationale:
+				input.rationale || `Selected ${input.filesSelected.length} files`,
+		});
 
-    await db.close?.();
-    return trace.id;
-  } catch (error) {
-    // Non-fatal - log and continue
-    console.warn("[decision-trace] Failed to trace file_selection:", error);
-    return "";
-  }
+		await db.close?.();
+		return trace.id;
+	} catch (error) {
+		// Non-fatal - log and continue
+		console.warn("[decision-trace] Failed to trace file_selection:", error);
+		return "";
+	}
 }
 
 // ============================================================================
@@ -386,14 +393,14 @@ export async function traceFileSelection(
  * Input for tracing scope change decisions
  */
 export interface ScopeChangeInput {
-  projectKey: string;
-  agentName: string;
-  epicId?: string;
-  beadId: string;
-  filesAdded?: string[];
-  filesRemoved?: string[];
-  reason: string;
-  coordinatorApproved?: boolean;
+	projectKey: string;
+	agentName: string;
+	epicId?: string;
+	cellId: string;
+	filesAdded?: string[];
+	filesRemoved?: string[];
+	reason: string;
+	coordinatorApproved?: boolean;
 }
 
 /**
@@ -405,32 +412,32 @@ export interface ScopeChangeInput {
  * @returns Created decision trace ID
  */
 export async function traceScopeChange(
-  input: ScopeChangeInput,
+	input: ScopeChangeInput,
 ): Promise<string> {
-  try {
-    const db = await getTraceDb(input.projectKey);
+	try {
+		const db = await getTraceDb(input.projectKey);
 
-    const trace = await createDecisionTrace(db, {
-      decision_type: "scope_change",
-      epic_id: input.epicId,
-      bead_id: input.beadId,
-      agent_name: input.agentName,
-      project_key: input.projectKey,
-      decision: {
-        files_added: input.filesAdded || [],
-        files_removed: input.filesRemoved || [],
-        coordinator_approved: input.coordinatorApproved,
-      },
-      rationale: input.reason,
-    });
+		const trace = await createDecisionTrace(db, {
+			decision_type: "scope_change",
+			epic_id: input.epicId,
+			cell_id: input.cellId,
+			agent_name: input.agentName,
+			project_key: input.projectKey,
+			decision: {
+				files_added: input.filesAdded || [],
+				files_removed: input.filesRemoved || [],
+				coordinator_approved: input.coordinatorApproved,
+			},
+			rationale: input.reason,
+		});
 
-    await db.close?.();
-    return trace.id;
-  } catch (error) {
-    // Non-fatal - log and continue
-    console.warn("[decision-trace] Failed to trace scope_change:", error);
-    return "";
-  }
+		await db.close?.();
+		return trace.id;
+	} catch (error) {
+		// Non-fatal - log and continue
+		console.warn("[decision-trace] Failed to trace scope_change:", error);
+		return "";
+	}
 }
 
 // ============================================================================
@@ -447,19 +454,19 @@ export async function traceScopeChange(
  * @returns Array of decision traces
  */
 export async function getEpicDecisionTraces(
-  projectKey: string,
-  epicId: string,
+	projectKey: string,
+	epicId: string,
 ) {
-  try {
-    const { getDecisionTracesByEpic } = await import("swarm-mail");
-    const db = await getTraceDb(projectKey);
-    const traces = await getDecisionTracesByEpic(db, epicId);
-    await db.close?.();
-    return traces;
-  } catch (error) {
-    console.warn("[decision-trace] Failed to query epic traces:", error);
-    return [];
-  }
+	try {
+		const { getDecisionTracesByEpic } = await import("swarm-mail");
+		const db = await getTraceDb(projectKey);
+		const traces = await getDecisionTracesByEpic(db, epicId);
+		await db.close?.();
+		return traces;
+	} catch (error) {
+		console.warn("[decision-trace] Failed to query epic traces:", error);
+		return [];
+	}
 }
 
 /**
@@ -470,17 +477,17 @@ export async function getEpicDecisionTraces(
  * @returns Array of decision traces
  */
 export async function getDecisionTracesByType(
-  projectKey: string,
-  decisionType: string,
+	projectKey: string,
+	decisionType: string,
 ) {
-  try {
-    const { getDecisionTracesByType: queryByType } = await import("swarm-mail");
-    const db = await getTraceDb(projectKey);
-    const traces = await queryByType(db, decisionType);
-    await db.close?.();
-    return traces;
-  } catch (error) {
-    console.warn("[decision-trace] Failed to query traces by type:", error);
-    return [];
-  }
+	try {
+		const { getDecisionTracesByType: queryByType } = await import("swarm-mail");
+		const db = await getTraceDb(projectKey);
+		const traces = await queryByType(db, decisionType);
+		await db.close?.();
+		return traces;
+	} catch (error) {
+		console.warn("[decision-trace] Failed to query traces by type:", error);
+		return [];
+	}
 }

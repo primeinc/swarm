@@ -1182,7 +1182,7 @@
 
   **Structured Error Classes** (swarm-mail)
 
-  - `BaseSwarmError` with rich context: agent, bead_id, epic_id, timestamp, recent events
+  - `BaseSwarmError` with rich context: agent, cell_id, epic_id, timestamp, recent events
   - Specialized errors: `ReservationError`, `CheckpointError`, `ValidationError`, `DecompositionError`
   - Every error includes actionable suggestions for resolution
   - Full `toJSON()` serialization for logging and debugging

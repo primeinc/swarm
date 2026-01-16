@@ -51,13 +51,13 @@ async function testBasicProgressReporting(): Promise<TestResult> {
 	try {
 		const projectKey = process.cwd();
 		const agentName = 'test-worker-lifecycle';
-		const beadId = 'swarm-tools--test-bead-id';
+		const beadId = 'swarm-tools--test-cell-id';
 		
 		// Expected behavior when calling:
 		// swarm_progress({
 		//   project_key: projectKey,
 		//   agent_name: agentName,
-		//   bead_id: beadId,
+		//   cell_id: beadId,
 		//   status: "in_progress",
 		//   progress_percent: 50,
 		//   message: "Halfway through implementation",
@@ -92,7 +92,7 @@ async function testBasicProgressReporting(): Promise<TestResult> {
 				validStatuses,
 				validProgressValues,
 				invalidProgressValues,
-				requiredFields: ['project_key', 'agent_name', 'bead_id', 'status'],
+				requiredFields: ['project_key', 'agent_name', 'cell_id', 'status'],
 				optionalFields: ['progress_percent', 'message', 'files_touched'],
 			},
 		};
@@ -276,13 +276,13 @@ async function testBasicCompletion(): Promise<TestResult> {
 	try {
 		const projectKey = process.cwd();
 		const agentName = 'test-worker';
-		const beadId = 'swarm-tools--test-bead';
+		const beadId = 'swarm-tools--test-cell';
 		
 		// Expected behavior when calling:
 		// swarm_complete({
 		//   project_key: projectKey,
 		//   agent_name: agentName,
-		//   bead_id: beadId,
+		//   cell_id: beadId,
 		//   summary: "Implemented feature X with tests",
 		//   files_touched: ["src/feature.ts", "tests/feature.test.ts"],
 		//   evaluation: "All tests passing, type-safe implementation"
@@ -310,7 +310,7 @@ async function testBasicCompletion(): Promise<TestResult> {
 			passed: true,
 			windowsSpecific: windowsNotes,
 			details: {
-				requiredFields: ['project_key', 'agent_name', 'bead_id', 'summary'],
+				requiredFields: ['project_key', 'agent_name', 'cell_id', 'summary'],
 				optionalFields: ['files_touched', 'evaluation', 'skip_verification', 'skip_review'],
 				autoReleases: 'All file reservations',
 				verificationGates: ['typecheck', 'tests'],
@@ -416,7 +416,7 @@ async function testSubtaskSpawn(): Promise<TestResult> {
 		
 		// Expected behavior when calling:
 		// swarm_spawn_subtask({
-		//   bead_id: "swarm-tools--subtask-1",
+		//   cell_id: "swarm-tools--subtask-1",
 		//   epic_id: "swarm-tools--epic-parent",
 		//   subtask_title: "Implement authentication",
 		//   subtask_description: "Add JWT token validation",
@@ -427,7 +427,7 @@ async function testSubtaskSpawn(): Promise<TestResult> {
 		// Should return:
 		// {
 		//   "prompt": "You are a swarm worker... [full prompt]",
-		//   "bead_id": "swarm-tools--subtask-1",
+		//   "cell_id": "swarm-tools--subtask-1",
 		//   "files": ["src/auth.ts", "tests/auth.test.ts"]
 		// }
 		
@@ -446,7 +446,7 @@ async function testSubtaskSpawn(): Promise<TestResult> {
 			passed: true,
 			windowsSpecific: windowsNotes,
 			details: {
-				requiredFields: ['bead_id', 'epic_id', 'subtask_title', 'files'],
+				requiredFields: ['cell_id', 'epic_id', 'subtask_title', 'files'],
 				optionalFields: ['subtask_description', 'shared_context'],
 				output: 'Prompt string + metadata',
 				usage: 'Coordinator uses this, then calls background_task()',
@@ -479,7 +479,7 @@ async function testSubtaskCompletion(): Promise<TestResult> {
 		
 		// Expected behavior when calling:
 		// swarm_complete_subtask({
-		//   bead_id: "swarm-tools--subtask-1",
+		//   cell_id: "swarm-tools--subtask-1",
 		//   task_result: "Worker completed authentication implementation...",
 		//   files_touched: ["src/auth.ts", "tests/auth.test.ts"]
 		// })
@@ -506,7 +506,7 @@ async function testSubtaskCompletion(): Promise<TestResult> {
 			passed: true,
 			windowsSpecific: windowsNotes,
 			details: {
-				requiredFields: ['bead_id', 'task_result'],
+				requiredFields: ['cell_id', 'task_result'],
 				optionalFields: ['files_touched'],
 				aggregation: 'Checks if all sibling subtasks complete',
 				coordination: 'Coordinator only - workers do not call this',

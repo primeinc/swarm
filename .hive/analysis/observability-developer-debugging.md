@@ -233,7 +233,7 @@ swarm dump bd-abc123 --only reservations
     "urgent": 1
   },
   "checkpoints": [
-    { "bead_id": "bd-abc123.0", "progress": 50, "timestamp": 1703240500000 }
+    { "cell_id": "bd-abc123.0", "progress": 50, "timestamp": 1703240500000 }
   ]
 }
 ```
@@ -329,7 +329,7 @@ Error: Failed to reserve file: src/auth/service.ts
   "error": "Failed to reserve file: src/auth/service.ts",
   "context": {
     "agent": "BlueLake",
-    "bead_id": "bd-abc123.1",
+    "cell_id": "bd-abc123.1",
     "epic_id": "bd-abc123",
     "timestamp": 1703241000000,
     "sequence": 142,
@@ -645,12 +645,12 @@ HAVING started > completed;
 
 -- Find checkpoints that led to recovery
 SELECT 
-  c.bead_id,
+  c.cell_id,
   c.timestamp AS checkpointed_at,
   r.timestamp AS recovered_at,
   (r.timestamp - c.timestamp) / 1000 AS recovery_delay_seconds
 FROM events c
-JOIN events r ON r.bead_id = c.bead_id AND r.type = 'swarm_recovered'
+JOIN events r ON r.cell_id = c.cell_id AND r.type = 'swarm_recovered'
 WHERE c.type = 'swarm_checkpointed'
 ORDER BY recovery_delay_seconds DESC;
 ```

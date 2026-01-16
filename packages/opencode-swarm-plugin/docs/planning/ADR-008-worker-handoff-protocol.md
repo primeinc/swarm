@@ -153,7 +153,7 @@ export const swarm_spawn_subtask = tool(/* ... */)
   .handler(async ({ input, context }) => {
     const handoff: WorkerHandoff = {
       contract: {
-        task_id: input.bead_id,
+        task_id: input.cell_id,
         files_owned: input.files,
         files_readonly: inferReadonlyFiles(input.files, epicContext),
         dependencies_completed: input.dependencies_completed || [],
@@ -163,7 +163,7 @@ export const swarm_spawn_subtask = tool(/* ... */)
         epic_summary: epicContext.summary,
         your_role: input.subtask_title,
         what_others_did: summarizeDependencies(input.dependencies_completed),
-        what_comes_next: summarizeDownstream(input.bead_id)
+        what_comes_next: summarizeDownstream(input.cell_id)
       },
       escalation: {
         blocked_contact: "coordinator",
@@ -180,7 +180,7 @@ export const swarm_spawn_subtask = tool(/* ... */)
 ```typescript
 export const swarm_complete = tool(/* ... */)
   .handler(async ({ input, context }) => {
-    const handoff = getStoredHandoff(input.bead_id);
+    const handoff = getStoredHandoff(input.cell_id);
     const validation = validateCompletion(handoff, {
       files_touched: input.files_touched,
       summary: input.summary

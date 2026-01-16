@@ -48,7 +48,7 @@ export interface DecisionTraceInput {
 	/** Epic this decision relates to (optional) */
 	epic_id?: string;
 	/** Specific cell/bead this decision relates to (optional) */
-	bead_id?: string;
+	cell_id?: string;
 	/** Agent making the decision */
 	agent_name: string;
 	/** Project key for scoping */
@@ -74,7 +74,7 @@ export interface DecisionTrace {
 	id: string;
 	decision_type: string;
 	epic_id: string | null;
-	bead_id: string | null;
+	cell_id: string | null;
 	agent_name: string;
 	project_key: string;
 	decision: string; // JSON string
@@ -172,7 +172,7 @@ export async function createDecisionTrace(
 
 	await db.query(
 		`INSERT INTO decision_traces (
-      id, decision_type, epic_id, bead_id, agent_name, project_key,
+      id, decision_type, epic_id, cell_id, agent_name, project_key,
       decision, rationale, inputs_gathered, policy_evaluated,
       alternatives, precedent_cited, timestamp
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -180,7 +180,7 @@ export async function createDecisionTrace(
 			id,
 			input.decision_type,
 			input.epic_id ?? null,
-			input.bead_id ?? null,
+			input.cell_id ?? null,
 			input.agent_name,
 			input.project_key,
 			JSON.stringify(input.decision),
@@ -197,7 +197,7 @@ export async function createDecisionTrace(
 		id,
 		decision_type: input.decision_type,
 		epic_id: input.epic_id ?? null,
-		bead_id: input.bead_id ?? null,
+		cell_id: input.cell_id ?? null,
 		agent_name: input.agent_name,
 		project_key: input.project_key,
 		decision: JSON.stringify(input.decision),

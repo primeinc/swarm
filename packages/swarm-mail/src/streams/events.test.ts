@@ -250,7 +250,7 @@ describe("FileReservedEventSchema", () => {
 			expires_at: Date.now() + 3600000,
 			file_count: 2,
 			epic_id: "bd-123",
-			bead_id: "bd-123.1",
+			cell_id: "bd-123.1",
 			is_retry: false,
 			conflict_agent: undefined,
 		};
@@ -340,7 +340,7 @@ describe("FileReleasedEventSchema", () => {
 			paths: ["src/auth/**"],
 			file_count: 1,
 			epic_id: "bd-123",
-			bead_id: "bd-123.1",
+			cell_id: "bd-123.1",
 			hold_duration_ms: 45000,
 			files_modified: 3,
 		};
@@ -358,7 +358,7 @@ describe("FileConflictEventSchema", () => {
 			holding_agent: "RedStone",
 			paths: ["src/auth/**", "src/config.ts"],
 			epic_id: "bd-123",
-			bead_id: "bd-123.2",
+			cell_id: "bd-123.2",
 			resolution: "wait",
 		};
 		expect(() => FileConflictEventSchema.parse(event)).not.toThrow();
@@ -413,7 +413,7 @@ describe("TaskStartedEventSchema", () => {
 			project_key: "/test/project",
 			timestamp: Date.now(),
 			agent_name: "BlueLake",
-			bead_id: "bd-123.1",
+			cell_id: "bd-123.1",
 			epic_id: "bd-123",
 		};
 		expect(() => TaskStartedEventSchema.parse(event)).not.toThrow();
@@ -427,7 +427,7 @@ describe("TaskProgressEventSchema", () => {
 			project_key: "/test/project",
 			timestamp: Date.now(),
 			agent_name: "BlueLake",
-			bead_id: "bd-123.1",
+			cell_id: "bd-123.1",
 			progress_percent: 50,
 			message: "Halfway done",
 			files_touched: ["src/auth.ts"],
@@ -441,7 +441,7 @@ describe("TaskProgressEventSchema", () => {
 			project_key: "/test/project",
 			timestamp: Date.now(),
 			agent_name: "BlueLake",
-			bead_id: "bd-123.1",
+			cell_id: "bd-123.1",
 		};
 
 		// Valid: 0
@@ -473,7 +473,7 @@ describe("TaskCompletedEventSchema", () => {
 			project_key: "/test/project",
 			timestamp: Date.now(),
 			agent_name: "BlueLake",
-			bead_id: "bd-123.1",
+			cell_id: "bd-123.1",
 			summary: "Implemented OAuth flow",
 			files_touched: ["src/auth.ts", "src/config.ts"],
 			success: true,
@@ -487,7 +487,7 @@ describe("TaskCompletedEventSchema", () => {
 			project_key: "/test/project",
 			timestamp: Date.now(),
 			agent_name: "BlueLake",
-			bead_id: "bd-123.1",
+			cell_id: "bd-123.1",
 			summary: "Done",
 		};
 		const parsed = TaskCompletedEventSchema.parse(event);
@@ -502,7 +502,7 @@ describe("TaskBlockedEventSchema", () => {
 			project_key: "/test/project",
 			timestamp: Date.now(),
 			agent_name: "BlueLake",
-			bead_id: "bd-123.1",
+			cell_id: "bd-123.1",
 			reason: "Waiting for API credentials",
 		};
 		expect(() => TaskBlockedEventSchema.parse(event)).not.toThrow();
@@ -646,7 +646,7 @@ describe("SubtaskOutcomeEventSchema", () => {
 			project_key: "/test/project",
 			timestamp: Date.now(),
 			epic_id: "bd-123",
-			bead_id: "bd-123.1",
+			cell_id: "bd-123.1",
 			planned_files: ["src/auth.ts", "src/config.ts"],
 			actual_files: ["src/auth.ts", "src/config.ts", "src/utils.ts"],
 			duration_ms: 45000,
@@ -663,7 +663,7 @@ describe("SubtaskOutcomeEventSchema", () => {
 			project_key: "/test/project",
 			timestamp: Date.now(),
 			epic_id: "bd-123",
-			bead_id: "bd-123.1",
+			cell_id: "bd-123.1",
 			planned_files: ["src/auth.ts"],
 			actual_files: ["src/auth.ts"],
 			duration_ms: 10000,
@@ -680,7 +680,7 @@ describe("SubtaskOutcomeEventSchema", () => {
 			project_key: "/test/project",
 			timestamp: Date.now(),
 			epic_id: "bd-123",
-			bead_id: "bd-123.1",
+			cell_id: "bd-123.1",
 			planned_files: ["test.ts"],
 			actual_files: ["test.ts"],
 			success: true,
@@ -708,7 +708,7 @@ describe("SubtaskOutcomeEventSchema", () => {
 			project_key: "/test/project",
 			timestamp: Date.now(),
 			epic_id: "bd-123",
-			bead_id: "bd-123.1",
+			cell_id: "bd-123.1",
 			planned_files: ["test.ts"],
 			actual_files: ["test.ts"],
 			duration_ms: 1000,
@@ -727,7 +727,7 @@ describe("SubtaskOutcomeEventSchema", () => {
 			project_key: "/test/project",
 			timestamp: Date.now(),
 			epic_id: "bd-123",
-			bead_id: "bd-123.1",
+			cell_id: "bd-123.1",
 			planned_files: ["a.ts", "b.ts"],
 			actual_files: ["a.ts", "b.ts", "c.ts", "d.ts"],
 			duration_ms: 5000,
@@ -1076,7 +1076,7 @@ describe("Enhanced SwarmCheckpointedEvent", () => {
 	const baseCheckpoint = {
 		project_key: "/test",
 		epic_id: "epic-123",
-		bead_id: "bead-456",
+		cell_id: "bead-456",
 		strategy: "file-based" as const,
 		files: ["a.ts"],
 		dependencies: [],
@@ -1156,7 +1156,7 @@ describe("Enhanced SwarmRecoveredEvent", () => {
 	const baseRecovery = {
 		project_key: "/test",
 		epic_id: "epic-123",
-		bead_id: "bead-456",
+		cell_id: "bead-456",
 		recovered_from_checkpoint: Date.now() - 60000,
 	};
 
@@ -1206,7 +1206,7 @@ describe("CheckpointCreatedEvent", () => {
 		const event = createEvent("checkpoint_created", {
 			project_key: "/test",
 			epic_id: "epic-123",
-			bead_id: "bead-456",
+			cell_id: "bead-456",
 			agent_name: "TestAgent",
 			checkpoint_id: "ckpt-789",
 			trigger: "manual",
@@ -1233,7 +1233,7 @@ describe("CheckpointCreatedEvent", () => {
 				createEvent("checkpoint_created", {
 					project_key: "/test",
 					epic_id: "epic-123",
-					bead_id: "bead-456",
+					cell_id: "bead-456",
 					agent_name: "TestAgent",
 					checkpoint_id: "ckpt-789",
 					trigger,
@@ -1251,7 +1251,7 @@ describe("CheckpointCreatedEvent", () => {
 				project_key: "/test",
 				timestamp: Date.now(),
 				epic_id: "epic-123",
-				bead_id: "bead-456",
+				cell_id: "bead-456",
 				agent_name: "TestAgent",
 				checkpoint_id: "ckpt-789",
 				trigger: "invalid",
@@ -1265,7 +1265,7 @@ describe("CheckpointCreatedEvent", () => {
 		const base = {
 			project_key: "/test",
 			epic_id: "epic-123",
-			bead_id: "bead-456",
+			cell_id: "bead-456",
 			agent_name: "TestAgent",
 			checkpoint_id: "ckpt-789",
 			trigger: "auto" as const,
@@ -1324,11 +1324,11 @@ describe("ContextCompactedEvent", () => {
 		expect(event.summary_length).toBe(1500);
 	});
 
-	it("accepts optional epic_id and bead_id", () => {
+	it("accepts optional epic_id and cell_id", () => {
 		const event = createEvent("context_compacted", {
 			project_key: "/test",
 			epic_id: "epic-123",
-			bead_id: "bead-456",
+			cell_id: "bead-456",
 			agent_name: "TestAgent",
 			tokens_before: 60000,
 			tokens_after: 30000,
@@ -1337,7 +1337,7 @@ describe("ContextCompactedEvent", () => {
 		});
 
 		expect(event.epic_id).toBe("epic-123");
-		expect(event.bead_id).toBe("bead-456");
+		expect(event.cell_id).toBe("bead-456");
 	});
 
 	it("validates tokens are non-negative", () => {

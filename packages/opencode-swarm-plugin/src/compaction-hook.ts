@@ -6,7 +6,7 @@
  * to preserve swarm coordination state and enable seamless resumption.
  *
  * ## Philosophy: Err on the Side of Continuation
- * 
+ *
  * It's better to inject swarm context unnecessarily than to lose an active swarm.
  * The cost of a false positive (extra context) is low.
  * The cost of a false negative (lost swarm) is high - wasted work, confused agents.
@@ -31,17 +31,17 @@
 
 import { checkSwarmHealth } from "swarm-mail";
 import {
-  CompactionPhase,
-  createMetricsCollector,
-  getMetricsSummary,
-  recordPatternExtracted,
-  recordPatternSkipped,
-  recordPhaseComplete,
-  recordPhaseStart,
+	CompactionPhase,
+	createMetricsCollector,
+	getMetricsSummary,
+	recordPatternExtracted,
+	recordPatternSkipped,
+	recordPhaseComplete,
+	recordPhaseStart,
 } from "./compaction-observability";
+import { captureCompactionEvent } from "./eval-capture";
 import { getHiveAdapter, getHiveWorkingDirectory } from "./hive";
 import { createChildLogger } from "./logger";
-import { captureCompactionEvent } from "./eval-capture";
 import { getAlwaysOnGuidanceSkill } from "./skills";
 
 let _logger: any | undefined;
@@ -59,10 +59,10 @@ let _logger: any | undefined;
  * - COMPLETE: duration_ms, success, detected, confidence, context_injected
  */
 function getLog() {
-  if (!_logger) {
-    _logger = createChildLogger("compaction");
-  }
-  return _logger;
+	if (!_logger) {
+		_logger = createChildLogger("compaction");
+	}
+	return _logger;
 }
 
 // ============================================================================
@@ -78,7 +78,7 @@ function getLog() {
  *
  * This is NOT about preserving state for a human - it's about the swarm continuing
  * autonomously after context compression.
- * 
+ *
  * Structure optimized for eval scores:
  * 1. ASCII header (visual anchor, coordinatorIdentity scorer)
  * 2. What Good Looks Like (behavioral examples, outcome-focused)
@@ -295,7 +295,7 @@ swarm_validate_decomposition(response="CELLTREE_JSON")
 ### Phase 6: Spawn Workers
 
 \`\`\`
-swarm_spawn_subtask(bead_id, epic_id, title, files, shared_context, project_path)
+swarm_spawn_subtask(cell_id, epic_id, title, files, shared_context, project_path)
 Task(subagent_type="swarm-worker", prompt="GENERATED_PROMPT")
 \`\`\`
 
@@ -310,7 +310,7 @@ Task(subagent_type="swarm-worker", prompt="GENERATED_PROMPT")
 
 **If needs_changes:**
 \`\`\`
-swarm_spawn_retry(bead_id, epic_id, original_prompt, attempt, issues, diff, files, project_path)
+swarm_spawn_retry(cell_id, epic_id, original_prompt, attempt, issues, diff, files, project_path)
 // Spawn NEW worker with Task() using retry prompt
 // Max 3 attempts before marking task blocked
 \`\`\`
@@ -336,7 +336,7 @@ swarm_spawn_retry(bead_id, epic_id, original_prompt, attempt, issues, diff, file
 
 /**
  * Fallback detection prompt - tells the compactor what to look for
- * 
+ *
  * Used when we can't definitively detect a swarm but want to be safe.
  * The compactor can check the conversation context for these patterns.
  */
@@ -381,53 +381,70 @@ Include this in your summary:
 
 /**
  * Build dynamic swarm state section from detected state
- * 
+ *
  * This injects SPECIFIC values instead of placeholders, making the context
  * immediately actionable on resume.
  */
 function buildDynamicSwarmState(state: SwarmState): string {
-  const parts: string[] = [];
-  
-  // Lead with epic context
-  if (state.epicId && state.epicTitle) {
-    parts.push(`You are coordinating epic **${state.epicId}** - ${state.epicTitle}`);
-  } else if (state.epicId) {
-    parts.push(`You are coordinating epic **${state.epicId}**`);
-  }
-  
-  parts.push(`Project: ${state.projectPath}\n`);
-  
-  // IMMEDIATE ACTIONS section (must come FIRST for postCompactionDiscipline scoring)
-  if (state.epicId) {
-    parts.push(`## 1️⃣ IMMEDIATE ACTIONS (Do These FIRST)\n`);
-    parts.push(`1. \`swarm_status(epic_id="${state.epicId}", project_key="${state.projectPath}")\` - Get current swarm state`);
-    parts.push(`2. \`swarmmail_inbox(limit=5)\` - Check for worker messages and blockers`);
-    parts.push(`3. For completed work: Review with \`swarm_review\` → \`swarm_review_feedback\``);
-    parts.push(`4. For open subtasks: Spawn workers with \`swarm_spawn_subtask\``);
-    parts.push(`5. For blocked work: Investigate, unblock, or reassign\n`);
-  }
-  
-  // Swarm state summary
-  parts.push(`## 🐝 Current Swarm State\n`);
-  
-  if (state.epicId && state.epicTitle) {
-    parts.push(`**Epic:** ${state.epicId} - ${state.epicTitle}`);
-    
-    const totalSubtasks = state.subtasks.closed + state.subtasks.in_progress + 
-                          state.subtasks.open + state.subtasks.blocked;
-    
-    if (totalSubtasks > 0) {
-      parts.push(`**Subtasks:**`);
-      if (state.subtasks.closed > 0) parts.push(`  - ${state.subtasks.closed} closed`);
-      if (state.subtasks.in_progress > 0) parts.push(`  - ${state.subtasks.in_progress} in_progress`);
-      if (state.subtasks.open > 0) parts.push(`  - ${state.subtasks.open} open`);
-      if (state.subtasks.blocked > 0) parts.push(`  - ${state.subtasks.blocked} blocked`);
-    }
-  }
-  
-  parts.push(`**Project:** ${state.projectPath}\n`);
-  
-  return parts.join("\n");
+	const parts: string[] = [];
+
+	// Lead with epic context
+	if (state.epicId && state.epicTitle) {
+		parts.push(
+			`You are coordinating epic **${state.epicId}** - ${state.epicTitle}`,
+		);
+	} else if (state.epicId) {
+		parts.push(`You are coordinating epic **${state.epicId}**`);
+	}
+
+	parts.push(`Project: ${state.projectPath}\n`);
+
+	// IMMEDIATE ACTIONS section (must come FIRST for postCompactionDiscipline scoring)
+	if (state.epicId) {
+		parts.push(`## 1️⃣ IMMEDIATE ACTIONS (Do These FIRST)\n`);
+		parts.push(
+			`1. \`swarm_status(epic_id="${state.epicId}", project_key="${state.projectPath}")\` - Get current swarm state`,
+		);
+		parts.push(
+			`2. \`swarmmail_inbox(limit=5)\` - Check for worker messages and blockers`,
+		);
+		parts.push(
+			`3. For completed work: Review with \`swarm_review\` → \`swarm_review_feedback\``,
+		);
+		parts.push(
+			`4. For open subtasks: Spawn workers with \`swarm_spawn_subtask\``,
+		);
+		parts.push(`5. For blocked work: Investigate, unblock, or reassign\n`);
+	}
+
+	// Swarm state summary
+	parts.push(`## 🐝 Current Swarm State\n`);
+
+	if (state.epicId && state.epicTitle) {
+		parts.push(`**Epic:** ${state.epicId} - ${state.epicTitle}`);
+
+		const totalSubtasks =
+			state.subtasks.closed +
+			state.subtasks.in_progress +
+			state.subtasks.open +
+			state.subtasks.blocked;
+
+		if (totalSubtasks > 0) {
+			parts.push(`**Subtasks:**`);
+			if (state.subtasks.closed > 0)
+				parts.push(`  - ${state.subtasks.closed} closed`);
+			if (state.subtasks.in_progress > 0)
+				parts.push(`  - ${state.subtasks.in_progress} in_progress`);
+			if (state.subtasks.open > 0)
+				parts.push(`  - ${state.subtasks.open} open`);
+			if (state.subtasks.blocked > 0)
+				parts.push(`  - ${state.subtasks.blocked} blocked`);
+		}
+	}
+
+	parts.push(`**Project:** ${state.projectPath}\n`);
+
+	return parts.join("\n");
 }
 
 // ============================================================================
@@ -438,38 +455,38 @@ function buildDynamicSwarmState(state: SwarmState): string {
  * Tool part with completed state containing input/output
  */
 interface ToolPart {
-  id: string;
-  sessionID: string;
-  messageID: string;
-  type: "tool";
-  callID: string;
-  tool: string;
-  state: ToolState;
+	id: string;
+	sessionID: string;
+	messageID: string;
+	type: "tool";
+	callID: string;
+	tool: string;
+	state: ToolState;
 }
 
 /**
  * Tool state (completed tools have input/output we need)
  */
 type ToolState =
-  | {
-      status: "completed";
-      input: { [key: string]: unknown };
-      output: string;
-      title: string;
-      metadata: { [key: string]: unknown };
-      time: { start: number; end: number };
-    }
-  | {
-      status: string;
-      [key: string]: unknown;
-    };
+	| {
+			status: "completed";
+			input: { [key: string]: unknown };
+			output: string;
+			title: string;
+			metadata: { [key: string]: unknown };
+			time: { start: number; end: number };
+	  }
+	| {
+			status: string;
+			[key: string]: unknown;
+	  };
 
 /**
  * SDK Client type (minimal interface for scanSessionMessages)
- * 
+ *
  * The actual SDK client uses a more complex Options-based API:
  * client.session.messages({ path: { id: sessionID }, query: { limit } })
- * 
+ *
  * We accept `unknown` and handle the type internally to avoid
  * tight coupling to SDK internals.
  */
@@ -479,15 +496,15 @@ export type OpencodeClient = unknown;
  * Scanned swarm state extracted from session messages
  */
 export interface ScannedSwarmState {
-  epicId?: string;
-  epicTitle?: string;
-  projectPath?: string;
-  agentName?: string;
-  subtasks: Map<
-    string,
-    { title: string; status: string; worker?: string; files?: string[] }
-  >;
-  lastAction?: { tool: string; args: unknown; timestamp: number };
+	epicId?: string;
+	epicTitle?: string;
+	projectPath?: string;
+	agentName?: string;
+	subtasks: Map<
+		string,
+		{ title: string; status: string; worker?: string; files?: string[] }
+	>;
+	lastAction?: { tool: string; args: unknown; timestamp: number };
 }
 
 /**
@@ -506,241 +523,248 @@ export interface ScannedSwarmState {
  * @returns Extracted swarm state
  */
 export async function scanSessionMessages(
-  client: OpencodeClient,
-  sessionID: string,
-  limit: number = 100,
+	client: OpencodeClient,
+	sessionID: string,
+	limit: number = 100,
 ): Promise<ScannedSwarmState> {
-  const state: ScannedSwarmState = {
-    subtasks: new Map(),
-  };
+	const state: ScannedSwarmState = {
+		subtasks: new Map(),
+	};
 
-  if (!client) {
-    return state;
-  }
+	if (!client) {
+		return state;
+	}
 
-  try {
-    // SDK client uses Options-based API: { path: { id }, query: { limit } }
-    const sdkClient = client as {
-      session: {
-        messages: (opts: {
-          path: { id: string };
-          query?: { limit?: number };
-        }) => Promise<{ data?: Array<{ info: unknown; parts: ToolPart[] }> }>;
-      };
-    };
+	try {
+		// SDK client uses Options-based API: { path: { id }, query: { limit } }
+		const sdkClient = client as {
+			session: {
+				messages: (opts: {
+					path: { id: string };
+					query?: { limit?: number };
+				}) => Promise<{ data?: Array<{ info: unknown; parts: ToolPart[] }> }>;
+			};
+		};
 
-    const response = await sdkClient.session.messages({
-      path: { id: sessionID },
-      query: { limit },
-    });
+		const response = await sdkClient.session.messages({
+			path: { id: sessionID },
+			query: { limit },
+		});
 
-    const messages = response.data || [];
+		const messages = response.data || [];
 
-    for (const message of messages) {
-      for (const part of message.parts) {
-        if (part.type !== "tool" || part.state.status !== "completed") {
-          continue;
-        }
+		for (const message of messages) {
+			for (const part of message.parts) {
+				if (part.type !== "tool" || part.state.status !== "completed") {
+					continue;
+				}
 
-        const { tool, state: toolState } = part;
-        const { input, output, time } = toolState as Extract<
-          ToolState,
-          { status: "completed" }
-        >;
+				const { tool, state: toolState } = part;
+				const { input, output, time } = toolState as Extract<
+					ToolState,
+					{ status: "completed" }
+				>;
 
-        // Track last action
-        state.lastAction = {
-          tool,
-          args: input,
-          timestamp: time.end,
-        };
+				// Track last action
+				state.lastAction = {
+					tool,
+					args: input,
+					timestamp: time.end,
+				};
 
-        // Extract swarm state based on tool type
-        switch (tool) {
-          case "hive_create_epic": {
-            try {
-              const parsed = JSON.parse(output);
-              if (parsed.epic?.id) {
-                state.epicId = parsed.epic.id;
-              }
-              if (input.epic_title && typeof input.epic_title === "string") {
-                state.epicTitle = input.epic_title;
-              }
-            } catch {
-              // Invalid JSON, skip
-            }
-            break;
-          }
+				// Extract swarm state based on tool type
+				switch (tool) {
+					case "hive_create_epic": {
+						try {
+							const parsed = JSON.parse(output);
+							if (parsed.epic?.id) {
+								state.epicId = parsed.epic.id;
+							}
+							if (input.epic_title && typeof input.epic_title === "string") {
+								state.epicTitle = input.epic_title;
+							}
+						} catch {
+							// Invalid JSON, skip
+						}
+						break;
+					}
 
-          case "swarmmail_init": {
-            try {
-              const parsed = JSON.parse(output);
-              if (parsed.agent_name) {
-                state.agentName = parsed.agent_name;
-              }
-              if (parsed.project_key) {
-                state.projectPath = parsed.project_key;
-              }
-            } catch {
-              // Invalid JSON, skip
-            }
-            break;
-          }
+					case "swarmmail_init": {
+						try {
+							const parsed = JSON.parse(output);
+							if (parsed.agent_name) {
+								state.agentName = parsed.agent_name;
+							}
+							if (parsed.project_key) {
+								state.projectPath = parsed.project_key;
+							}
+						} catch {
+							// Invalid JSON, skip
+						}
+						break;
+					}
 
-          case "swarm_spawn_subtask": {
-            const beadId = input.bead_id as string | undefined;
-            const epicId = input.epic_id as string | undefined;
-            const title = input.subtask_title as string | undefined;
-            const files = input.files as string[] | undefined;
+					case "swarm_spawn_subtask": {
+						const cellId = input.cell_id as string | undefined;
+						const epicId = input.epic_id as string | undefined;
+						const title = input.subtask_title as string | undefined;
+						const files = input.files as string[] | undefined;
 
-            if (beadId && title) {
-              let worker: string | undefined;
-              try {
-                const parsed = JSON.parse(output);
-                worker = parsed.worker;
-              } catch {
-                // No worker in output
-              }
+						if (cellId && title) {
+							let worker: string | undefined;
+							try {
+								const parsed = JSON.parse(output);
+								worker = parsed.worker;
+							} catch {
+								// No worker in output
+							}
 
-              state.subtasks.set(beadId, {
-                title,
-                status: "spawned",
-                worker,
-                files,
-              });
+							state.subtasks.set(cellId, {
+								title,
+								status: "spawned",
+								worker,
+								files,
+							});
 
-              if (epicId && !state.epicId) {
-                state.epicId = epicId;
-              }
-            }
-            break;
-          }
+							if (epicId && !state.epicId) {
+								state.epicId = epicId;
+							}
+						}
+						break;
+					}
 
-          case "swarm_complete": {
-            const beadId = input.bead_id as string | undefined;
-            if (beadId && state.subtasks.has(beadId)) {
-              const existing = state.subtasks.get(beadId)!;
-              state.subtasks.set(beadId, {
-                ...existing,
-                status: "completed",
-              });
-            }
-            break;
-          }
+					case "swarm_complete": {
+						const cellId = input.cell_id as string | undefined;
+						if (cellId && state.subtasks.has(cellId)) {
+							const existing = state.subtasks.get(cellId)!;
+							state.subtasks.set(cellId, {
+								...existing,
+								status: "completed",
+							});
+						}
+						break;
+					}
 
-          case "swarm_status": {
-            const epicId = input.epic_id as string | undefined;
-            if (epicId && !state.epicId) {
-              state.epicId = epicId;
-            }
-            const projectKey = input.project_key as string | undefined;
-            if (projectKey && !state.projectPath) {
-              state.projectPath = projectKey;
-            }
-            break;
-          }
-        }
-      }
-    }
-  } catch (error) {
-    getLog().debug(
-      {
-        error: error instanceof Error ? error.message : String(error),
-      },
-      "SDK message scanning failed",
-    );
-    // SDK not available or error fetching messages - return what we have
-  }
+					case "swarm_status": {
+						const epicId = input.epic_id as string | undefined;
+						if (epicId && !state.epicId) {
+							state.epicId = epicId;
+						}
+						const projectKey = input.project_key as string | undefined;
+						if (projectKey && !state.projectPath) {
+							state.projectPath = projectKey;
+						}
+						break;
+					}
+				}
+			}
+		}
+	} catch (error) {
+		getLog().debug(
+			{
+				error: error instanceof Error ? error.message : String(error),
+			},
+			"SDK message scanning failed",
+		);
+		// SDK not available or error fetching messages - return what we have
+	}
 
-  return state;
+	return state;
 }
 
 /**
  * Build dynamic swarm state from scanned messages (more precise than hive detection)
  */
 function buildDynamicSwarmStateFromScanned(
-  scanned: ScannedSwarmState,
-  detected: SwarmState,
+	scanned: ScannedSwarmState,
+	detected: SwarmState,
 ): string {
-  const parts: string[] = [];
+	const parts: string[] = [];
 
-  // Prefer scanned data over detected
-  const epicId = scanned.epicId || detected.epicId;
-  const epicTitle = scanned.epicTitle || detected.epicTitle;
-  const projectPath = scanned.projectPath || detected.projectPath;
+	// Prefer scanned data over detected
+	const epicId = scanned.epicId || detected.epicId;
+	const epicTitle = scanned.epicTitle || detected.epicTitle;
+	const projectPath = scanned.projectPath || detected.projectPath;
 
-  // Lead with epic context
-  if (epicId && epicTitle) {
-    parts.push(`You are coordinating epic **${epicId}** - ${epicTitle}`);
-  } else if (epicId) {
-    parts.push(`You are coordinating epic **${epicId}**`);
-  }
+	// Lead with epic context
+	if (epicId && epicTitle) {
+		parts.push(`You are coordinating epic **${epicId}** - ${epicTitle}`);
+	} else if (epicId) {
+		parts.push(`You are coordinating epic **${epicId}**`);
+	}
 
-  if (scanned.agentName) {
-    parts.push(`Coordinator: ${scanned.agentName}`);
-  }
+	if (scanned.agentName) {
+		parts.push(`Coordinator: ${scanned.agentName}`);
+	}
 
-  parts.push(`Project: ${projectPath}\n`);
+	parts.push(`Project: ${projectPath}\n`);
 
-  // IMMEDIATE ACTIONS section (must come FIRST for postCompactionDiscipline scoring)
-  if (epicId) {
-    parts.push(`## 1️⃣ IMMEDIATE ACTIONS (Do These FIRST)\n`);
-    parts.push(
-      `1. \`swarm_status(epic_id="${epicId}", project_key="${projectPath}")\` - Get current swarm state`,
-    );
-    parts.push(`2. \`swarmmail_inbox(limit=5)\` - Check for worker messages and blockers`);
-    parts.push(
-      `3. For completed work: Review with \`swarm_review\` → \`swarm_review_feedback\``,
-    );
-    parts.push(`4. For open subtasks: Spawn workers with \`swarm_spawn_subtask\``);
-    parts.push(`5. For blocked work: Investigate, unblock, or reassign\n`);
-  }
+	// IMMEDIATE ACTIONS section (must come FIRST for postCompactionDiscipline scoring)
+	if (epicId) {
+		parts.push(`## 1️⃣ IMMEDIATE ACTIONS (Do These FIRST)\n`);
+		parts.push(
+			`1. \`swarm_status(epic_id="${epicId}", project_key="${projectPath}")\` - Get current swarm state`,
+		);
+		parts.push(
+			`2. \`swarmmail_inbox(limit=5)\` - Check for worker messages and blockers`,
+		);
+		parts.push(
+			`3. For completed work: Review with \`swarm_review\` → \`swarm_review_feedback\``,
+		);
+		parts.push(
+			`4. For open subtasks: Spawn workers with \`swarm_spawn_subtask\``,
+		);
+		parts.push(`5. For blocked work: Investigate, unblock, or reassign\n`);
+	}
 
-  // Swarm state summary
-  parts.push(`## 🐝 Current Swarm State\n`);
+	// Swarm state summary
+	parts.push(`## 🐝 Current Swarm State\n`);
 
-  if (epicId) {
-    parts.push(`**Epic:** ${epicId}${epicTitle ? ` - ${epicTitle}` : ""}`);
-  }
+	if (epicId) {
+		parts.push(`**Epic:** ${epicId}${epicTitle ? ` - ${epicTitle}` : ""}`);
+	}
 
-  // Show detailed subtask info from scanned state
-  if (scanned.subtasks.size > 0) {
-    parts.push(`\n**Subtasks:**`);
-    for (const [id, subtask] of scanned.subtasks) {
-      const status = subtask.status === "completed" ? "✓" : `[${subtask.status}]`;
-      const worker = subtask.worker ? ` → ${subtask.worker}` : "";
-      const files = subtask.files?.length ? ` (${subtask.files.join(", ")})` : "";
-      parts.push(`  - ${id}: ${subtask.title} ${status}${worker}${files}`);
-    }
-  } else if (detected.subtasks) {
-    // Fall back to counts from hive detection
-    const total =
-      detected.subtasks.closed +
-      detected.subtasks.in_progress +
-      detected.subtasks.open +
-      detected.subtasks.blocked;
+	// Show detailed subtask info from scanned state
+	if (scanned.subtasks.size > 0) {
+		parts.push(`\n**Subtasks:**`);
+		for (const [id, subtask] of scanned.subtasks) {
+			const status =
+				subtask.status === "completed" ? "✓" : `[${subtask.status}]`;
+			const worker = subtask.worker ? ` → ${subtask.worker}` : "";
+			const files = subtask.files?.length
+				? ` (${subtask.files.join(", ")})`
+				: "";
+			parts.push(`  - ${id}: ${subtask.title} ${status}${worker}${files}`);
+		}
+	} else if (detected.subtasks) {
+		// Fall back to counts from hive detection
+		const total =
+			detected.subtasks.closed +
+			detected.subtasks.in_progress +
+			detected.subtasks.open +
+			detected.subtasks.blocked;
 
-    if (total > 0) {
-      parts.push(`\n**Subtasks:**`);
-      if (detected.subtasks.closed > 0)
-        parts.push(`  - ${detected.subtasks.closed} closed`);
-      if (detected.subtasks.in_progress > 0)
-        parts.push(`  - ${detected.subtasks.in_progress} in_progress`);
-      if (detected.subtasks.open > 0)
-        parts.push(`  - ${detected.subtasks.open} open`);
-      if (detected.subtasks.blocked > 0)
-        parts.push(`  - ${detected.subtasks.blocked} blocked`);
-    }
-  }
+		if (total > 0) {
+			parts.push(`\n**Subtasks:**`);
+			if (detected.subtasks.closed > 0)
+				parts.push(`  - ${detected.subtasks.closed} closed`);
+			if (detected.subtasks.in_progress > 0)
+				parts.push(`  - ${detected.subtasks.in_progress} in_progress`);
+			if (detected.subtasks.open > 0)
+				parts.push(`  - ${detected.subtasks.open} open`);
+			if (detected.subtasks.blocked > 0)
+				parts.push(`  - ${detected.subtasks.blocked} blocked`);
+		}
+	}
 
-  parts.push(`\n**Project:** ${projectPath}`);
+	parts.push(`\n**Project:** ${projectPath}`);
 
-  // Show last action if available
-  if (scanned.lastAction) {
-    parts.push(`**Last Action:** \`${scanned.lastAction.tool}\``);
-  }
+	// Show last action if available
+	if (scanned.lastAction) {
+		parts.push(`**Last Action:** \`${scanned.lastAction.tool}\``);
+	}
 
-  return parts.join("\n");
+	return parts.join("\n");
 }
 
 // ============================================================================
@@ -751,26 +775,26 @@ function buildDynamicSwarmStateFromScanned(
  * Detection result with confidence level
  */
 interface SwarmDetection {
-  detected: boolean;
-  confidence: "high" | "medium" | "low" | "none";
-  reasons: string[];
-  /** Specific swarm state data for context injection */
-  state?: SwarmState;
+	detected: boolean;
+	confidence: "high" | "medium" | "low" | "none";
+	reasons: string[];
+	/** Specific swarm state data for context injection */
+	state?: SwarmState;
 }
 
 /**
  * Specific swarm state captured during detection
  */
 interface SwarmState {
-  epicId?: string;
-  epicTitle?: string;
-  projectPath: string;
-  subtasks: {
-    closed: number;
-    in_progress: number;
-    open: number;
-    blocked: number;
-  };
+	epicId?: string;
+	epicTitle?: string;
+	projectPath: string;
+	subtasks: {
+		closed: number;
+		in_progress: number;
+		open: number;
+		blocked: number;
+	};
 }
 
 /**
@@ -778,245 +802,261 @@ interface SwarmState {
  * Only requires queryCells - the only method detectSwarm uses
  */
 interface MinimalHiveAdapter {
-  queryCells: (
-    projectKey: string,
-    filters: Record<string, unknown>,
-  ) => Promise<
-    Array<{
-      id: string;
-      title?: string;
-      type: string;
-      status: string;
-      parent_id: string | null;
-      updated_at: number;
-    }>
-  >;
+	queryCells: (
+		projectKey: string,
+		filters: Record<string, unknown>,
+	) => Promise<
+		Array<{
+			id: string;
+			title?: string;
+			type: string;
+			status: string;
+			parent_id: string | null;
+			updated_at: number;
+		}>
+	>;
 }
 
 /**
  * Check for swarm sign - evidence a swarm passed through
- * 
+ *
  * Uses multiple signals with different confidence levels:
  * - HIGH: Active reservations, in_progress cells
  * - MEDIUM: Open subtasks, unclosed epics, recent activity
  * - LOW: Any cells exist, swarm-mail initialized
- * 
+ *
  * Philosophy: Err on the side of continuation.
  */
 async function detectSwarm(
-  getHiveAdapterFn: (projectKey: string) => Promise<MinimalHiveAdapter>,
-  checkSwarmHealthFn: typeof checkSwarmHealth,
-  getHiveWorkingDirectoryFn: typeof getHiveWorkingDirectory,
-  log: ReturnType<typeof getLog>,
+	getHiveAdapterFn: (projectKey: string) => Promise<MinimalHiveAdapter>,
+	checkSwarmHealthFn: typeof checkSwarmHealth,
+	getHiveWorkingDirectoryFn: typeof getHiveWorkingDirectory,
+	log: ReturnType<typeof getLog>,
 ): Promise<SwarmDetection> {
-  const reasons: string[] = [];
-  let highConfidence = false;
-  let mediumConfidence = false;
-  let lowConfidence = false;
-  let state: SwarmState | undefined;
+	const reasons: string[] = [];
+	let highConfidence = false;
+	let mediumConfidence = false;
+	let lowConfidence = false;
+	let state: SwarmState | undefined;
 
-  try {
-    const projectKey = getHiveWorkingDirectoryFn();
-    
-    // Initialize state with project path
-    state = {
-      projectPath: projectKey,
-      subtasks: {
-        closed: 0,
-        in_progress: 0,
-        open: 0,
-        blocked: 0,
-      },
-    };
+	try {
+		const projectKey = getHiveWorkingDirectoryFn();
 
-    // Check 1: Active reservations in swarm-mail (HIGH confidence)
-    const swarmMailStart = Date.now();
-    try {
-      const health = await checkSwarmHealthFn(projectKey);
-      const duration = Date.now() - swarmMailStart;
+		// Initialize state with project path
+		state = {
+			projectPath: projectKey,
+			subtasks: {
+				closed: 0,
+				in_progress: 0,
+				open: 0,
+				blocked: 0,
+			},
+		};
 
-      log.debug(
-        {
-          source: "swarm-mail",
-          duration_ms: duration,
-          healthy: health.healthy,
-          stats: health.stats,
-        },
-        "checked swarm-mail health",
-      );
+		// Check 1: Active reservations in swarm-mail (HIGH confidence)
+		const swarmMailStart = Date.now();
+		try {
+			const health = await checkSwarmHealthFn(projectKey);
+			const duration = Date.now() - swarmMailStart;
 
-      if (health.healthy && health.stats) {
-        if (health.stats.reservations > 0) {
-          highConfidence = true;
-          reasons.push(`${health.stats.reservations} active file reservations`);
-        }
-        // TUNED: Single agent registration = medium confidence (coordinator setup)
-        if (health.stats.agents > 0) {
-          mediumConfidence = true;
-          reasons.push(`${health.stats.agents} registered agents`);
-        }
-        if (health.stats.messages > 0) {
-          lowConfidence = true;
-          reasons.push(`${health.stats.messages} swarm messages`);
-        }
-      }
-    } catch (error) {
-      log.debug(
-        {
-          source: "swarm-mail",
-          duration_ms: Date.now() - swarmMailStart,
-          error: error instanceof Error ? error.message : String(error),
-        },
-        "swarm-mail check failed",
-      );
-      // Swarm-mail not available, continue with other checks
-    }
+			log.debug(
+				{
+					source: "swarm-mail",
+					duration_ms: duration,
+					healthy: health.healthy,
+					stats: health.stats,
+				},
+				"checked swarm-mail health",
+			);
 
-    // Check 2: Hive cells (various confidence levels)
-    const hiveStart = Date.now();
-    try {
-      const adapter = await getHiveAdapterFn(projectKey);
-      const cells = await adapter.queryCells(projectKey, {});
-      const duration = Date.now() - hiveStart;
+			if (health.healthy && health.stats) {
+				if (health.stats.reservations > 0) {
+					highConfidence = true;
+					reasons.push(`${health.stats.reservations} active file reservations`);
+				}
+				// TUNED: Single agent registration = medium confidence (coordinator setup)
+				if (health.stats.agents > 0) {
+					mediumConfidence = true;
+					reasons.push(`${health.stats.agents} registered agents`);
+				}
+				if (health.stats.messages > 0) {
+					lowConfidence = true;
+					reasons.push(`${health.stats.messages} swarm messages`);
+				}
+			}
+		} catch (error) {
+			log.debug(
+				{
+					source: "swarm-mail",
+					duration_ms: Date.now() - swarmMailStart,
+					error: error instanceof Error ? error.message : String(error),
+				},
+				"swarm-mail check failed",
+			);
+			// Swarm-mail not available, continue with other checks
+		}
 
-      if (Array.isArray(cells) && cells.length > 0) {
-        // HIGH: Any in_progress cells
-        const inProgress = cells.filter((c) => c.status === "in_progress");
-        if (inProgress.length > 0) {
-          highConfidence = true;
-          reasons.push(`${inProgress.length} cells in_progress`);
-        }
+		// Check 2: Hive cells (various confidence levels)
+		const hiveStart = Date.now();
+		try {
+			const adapter = await getHiveAdapterFn(projectKey);
+			const cells = await adapter.queryCells(projectKey, {});
+			const duration = Date.now() - hiveStart;
 
-        // MEDIUM: Open subtasks (cells with parent_id)
-        const subtasks = cells.filter(
-          (c) => c.status === "open" && c.parent_id,
-        );
-        if (subtasks.length > 0) {
-          mediumConfidence = true;
-          reasons.push(`${subtasks.length} open subtasks`);
-        }
+			if (Array.isArray(cells) && cells.length > 0) {
+				// HIGH: Any in_progress cells
+				const inProgress = cells.filter((c) => c.status === "in_progress");
+				if (inProgress.length > 0) {
+					highConfidence = true;
+					reasons.push(`${inProgress.length} cells in_progress`);
+				}
 
-        // MEDIUM: Unclosed epics
-        const openEpics = cells.filter(
-          (c) => c.type === "epic" && c.status !== "closed",
-        );
-        if (openEpics.length > 0) {
-          mediumConfidence = true;
-          reasons.push(`${openEpics.length} unclosed epics`);
-          
-          // Capture in_progress epic data for state
-          const inProgressEpic = openEpics.find((c) => c.status === "in_progress");
-          if (inProgressEpic && state) {
-            state.epicId = inProgressEpic.id;
-            state.epicTitle = inProgressEpic.title;
-            
-            // Count subtasks for this epic
-            const epicSubtasks = cells.filter((c) => c.parent_id === inProgressEpic.id);
-            state.subtasks.closed = epicSubtasks.filter((c) => c.status === "closed").length;
-            state.subtasks.in_progress = epicSubtasks.filter((c) => c.status === "in_progress").length;
-            state.subtasks.open = epicSubtasks.filter((c) => c.status === "open").length;
-            state.subtasks.blocked = epicSubtasks.filter((c) => c.status === "blocked").length;
-            
-            log.debug(
-              {
-                epic_id: state.epicId,
-                epic_title: state.epicTitle,
-                subtasks_closed: state.subtasks.closed,
-                subtasks_in_progress: state.subtasks.in_progress,
-                subtasks_open: state.subtasks.open,
-                subtasks_blocked: state.subtasks.blocked,
-              },
-              "captured epic state for context",
-            );
-          }
-        }
+				// MEDIUM: Open subtasks (cells with parent_id)
+				const subtasks = cells.filter(
+					(c) => c.status === "open" && c.parent_id,
+				);
+				if (subtasks.length > 0) {
+					mediumConfidence = true;
+					reasons.push(`${subtasks.length} open subtasks`);
+				}
 
-        // MEDIUM: Recently updated cells (TUNED: 30min window, was 1 hour)
-        const thirtyMinutesAgo = Date.now() - 30 * 60 * 1000;
-        const recentCells = cells.filter((c) => c.updated_at > thirtyMinutesAgo);
-        if (recentCells.length > 0) {
-          mediumConfidence = true;
-          reasons.push(`${recentCells.length} cells updated in last 30 minutes`);
-        }
+				// MEDIUM: Unclosed epics
+				const openEpics = cells.filter(
+					(c) => c.type === "epic" && c.status !== "closed",
+				);
+				if (openEpics.length > 0) {
+					mediumConfidence = true;
+					reasons.push(`${openEpics.length} unclosed epics`);
 
-        // LOW: Any cells exist at all
-        if (cells.length > 0) {
-          lowConfidence = true;
-          reasons.push(`${cells.length} total cells in hive`);
-        }
+					// Capture in_progress epic data for state
+					const inProgressEpic = openEpics.find(
+						(c) => c.status === "in_progress",
+					);
+					if (inProgressEpic && state) {
+						state.epicId = inProgressEpic.id;
+						state.epicTitle = inProgressEpic.title;
 
-        log.debug(
-          {
-            source: "hive",
-            duration_ms: duration,
-            total_cells: cells.length,
-            in_progress: inProgress.length,
-            open_subtasks: subtasks.length,
-            open_epics: openEpics.length,
-            recent_updates: recentCells.length,
-          },
-          "checked hive cells",
-        );
-      } else {
-        log.debug(
-          { source: "hive", duration_ms: duration, total_cells: 0 },
-          "hive empty",
-        );
-      }
-    } catch (error) {
-      log.debug(
-        {
-          source: "hive",
-          duration_ms: Date.now() - hiveStart,
-          error: error instanceof Error ? error.message : String(error),
-        },
-        "hive check failed",
-      );
-      // Hive not available, continue
-    }
-  } catch (error) {
-    // Project detection failed, use fallback
-    lowConfidence = true;
-    reasons.push("Could not detect project, using fallback");
-    log.debug(
-      {
-        error: error instanceof Error ? error.message : String(error),
-      },
-      "project detection failed",
-    );
-  }
+						// Count subtasks for this epic
+						const epicSubtasks = cells.filter(
+							(c) => c.parent_id === inProgressEpic.id,
+						);
+						state.subtasks.closed = epicSubtasks.filter(
+							(c) => c.status === "closed",
+						).length;
+						state.subtasks.in_progress = epicSubtasks.filter(
+							(c) => c.status === "in_progress",
+						).length;
+						state.subtasks.open = epicSubtasks.filter(
+							(c) => c.status === "open",
+						).length;
+						state.subtasks.blocked = epicSubtasks.filter(
+							(c) => c.status === "blocked",
+						).length;
 
-  // Determine overall confidence
-  let confidence: "high" | "medium" | "low" | "none";
-  if (highConfidence) {
-    confidence = "high";
-  } else if (mediumConfidence) {
-    confidence = "medium";
-  } else if (lowConfidence) {
-    confidence = "low";
-  } else {
-    confidence = "none";
-  }
+						log.debug(
+							{
+								epic_id: state.epicId,
+								epic_title: state.epicTitle,
+								subtasks_closed: state.subtasks.closed,
+								subtasks_in_progress: state.subtasks.in_progress,
+								subtasks_open: state.subtasks.open,
+								subtasks_blocked: state.subtasks.blocked,
+							},
+							"captured epic state for context",
+						);
+					}
+				}
 
-  const result = {
-    detected: confidence !== "none",
-    confidence,
-    reasons,
-    state,
-  };
+				// MEDIUM: Recently updated cells (TUNED: 30min window, was 1 hour)
+				const thirtyMinutesAgo = Date.now() - 30 * 60 * 1000;
+				const recentCells = cells.filter(
+					(c) => c.updated_at > thirtyMinutesAgo,
+				);
+				if (recentCells.length > 0) {
+					mediumConfidence = true;
+					reasons.push(
+						`${recentCells.length} cells updated in last 30 minutes`,
+					);
+				}
 
-  log.debug(
-    {
-      detected: result.detected,
-      confidence: result.confidence,
-      reason_count: result.reasons.length,
-      reasons: result.reasons,
-      has_state: !!result.state,
-    },
-    "swarm detection complete",
-  );
+				// LOW: Any cells exist at all
+				if (cells.length > 0) {
+					lowConfidence = true;
+					reasons.push(`${cells.length} total cells in hive`);
+				}
 
-  return result;
+				log.debug(
+					{
+						source: "hive",
+						duration_ms: duration,
+						total_cells: cells.length,
+						in_progress: inProgress.length,
+						open_subtasks: subtasks.length,
+						open_epics: openEpics.length,
+						recent_updates: recentCells.length,
+					},
+					"checked hive cells",
+				);
+			} else {
+				log.debug(
+					{ source: "hive", duration_ms: duration, total_cells: 0 },
+					"hive empty",
+				);
+			}
+		} catch (error) {
+			log.debug(
+				{
+					source: "hive",
+					duration_ms: Date.now() - hiveStart,
+					error: error instanceof Error ? error.message : String(error),
+				},
+				"hive check failed",
+			);
+			// Hive not available, continue
+		}
+	} catch (error) {
+		// Project detection failed, use fallback
+		lowConfidence = true;
+		reasons.push("Could not detect project, using fallback");
+		log.debug(
+			{
+				error: error instanceof Error ? error.message : String(error),
+			},
+			"project detection failed",
+		);
+	}
+
+	// Determine overall confidence
+	let confidence: "high" | "medium" | "low" | "none";
+	if (highConfidence) {
+		confidence = "high";
+	} else if (mediumConfidence) {
+		confidence = "medium";
+	} else if (lowConfidence) {
+		confidence = "low";
+	} else {
+		confidence = "none";
+	}
+
+	const result = {
+		detected: confidence !== "none",
+		confidence,
+		reasons,
+		state,
+	};
+
+	log.debug(
+		{
+			detected: result.detected,
+			confidence: result.confidence,
+			reason_count: result.reasons.length,
+			reasons: result.reasons,
+			has_state: !!result.state,
+		},
+		"swarm detection complete",
+	);
+
+	return result;
 }
 
 // ============================================================================
@@ -1027,44 +1067,44 @@ async function detectSwarm(
  * Options for creating a compaction hook with dependency injection
  */
 export interface CompactionHookOptions {
-  /** Optional OpenCode SDK client for scanning session messages */
-  client?: OpencodeClient;
-  /** Custom getHiveAdapter function (for testing) */
-  getHiveAdapter?: (projectKey: string) => Promise<{
-    queryCells: (
-      projectKey: string,
-      filters: Record<string, unknown>,
-    ) => Promise<
-      Array<{
-        id: string;
-        title?: string;
-        type: string;
-        status: string;
-        parent_id: string | null;
-        updated_at: number;
-      }>
-    >;
-  }>;
-  /** Custom checkSwarmHealth function (for testing) */
-  checkSwarmHealth?: (projectKey?: string) => Promise<{
-    healthy: boolean;
-    database: "connected" | "disconnected";
-    stats?: {
-      events: number;
-      agents: number;
-      messages: number;
-      reservations: number;
-    };
-  }>;
-  /** Custom getHiveWorkingDirectory function (for testing) */
-  getHiveWorkingDirectory?: () => string;
-  /** Custom logger instance (for testing) */
-  logger?: {
-    info: (data: unknown, message?: string) => void;
-    debug: (data: unknown, message?: string) => void;
-    warn: (data: unknown, message?: string) => void;
-    error: (data: unknown, message?: string) => void;
-  };
+	/** Optional OpenCode SDK client for scanning session messages */
+	client?: OpencodeClient;
+	/** Custom getHiveAdapter function (for testing) */
+	getHiveAdapter?: (projectKey: string) => Promise<{
+		queryCells: (
+			projectKey: string,
+			filters: Record<string, unknown>,
+		) => Promise<
+			Array<{
+				id: string;
+				title?: string;
+				type: string;
+				status: string;
+				parent_id: string | null;
+				updated_at: number;
+			}>
+		>;
+	}>;
+	/** Custom checkSwarmHealth function (for testing) */
+	checkSwarmHealth?: (projectKey?: string) => Promise<{
+		healthy: boolean;
+		database: "connected" | "disconnected";
+		stats?: {
+			events: number;
+			agents: number;
+			messages: number;
+			reservations: number;
+		};
+	}>;
+	/** Custom getHiveWorkingDirectory function (for testing) */
+	getHiveWorkingDirectory?: () => string;
+	/** Custom logger instance (for testing) */
+	logger?: {
+		info: (data: unknown, message?: string) => void;
+		debug: (data: unknown, message?: string) => void;
+		warn: (data: unknown, message?: string) => void;
+		error: (data: unknown, message?: string) => void;
+	};
 }
 
 /**
@@ -1099,318 +1139,351 @@ export interface CompactionHookOptions {
  * ```
  */
 export function createCompactionHook(
-  options?: OpencodeClient | CompactionHookOptions,
+	options?: OpencodeClient | CompactionHookOptions,
 ) {
-  // Support legacy client-only signature: createCompactionHook(client)
-  // Check if it's CompactionHookOptions by looking for DI fields (not just 'client')
-  const isOptions =
-    options &&
-    typeof options === "object" &&
-    ("getHiveAdapter" in options ||
-      "checkSwarmHealth" in options ||
-      "getHiveWorkingDirectory" in options ||
-      "client" in options);
-  
-  const opts: CompactionHookOptions = isOptions
-    ? (options as CompactionHookOptions)
-    : { client: options as OpencodeClient | undefined };
+	// Support legacy client-only signature: createCompactionHook(client)
+	// Check if it's CompactionHookOptions by looking for DI fields (not just 'client')
+	const isOptions =
+		options &&
+		typeof options === "object" &&
+		("getHiveAdapter" in options ||
+			"checkSwarmHealth" in options ||
+			"getHiveWorkingDirectory" in options ||
+			"client" in options);
 
-  const {
-    client,
-    getHiveAdapter: customGetHiveAdapter,
-    checkSwarmHealth: customCheckSwarmHealth,
-    getHiveWorkingDirectory: customGetHiveWorkingDirectory,
-    logger: customLogger,
-  } = opts;
-  return async (
-    input: { sessionID: string },
-    output: { context: string[] },
-  ): Promise<void> => {
-    const startTime = Date.now();
-    
-    // Use custom logger if provided, otherwise use default
-    const log = customLogger || getLog();
-    
-    // Create metrics collector
-    const metrics = createMetricsCollector({
-      session_id: input.sessionID,
-      has_sdk_client: !!client,
-    });
+	const opts: CompactionHookOptions = isOptions
+		? (options as CompactionHookOptions)
+		: { client: options as OpencodeClient | undefined };
 
-    log.info(
-      {
-        session_id: input.sessionID,
-        trigger: "session_compaction",
-        has_sdk_client: !!client,
-      },
-      "compaction started",
-    );
-    
-    recordPhaseStart(metrics, CompactionPhase.START);
+	const {
+		client,
+		getHiveAdapter: customGetHiveAdapter,
+		checkSwarmHealth: customCheckSwarmHealth,
+		getHiveWorkingDirectory: customGetHiveWorkingDirectory,
+		logger: customLogger,
+	} = opts;
+	return async (
+		input: { sessionID: string },
+		output: { context: string[] },
+	): Promise<void> => {
+		const startTime = Date.now();
 
-    try {
-      recordPhaseComplete(metrics, CompactionPhase.START);
-      
-      // Scan session messages for precise swarm state (if client available)
-      recordPhaseStart(metrics, CompactionPhase.GATHER_SWARM_MAIL);
-      const scannedState = await scanSessionMessages(client, input.sessionID);
-      recordPhaseComplete(metrics, CompactionPhase.GATHER_SWARM_MAIL);
-      
-      // Also run heuristic detection from hive/swarm-mail
-      recordPhaseStart(metrics, CompactionPhase.DETECT);
-      const detection = await detectSwarm(
-        customGetHiveAdapter || getHiveAdapter,
-        customCheckSwarmHealth || checkSwarmHealth,
-        customGetHiveWorkingDirectory || getHiveWorkingDirectory,
-        log,
-      );
+		// Use custom logger if provided, otherwise use default
+		const log = customLogger || getLog();
 
-      // Boost confidence if we found swarm evidence in session messages
-      let effectiveConfidence = detection.confidence;
-      
-      // TUNED: Boost from agent name (swarmmail_init) = medium confidence
-      if (scannedState.agentName && effectiveConfidence === "none") {
-        effectiveConfidence = "medium";
-        detection.reasons.push("coordinator initialized (swarmmail_init)");
-        recordPatternExtracted(metrics, "coordinator_init", "swarmmail_init detected");
-      }
-      
-      // TUNED: Boost from epic creation = medium confidence (before subtasks exist)
-      if (scannedState.epicId && effectiveConfidence === "none") {
-        effectiveConfidence = "medium";
-        detection.reasons.push("epic created (hive_create_epic)");
-        recordPatternExtracted(metrics, "epic_created", "hive_create_epic detected");
-      }
-      
-      if (scannedState.epicId || scannedState.subtasks.size > 0) {
-        // Session messages show swarm activity - this is HIGH confidence
-        if (effectiveConfidence === "none" || effectiveConfidence === "low") {
-          effectiveConfidence = "medium";
-          detection.reasons.push("swarm tool calls found in session");
-          recordPatternExtracted(metrics, "swarm_tool_calls", "Found swarm tool calls in session");
-        }
-        if (scannedState.subtasks.size > 0) {
-          effectiveConfidence = "high";
-          detection.reasons.push(`${scannedState.subtasks.size} subtasks spawned`);
-          recordPatternExtracted(metrics, "subtasks", `${scannedState.subtasks.size} subtasks spawned`);
-        }
-      }
-      
-      recordPhaseComplete(metrics, CompactionPhase.DETECT, {
-        confidence: effectiveConfidence,
-        detected: detection.detected || scannedState.epicId !== undefined,
-      });
+		// Create metrics collector
+		const metrics = createMetricsCollector({
+			session_id: input.sessionID,
+			has_sdk_client: !!client,
+		});
 
-      // Capture detection_complete event
-      const epicId = scannedState.epicId || detection.state?.epicId || "unknown";
-      await captureCompactionEvent({
-        session_id: input.sessionID,
-        epic_id: epicId,
-        compaction_type: "detection_complete",
-        payload: {
-          confidence: effectiveConfidence,
-          detected: detection.detected || scannedState.epicId !== undefined,
-          reasons: detection.reasons,
-          context_type: effectiveConfidence === "high" || effectiveConfidence === "medium" ? "full" : "fallback",
-        },
-      });
+		log.info(
+			{
+				session_id: input.sessionID,
+				trigger: "session_compaction",
+				has_sdk_client: !!client,
+			},
+			"compaction started",
+		);
 
-      recordPhaseStart(metrics, CompactionPhase.INJECT);
-      if (
-        effectiveConfidence === "high" ||
-        effectiveConfidence === "medium"
-      ) {
-        // Definite or probable swarm - inject full context
-        const header = `[Swarm detected: ${detection.reasons.join(", ")}]\n\n`;
+		recordPhaseStart(metrics, CompactionPhase.START);
 
-        // Build dynamic state section - prefer scanned state (ground truth) over detected
-        let dynamicState = "";
-        if (scannedState.epicId || scannedState.subtasks.size > 0) {
-          // Use scanned state (more precise)
-          dynamicState =
-            buildDynamicSwarmStateFromScanned(
-              scannedState,
-              detection.state || {
-                projectPath: scannedState.projectPath || process.cwd(),
-                subtasks: { closed: 0, in_progress: 0, open: 0, blocked: 0 },
-              },
-            ) + "\n\n";
-        } else if (detection.state && detection.state.epicId) {
-          // Fall back to hive-detected state
-          dynamicState = buildDynamicSwarmState(detection.state) + "\n\n";
-        }
+		try {
+			recordPhaseComplete(metrics, CompactionPhase.START);
 
-        const contextContent = header + dynamicState + SWARM_COMPACTION_CONTEXT;
-        output.context.push(contextContent);
-        
-        recordPhaseComplete(metrics, CompactionPhase.INJECT, {
-          context_length: contextContent.length,
-          context_type: "full",
-        });
+			// Scan session messages for precise swarm state (if client available)
+			recordPhaseStart(metrics, CompactionPhase.GATHER_SWARM_MAIL);
+			const scannedState = await scanSessionMessages(client, input.sessionID);
+			recordPhaseComplete(metrics, CompactionPhase.GATHER_SWARM_MAIL);
 
-        // Capture prompt_generated event with FULL prompt content (for eval scoring)
-        await captureCompactionEvent({
-          session_id: input.sessionID,
-          epic_id: epicId,
-          compaction_type: "prompt_generated",
-          payload: {
-            prompt_length: contextContent.length,
-            full_prompt: contextContent, // FULL content, not truncated - used for quality scoring
-            context_type: "full",
-            confidence: effectiveConfidence,
-          },
-        });
+			// Also run heuristic detection from hive/swarm-mail
+			recordPhaseStart(metrics, CompactionPhase.DETECT);
+			const detection = await detectSwarm(
+				customGetHiveAdapter || getHiveAdapter,
+				customCheckSwarmHealth || checkSwarmHealth,
+				customGetHiveWorkingDirectory || getHiveWorkingDirectory,
+				log,
+			);
 
-        log.info(
-          {
-            confidence: effectiveConfidence,
-            context_length: contextContent.length,
-            context_type: "full",
-            reasons: detection.reasons,
-            has_dynamic_state: !!dynamicState,
-            epic_id: scannedState.epicId || detection.state?.epicId,
-            scanned_subtasks: scannedState.subtasks.size,
-            scanned_agent: scannedState.agentName,
-          },
-          "injected swarm context",
-        );
-      } else if (effectiveConfidence === "low") {
-        // Possible swarm - inject fallback detection prompt
-        const header = `[Possible swarm: ${detection.reasons.join(", ")}]\n\n`;
-        const contextContent = header + SWARM_DETECTION_FALLBACK;
-        output.context.push(contextContent);
-        
-        recordPhaseComplete(metrics, CompactionPhase.INJECT, {
-          context_length: contextContent.length,
-          context_type: "fallback",
-        });
+			// Boost confidence if we found swarm evidence in session messages
+			let effectiveConfidence = detection.confidence;
 
-        // Capture prompt_generated event for fallback prompt
-        await captureCompactionEvent({
-          session_id: input.sessionID,
-          epic_id: epicId,
-          compaction_type: "prompt_generated",
-          payload: {
-            prompt_length: contextContent.length,
-            full_prompt: contextContent,
-            context_type: "fallback",
-            confidence: effectiveConfidence,
-          },
-        });
+			// TUNED: Boost from agent name (swarmmail_init) = medium confidence
+			if (scannedState.agentName && effectiveConfidence === "none") {
+				effectiveConfidence = "medium";
+				detection.reasons.push("coordinator initialized (swarmmail_init)");
+				recordPatternExtracted(
+					metrics,
+					"coordinator_init",
+					"swarmmail_init detected",
+				);
+			}
 
-        log.info(
-          {
-            confidence: effectiveConfidence,
-            context_length: contextContent.length,
-            context_type: "fallback",
-            reasons: detection.reasons,
-          },
-          "injected swarm context",
-        );
-      } else {
-        recordPhaseComplete(metrics, CompactionPhase.INJECT, {
-          context_type: "none",
-        });
-        
-        log.debug(
-          {
-            confidence: effectiveConfidence,
-            context_type: "none",
-          },
-          "no swarm detected, skipping injection",
-        );
-      }
-      // confidence === "none" - no injection, probably not a swarm
+			// TUNED: Boost from epic creation = medium confidence (before subtasks exist)
+			if (scannedState.epicId && effectiveConfidence === "none") {
+				effectiveConfidence = "medium";
+				detection.reasons.push("epic created (hive_create_epic)");
+				recordPatternExtracted(
+					metrics,
+					"epic_created",
+					"hive_create_epic detected",
+				);
+			}
 
-      recordPhaseStart(metrics, CompactionPhase.COMPLETE);
-      const duration = Date.now() - startTime;
-      const summary = getMetricsSummary(metrics);
-      
-      // Calculate compaction recommendation signals
-      const openSubtasksCount = detection.state?.subtasks.open || 0;
-      const activeReservationsCount = detection.reasons.find(r => r.includes("active file reservations"))
-        ? parseInt(detection.reasons.find(r => r.includes("active file reservations"))?.match(/\d+/)?.[0] || "0")
-        : 0;
-      const registeredAgentsCount = detection.reasons.find(r => r.includes("registered agents"))
-        ? parseInt(detection.reasons.find(r => r.includes("registered agents"))?.match(/\d+/)?.[0] || "0")
-        : 0;
-      
-      const compactionSignals: string[] = [];
-      let compactionRecommended = false;
-      
-      // THRESHOLDS for "should compact":
-      // - 3+ open subtasks = active coordination
-      // - 2+ active reservations = workers editing
-      // - 2+ registered agents = multi-agent session
-      if (openSubtasksCount >= 3) {
-        compactionSignals.push(`${openSubtasksCount} open subtasks`);
-        compactionRecommended = true;
-      }
-      if (activeReservationsCount >= 2) {
-        compactionSignals.push(`${activeReservationsCount} active reservations`);
-        compactionRecommended = true;
-      }
-      if (registeredAgentsCount >= 2) {
-        compactionSignals.push(`${registeredAgentsCount} registered agents`);
-        compactionRecommended = true;
-      }
-      
-      // Log recommendation if signals present
-      if (compactionRecommended) {
-        log.info(
-          {
-            compaction_recommended: true,
-            reasons: compactionSignals,
-            open_subtasks: openSubtasksCount,
-            active_reservations: activeReservationsCount,
-            registered_agents: registeredAgentsCount,
-          },
-          "compaction recommended",
-        );
-      }
-      
-      log.info(
-        {
-          duration_ms: duration,
-          success: true,
-          detected: detection.detected || scannedState.epicId !== undefined,
-          confidence: effectiveConfidence,
-          context_injected: output.context.length > 0,
-          // Add metrics summary
-          metrics: {
-            phases: Object.keys(summary.phases).map(phase => ({
-              name: phase,
-              duration_ms: summary.phases[phase].duration_ms,
-              success: summary.phases[phase].success,
-            })),
-            patterns_extracted: summary.patterns_extracted,
-            patterns_skipped: summary.patterns_skipped,
-            extraction_success_rate: summary.extraction_success_rate,
-            compaction_signals: compactionSignals,
-          },
-        },
-        "compaction complete",
-      );
-      
-      recordPhaseComplete(metrics, CompactionPhase.COMPLETE);
-    } catch (error) {
-      const duration = Date.now() - startTime;
-      
-      recordPhaseComplete(metrics, CompactionPhase.COMPLETE, {
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      
-      log.error(
-        {
-          duration_ms: duration,
-          success: false,
-          error: error instanceof Error ? error.message : String(error),
-          stack: error instanceof Error ? error.stack : undefined,
-        },
-        "compaction failed",
-      );
-      // Don't throw - compaction hook failures shouldn't break the session
-    }
-  };
+			if (scannedState.epicId || scannedState.subtasks.size > 0) {
+				// Session messages show swarm activity - this is HIGH confidence
+				if (effectiveConfidence === "none" || effectiveConfidence === "low") {
+					effectiveConfidence = "medium";
+					detection.reasons.push("swarm tool calls found in session");
+					recordPatternExtracted(
+						metrics,
+						"swarm_tool_calls",
+						"Found swarm tool calls in session",
+					);
+				}
+				if (scannedState.subtasks.size > 0) {
+					effectiveConfidence = "high";
+					detection.reasons.push(
+						`${scannedState.subtasks.size} subtasks spawned`,
+					);
+					recordPatternExtracted(
+						metrics,
+						"subtasks",
+						`${scannedState.subtasks.size} subtasks spawned`,
+					);
+				}
+			}
+
+			recordPhaseComplete(metrics, CompactionPhase.DETECT, {
+				confidence: effectiveConfidence,
+				detected: detection.detected || scannedState.epicId !== undefined,
+			});
+
+			// Capture detection_complete event
+			const epicId =
+				scannedState.epicId || detection.state?.epicId || "unknown";
+			await captureCompactionEvent({
+				session_id: input.sessionID,
+				epic_id: epicId,
+				compaction_type: "detection_complete",
+				payload: {
+					confidence: effectiveConfidence,
+					detected: detection.detected || scannedState.epicId !== undefined,
+					reasons: detection.reasons,
+					context_type:
+						effectiveConfidence === "high" || effectiveConfidence === "medium"
+							? "full"
+							: "fallback",
+				},
+			});
+
+			recordPhaseStart(metrics, CompactionPhase.INJECT);
+			if (effectiveConfidence === "high" || effectiveConfidence === "medium") {
+				// Definite or probable swarm - inject full context
+				const header = `[Swarm detected: ${detection.reasons.join(", ")}]\n\n`;
+
+				// Build dynamic state section - prefer scanned state (ground truth) over detected
+				let dynamicState = "";
+				if (scannedState.epicId || scannedState.subtasks.size > 0) {
+					// Use scanned state (more precise)
+					dynamicState =
+						buildDynamicSwarmStateFromScanned(
+							scannedState,
+							detection.state || {
+								projectPath: scannedState.projectPath || process.cwd(),
+								subtasks: { closed: 0, in_progress: 0, open: 0, blocked: 0 },
+							},
+						) + "\n\n";
+				} else if (detection.state && detection.state.epicId) {
+					// Fall back to hive-detected state
+					dynamicState = buildDynamicSwarmState(detection.state) + "\n\n";
+				}
+
+				const contextContent = header + dynamicState + SWARM_COMPACTION_CONTEXT;
+				output.context.push(contextContent);
+
+				recordPhaseComplete(metrics, CompactionPhase.INJECT, {
+					context_length: contextContent.length,
+					context_type: "full",
+				});
+
+				// Capture prompt_generated event with FULL prompt content (for eval scoring)
+				await captureCompactionEvent({
+					session_id: input.sessionID,
+					epic_id: epicId,
+					compaction_type: "prompt_generated",
+					payload: {
+						prompt_length: contextContent.length,
+						full_prompt: contextContent, // FULL content, not truncated - used for quality scoring
+						context_type: "full",
+						confidence: effectiveConfidence,
+					},
+				});
+
+				log.info(
+					{
+						confidence: effectiveConfidence,
+						context_length: contextContent.length,
+						context_type: "full",
+						reasons: detection.reasons,
+						has_dynamic_state: !!dynamicState,
+						epic_id: scannedState.epicId || detection.state?.epicId,
+						scanned_subtasks: scannedState.subtasks.size,
+						scanned_agent: scannedState.agentName,
+					},
+					"injected swarm context",
+				);
+			} else if (effectiveConfidence === "low") {
+				// Possible swarm - inject fallback detection prompt
+				const header = `[Possible swarm: ${detection.reasons.join(", ")}]\n\n`;
+				const contextContent = header + SWARM_DETECTION_FALLBACK;
+				output.context.push(contextContent);
+
+				recordPhaseComplete(metrics, CompactionPhase.INJECT, {
+					context_length: contextContent.length,
+					context_type: "fallback",
+				});
+
+				// Capture prompt_generated event for fallback prompt
+				await captureCompactionEvent({
+					session_id: input.sessionID,
+					epic_id: epicId,
+					compaction_type: "prompt_generated",
+					payload: {
+						prompt_length: contextContent.length,
+						full_prompt: contextContent,
+						context_type: "fallback",
+						confidence: effectiveConfidence,
+					},
+				});
+
+				log.info(
+					{
+						confidence: effectiveConfidence,
+						context_length: contextContent.length,
+						context_type: "fallback",
+						reasons: detection.reasons,
+					},
+					"injected swarm context",
+				);
+			} else {
+				recordPhaseComplete(metrics, CompactionPhase.INJECT, {
+					context_type: "none",
+				});
+
+				log.debug(
+					{
+						confidence: effectiveConfidence,
+						context_type: "none",
+					},
+					"no swarm detected, skipping injection",
+				);
+			}
+			// confidence === "none" - no injection, probably not a swarm
+
+			recordPhaseStart(metrics, CompactionPhase.COMPLETE);
+			const duration = Date.now() - startTime;
+			const summary = getMetricsSummary(metrics);
+
+			// Calculate compaction recommendation signals
+			const openSubtasksCount = detection.state?.subtasks.open || 0;
+			const activeReservationsCount = detection.reasons.find((r) =>
+				r.includes("active file reservations"),
+			)
+				? parseInt(
+						detection.reasons
+							.find((r) => r.includes("active file reservations"))
+							?.match(/\d+/)?.[0] || "0",
+					)
+				: 0;
+			const registeredAgentsCount = detection.reasons.find((r) =>
+				r.includes("registered agents"),
+			)
+				? parseInt(
+						detection.reasons
+							.find((r) => r.includes("registered agents"))
+							?.match(/\d+/)?.[0] || "0",
+					)
+				: 0;
+
+			const compactionSignals: string[] = [];
+			let compactionRecommended = false;
+
+			// THRESHOLDS for "should compact":
+			// - 3+ open subtasks = active coordination
+			// - 2+ active reservations = workers editing
+			// - 2+ registered agents = multi-agent session
+			if (openSubtasksCount >= 3) {
+				compactionSignals.push(`${openSubtasksCount} open subtasks`);
+				compactionRecommended = true;
+			}
+			if (activeReservationsCount >= 2) {
+				compactionSignals.push(
+					`${activeReservationsCount} active reservations`,
+				);
+				compactionRecommended = true;
+			}
+			if (registeredAgentsCount >= 2) {
+				compactionSignals.push(`${registeredAgentsCount} registered agents`);
+				compactionRecommended = true;
+			}
+
+			// Log recommendation if signals present
+			if (compactionRecommended) {
+				log.info(
+					{
+						compaction_recommended: true,
+						reasons: compactionSignals,
+						open_subtasks: openSubtasksCount,
+						active_reservations: activeReservationsCount,
+						registered_agents: registeredAgentsCount,
+					},
+					"compaction recommended",
+				);
+			}
+
+			log.info(
+				{
+					duration_ms: duration,
+					success: true,
+					detected: detection.detected || scannedState.epicId !== undefined,
+					confidence: effectiveConfidence,
+					context_injected: output.context.length > 0,
+					// Add metrics summary
+					metrics: {
+						phases: Object.keys(summary.phases).map((phase) => ({
+							name: phase,
+							duration_ms: summary.phases[phase].duration_ms,
+							success: summary.phases[phase].success,
+						})),
+						patterns_extracted: summary.patterns_extracted,
+						patterns_skipped: summary.patterns_skipped,
+						extraction_success_rate: summary.extraction_success_rate,
+						compaction_signals: compactionSignals,
+					},
+				},
+				"compaction complete",
+			);
+
+			recordPhaseComplete(metrics, CompactionPhase.COMPLETE);
+		} catch (error) {
+			const duration = Date.now() - startTime;
+
+			recordPhaseComplete(metrics, CompactionPhase.COMPLETE, {
+				success: false,
+				error: error instanceof Error ? error.message : String(error),
+			});
+
+			log.error(
+				{
+					duration_ms: duration,
+					success: false,
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined,
+				},
+				"compaction failed",
+			);
+			// Don't throw - compaction hook failures shouldn't break the session
+		}
+	};
 }

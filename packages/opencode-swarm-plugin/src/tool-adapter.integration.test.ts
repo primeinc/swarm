@@ -935,7 +935,7 @@ describe("swarm tools adapter wiring", () => {
         {
           project_key: TEST_DB_PATH,
           agent_name: "ProgressAgent",
-          bead_id: created.id,
+          cell_id: created.id,
           status: "in_progress",
           message: "50% complete",
           progress_percent: 50,
@@ -984,7 +984,7 @@ describe("swarm tools adapter wiring", () => {
       const result = await executeTool<{
         epic_id: string;
         total_agents: number;
-        agents: Array<{ bead_id: string; status: string }>;
+        agents: Array<{ cell_id: string; status: string }>;
         progress_percent: number;
       }>(
         swarm_status,
@@ -1099,7 +1099,7 @@ describe("swarm tools adapter wiring", () => {
         {
           project_key: TEST_DB_PATH,
           agent_name: "CheckpointAgent",
-          bead_id: epic.subtasks[0].id,
+          cell_id: epic.subtasks[0].id,
           epic_id: epic.epic.id,
           files_modified: ["src/test.ts"],
           progress_percent: 50,
@@ -1262,7 +1262,7 @@ describe("smoke test - all tools in sequence", () => {
         {
           project_key: TEST_DB_PATH,
           agent_name: "SmokeTestAgent",
-          bead_id: cell.id,
+          cell_id: cell.id,
           status: "in_progress",
           message: "Testing workflow integration",
           progress_percent: 50,

@@ -4,8 +4,7 @@
  * TDD GREEN: Minimal implementation to pass tests
  */
 
-import { readFileSync } from "node:fs";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 // ============================================================================
 // Types
@@ -201,7 +200,7 @@ export function formatReplayEvent(event: ReplayEvent): string {
 
 	// Extract relevant payload fields
 	const payload = event.payload as any;
-	const beadId = payload.bead_id || "";
+	const cellId = payload.cell_id || "";
 	const agentName = payload.agent_name || "";
 	const strategyUsed = payload.strategy_used || "";
 	const subtaskCount = payload.subtask_count;
@@ -214,9 +213,9 @@ export function formatReplayEvent(event: ReplayEvent): string {
 	// Epic relationship
 	output += `${colors.gray}│${colors.reset} epic: ${event.epic_id}\n`;
 
-	// Bead relationship (if present)
-	if (beadId) {
-		output += `${colors.gray}│${colors.reset} bead: ${beadId}\n`;
+	// Cell relationship (if present)
+	if (cellId) {
+		output += `${colors.gray}│${colors.reset} cell: ${cellId}\n`;
 	}
 
 	// Agent (if present)

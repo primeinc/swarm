@@ -5,7 +5,7 @@ export interface ErrorContext {
 	/** Agent name (e.g., "WiseStone") */
 	agent?: string;
 	/** Cell/bead ID (e.g., "bd-123") */
-	bead_id?: string;
+	cell_id?: string;
 	/** Epic ID (e.g., "bd-100") */
 	epic_id?: string;
 	/** Unix timestamp in milliseconds */

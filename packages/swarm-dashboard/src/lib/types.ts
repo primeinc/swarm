@@ -93,14 +93,14 @@ export interface FileReleasedEvent extends BaseEvent {
 export interface TaskStartedEvent extends BaseEvent {
   type: "task_started";
   agent_name: string;
-  bead_id: string;
+  cell_id: string;
   epic_id?: string;
 }
 
 export interface TaskProgressEvent extends BaseEvent {
   type: "task_progress";
   agent_name: string;
-  bead_id: string;
+  cell_id: string;
   progress_percent?: number;
   message?: string;
   files_touched?: string[];
@@ -109,7 +109,7 @@ export interface TaskProgressEvent extends BaseEvent {
 export interface TaskCompletedEvent extends BaseEvent {
   type: "task_completed";
   agent_name: string;
-  bead_id: string;
+  cell_id: string;
   summary: string;
   files_touched?: string[];
   success?: boolean;
@@ -118,7 +118,7 @@ export interface TaskCompletedEvent extends BaseEvent {
 export interface TaskBlockedEvent extends BaseEvent {
   type: "task_blocked";
   agent_name: string;
-  bead_id: string;
+  cell_id: string;
   reason: string;
 }
 
@@ -148,7 +148,7 @@ export interface DecompositionGeneratedEvent extends BaseEvent {
 export interface SubtaskOutcomeEvent extends BaseEvent {
   type: "subtask_outcome";
   epic_id: string;
-  bead_id: string;
+  cell_id: string;
   planned_files: string[];
   actual_files: string[];
   duration_ms: number;
@@ -325,7 +325,7 @@ export interface DecisionRecordedEvent extends BaseEvent {
   decision_id: string;
   decision_type: string;
   epic_id?: string;
-  bead_id?: string;
+  cell_id?: string;
   rationale_length?: number;
   precedent_count?: number;
 }
@@ -362,7 +362,7 @@ export interface ContextInjectedEvent extends BaseEvent {
 export interface ContextCompactedEvent extends BaseEvent {
   type: "context_compacted";
   epic_id?: string;
-  bead_id?: string;
+  cell_id?: string;
   agent_name: string;
   tokens_before: number;
   tokens_after: number;
@@ -373,7 +373,7 @@ export interface ContextCompactedEvent extends BaseEvent {
 export interface CheckpointCreatedEvent extends BaseEvent {
   type: "checkpoint_created";
   epic_id: string;
-  bead_id: string;
+  cell_id: string;
   agent_name: string;
   checkpoint_id: string;
   trigger: "manual" | "auto" | "progress" | "error";
@@ -391,7 +391,7 @@ export interface FileConflictEvent extends BaseEvent {
   holding_agent: string;
   paths: string[];
   epic_id?: string;
-  bead_id?: string;
+  cell_id?: string;
   resolution?: "wait" | "force" | "abort";
 }
 
@@ -423,7 +423,7 @@ export interface ThreadActivityEvent extends BaseEvent {
 export interface SwarmCheckpointedEvent extends BaseEvent {
   type: "swarm_checkpointed";
   epic_id: string;
-  bead_id: string;
+  cell_id: string;
   strategy: "file-based" | "feature-based" | "risk-based";
   files: string[];
   dependencies: string[];
@@ -444,7 +444,7 @@ export interface SwarmCheckpointedEvent extends BaseEvent {
 export interface SwarmRecoveredEvent extends BaseEvent {
   type: "swarm_recovered";
   epic_id: string;
-  bead_id: string;
+  cell_id: string;
   recovered_from_checkpoint: number;
 }
 
@@ -465,7 +465,7 @@ export interface SwarmStartedEvent extends BaseEvent {
 export interface WorkerSpawnedEvent extends BaseEvent {
   type: "worker_spawned";
   epic_id: string;
-  bead_id: string;
+  cell_id: string;
   worker_agent: string;
   subtask_title: string;
   files_assigned: string[];
@@ -476,7 +476,7 @@ export interface WorkerSpawnedEvent extends BaseEvent {
 export interface WorkerCompletedEvent extends BaseEvent {
   type: "worker_completed";
   epic_id: string;
-  bead_id: string;
+  cell_id: string;
   worker_agent: string;
   success: boolean;
   duration_ms: number;
@@ -487,14 +487,14 @@ export interface WorkerCompletedEvent extends BaseEvent {
 export interface ReviewStartedEvent extends BaseEvent {
   type: "review_started";
   epic_id: string;
-  bead_id: string;
+  cell_id: string;
   attempt: number;
 }
 
 export interface ReviewCompletedEvent extends BaseEvent {
   type: "review_completed";
   epic_id: string;
-  bead_id: string;
+  cell_id: string;
   status: "approved" | "needs_changes" | "blocked";
   attempt: number;
   duration_ms?: number;

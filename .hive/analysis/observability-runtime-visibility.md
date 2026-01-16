@@ -539,12 +539,12 @@ class SwarmTreeDataProvider implements vscode.TreeDataProvider<SwarmItem> {
 $ swarm execute "Add OAuth" --watch
 
 {"type":"swarm.started","epic_id":"bd-abc123","timestamp":1703268120,"subtasks":5}
-{"type":"worker.started","bead_id":"bd-abc123.0","agent":"GreenOcean","files":["src/auth/service.ts"]}
-{"type":"worker.started","bead_id":"bd-abc123.1","agent":"BlueLake","files":["src/auth/tokens.ts"]}
+{"type":"worker.started","cell_id":"bd-abc123.0","agent":"GreenOcean","files":["src/auth/service.ts"]}
+{"type":"worker.started","cell_id":"bd-abc123.1","agent":"BlueLake","files":["src/auth/tokens.ts"]}
 {"type":"reservation.created","agent":"BlueLake","path":"src/auth/tokens.ts","expires_at":1703271720}
-{"type":"worker.progress","bead_id":"bd-abc123.1","progress":50,"message":"Schema defined"}
-{"type":"worker.blocked","bead_id":"bd-abc123.2","reason":"Need auth schema from bd-abc123.0"}
-{"type":"worker.completed","bead_id":"bd-abc123.0","duration_ms":323000}
+{"type":"worker.progress","cell_id":"bd-abc123.1","progress":50,"message":"Schema defined"}
+{"type":"worker.blocked","cell_id":"bd-abc123.2","reason":"Need auth schema from bd-abc123.0"}
+{"type":"worker.completed","cell_id":"bd-abc123.0","duration_ms":323000}
 {"type":"swarm.completed","epic_id":"bd-abc123","success":true,"duration_ms":1205000}
 ```
 
@@ -576,13 +576,13 @@ export async function executeSwarm(task: string) {
   logger.info("swarm.started", { epic_id: epicId, subtasks: subtasks.length });
   
   for (const subtask of subtasks) {
-    logger.info("worker.started", { bead_id: subtask.id, agent: subtask.agent });
+    logger.info("worker.started", { cell_id: subtask.id, agent: subtask.agent });
     
     // ... during execution
-    logger.info("worker.progress", { bead_id: subtask.id, progress: 50 });
+    logger.info("worker.progress", { cell_id: subtask.id, progress: 50 });
     
     // ... on completion
-    logger.info("worker.completed", { bead_id: subtask.id, duration_ms: 12345 });
+    logger.info("worker.completed", { cell_id: subtask.id, duration_ms: 12345 });
   }
   
   logger.info("swarm.completed", { epic_id: epicId, success: true });
@@ -734,7 +734,7 @@ WHERE project_key = ? AND released_at IS NULL AND expires_at > ?
 ORDER BY expires_at ASC;
 
 -- Worker progress (from task_progress events)
-SELECT bead_id, data->>'progress_percent' as progress, data->>'message' as message
+SELECT cell_id, data->>'progress_percent' as progress, data->>'message' as message
 FROM events
 WHERE project_key = ? AND type = 'task_progress'
 ORDER BY timestamp DESC;
@@ -759,8 +759,8 @@ export function emitSwarmEvent(type: string, data: object) {
 
 // Usage:
 emitSwarmEvent("swarm.started", { epic_id, subtasks: subtasks.length });
-emitSwarmEvent("worker.progress", { bead_id, progress: 75 });
-emitSwarmEvent("worker.blocked", { bead_id, reason: "Missing dependency" });
+emitSwarmEvent("worker.progress", { cell_id, progress: 75 });
+emitSwarmEvent("worker.blocked", { cell_id, reason: "Missing dependency" });
 ```
 
 **Enable with environment variable:**
@@ -1009,7 +1009,7 @@ SELECT resource, holder, acquired_at, expires_at
 FROM locks;
 
 -- Swarm checkpoints
-SELECT epic_id, bead_id, strategy, files, recovery 
+SELECT epic_id, cell_id, strategy, files, recovery 
 FROM swarm_contexts 
 WHERE project_key = ?;
 ```

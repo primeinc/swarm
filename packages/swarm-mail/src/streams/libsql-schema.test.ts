@@ -225,7 +225,7 @@ describe("libSQL streams schema", () => {
 				id: "ctx-123",
 				project_key: "/path/to/project",
 				epic_id: "epic-123",
-				bead_id: "bead-456",
+				cell_id: "bead-456",
 				strategy: "feature-based",
 				files: JSON.stringify(["src/auth.ts"]),
 				dependencies: JSON.stringify(["bead-455"]),
@@ -238,13 +238,13 @@ describe("libSQL streams schema", () => {
 
 			// Insert checkpoint
 			await db.query(
-				`INSERT INTO swarm_contexts (id, project_key, epic_id, bead_id, strategy, files, dependencies, directives, recovery, created_at, checkpointed_at, updated_at)
+				`INSERT INTO swarm_contexts (id, project_key, epic_id, cell_id, strategy, files, dependencies, directives, recovery, created_at, checkpointed_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 				[
 					checkpoint.id,
 					checkpoint.project_key,
 					checkpoint.epic_id,
-					checkpoint.bead_id,
+					checkpoint.cell_id,
 					checkpoint.strategy,
 					checkpoint.files,
 					checkpoint.dependencies,
@@ -260,8 +260,8 @@ describe("libSQL streams schema", () => {
 			const result = await db.query<{
 				id: string;
 				epic_id: string;
-				bead_id: string;
-			}>(`SELECT id, epic_id, bead_id FROM swarm_contexts WHERE id = ?`, [
+				cell_id: string;
+			}>(`SELECT id, epic_id, cell_id FROM swarm_contexts WHERE id = ?`, [
 				checkpoint.id,
 			]);
 
@@ -269,7 +269,7 @@ describe("libSQL streams schema", () => {
 			expect(result.rows[0]).toMatchObject({
 				id: "ctx-123",
 				epic_id: "epic-123",
-				bead_id: "bead-456",
+				cell_id: "bead-456",
 			});
 		});
 
@@ -281,7 +281,7 @@ describe("libSQL streams schema", () => {
 				id: "dt-abc123",
 				decision_type: "strategy_selection",
 				epic_id: "epic-123",
-				bead_id: "bead-456",
+				cell_id: "bead-456",
 				agent_name: "coordinator",
 				project_key: "/path/to/project",
 				decision: JSON.stringify({ strategy: "file-based", confidence: 0.85 }),
@@ -309,13 +309,13 @@ describe("libSQL streams schema", () => {
 
 			// Insert decision trace
 			await db.query(
-				`INSERT INTO decision_traces (id, decision_type, epic_id, bead_id, agent_name, project_key, decision, rationale, inputs_gathered, policy_evaluated, alternatives, precedent_cited, timestamp)
+				`INSERT INTO decision_traces (id, decision_type, epic_id, cell_id, agent_name, project_key, decision, rationale, inputs_gathered, policy_evaluated, alternatives, precedent_cited, timestamp)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 				[
 					trace.id,
 					trace.decision_type,
 					trace.epic_id,
-					trace.bead_id,
+					trace.cell_id,
 					trace.agent_name,
 					trace.project_key,
 					trace.decision,
@@ -363,7 +363,7 @@ describe("libSQL streams schema", () => {
 				id: "TEXT",
 				decision_type: "TEXT",
 				epic_id: "TEXT",
-				bead_id: "TEXT",
+				cell_id: "TEXT",
 				agent_name: "TEXT",
 				project_key: "TEXT",
 				decision: "TEXT",

@@ -328,7 +328,7 @@ describe("InMemoryStorage Parity", () => {
 			created_at: new Date().toISOString(),
 			updated_at: new Date().toISOString(),
 			tags: ["searchable"],
-			example_beads: [],
+			example_cells: [],
 		};
 
 		await storage.storePattern(pattern);

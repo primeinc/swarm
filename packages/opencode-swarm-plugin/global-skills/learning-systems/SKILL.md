@@ -54,7 +54,7 @@ Call `swarm_record_outcome` after subtask completion:
 
 ```typescript
 swarm_record_outcome({
-  bead_id: "bd-123.1",
+  cell_id: "bd-123.1",
   duration_ms: 180000, // 3 minutes
   error_count: 0,
   retry_count: 0,
@@ -66,7 +66,7 @@ swarm_record_outcome({
 
 **Fields tracked:**
 
-- `bead_id` - subtask identifier
+- `cell_id` - subtask identifier
 - `duration_ms` - time from start to completion
 - `error_count` - errors encountered (from ErrorAccumulator)
 - `retry_count` - number of retry attempts
@@ -468,7 +468,7 @@ try {
   await implement_subtask();
 } catch (error) {
   await errorAccumulator.recordError(
-    bead_id,
+    cell_id,
     classifyError(error),
     error.message,
   );
@@ -477,10 +477,10 @@ try {
 
 // 3. Completion phase
 const duration = Date.now() - startTime;
-const errorStats = await errorAccumulator.getErrorStats(bead_id);
+const errorStats = await errorAccumulator.getErrorStats(cell_id);
 
 swarm_record_outcome({
-  bead_id,
+  cell_id,
   duration_ms: duration,
   error_count: errorStats.total,
   retry_count: retryCount,
@@ -491,7 +491,7 @@ swarm_record_outcome({
 
 // 4. Learning updates
 const scored = scoreImplicitFeedback({
-  bead_id,
+  cell_id,
   duration_ms: duration,
   error_count: errorStats.total,
   retry_count: retryCount,
@@ -505,7 +505,7 @@ for (const pattern of extractedPatterns) {
   const { pattern: updated, inversion } = recordPatternObservation(
     pattern,
     scored.type === "helpful",
-    bead_id,
+    cell_id,
   );
 
   if (inversion) {

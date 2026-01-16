@@ -144,7 +144,7 @@ Date Range: 2025-07-14 to 2025-12-08`;
 export const cassViewBaseline = `File: /Users/joel/.config/swarm-tools/sessions/ses_19yz2iaMpHxY1ddvVq2voC.jsonl
 Line: 1 (context: 5)
 ----------------------------------------
->    1 | {"session_id":"ses_19yz2iaMpHxY1ddvVq2voC","epic_id":"cell-f2p61v-mjko4d89zdt","timestamp":"2025-12-24T23:51:52.896Z","event_type":"OUTCOME","outcome_type":"subtask_success","payload":{"bead_id":"cell-f2p61v-mjko4d89zdt","duration_ms":0,"files_touched":[],"verification_passed":false,"verification_skipped":true}}
+>    1 | {"session_id":"ses_19yz2iaMpHxY1ddvVq2voC","epic_id":"cell-f2p61v-mjko4d89zdt","timestamp":"2025-12-24T23:51:52.896Z","event_type":"OUTCOME","outcome_type":"subtask_success","payload":{"cell_id":"cell-f2p61v-mjko4d89zdt","duration_ms":0,"files_touched":[],"verification_passed":false,"verification_skipped":true}}
 ----------------------------------------`;
 
 /**

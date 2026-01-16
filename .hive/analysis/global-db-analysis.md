@@ -769,7 +769,7 @@ AND released_at IS NULL;
 **Verify Cleanup:**
 ```sql
 SELECT 
-  (SELECT COUNT(*) FROM beads WHERE id IS NULL) as null_bead_ids,
+  (SELECT COUNT(*) FROM beads WHERE id IS NULL) as null_cell_ids,
   (SELECT COUNT(*) FROM message_recipients mr 
    WHERE NOT EXISTS (SELECT 1 FROM agents WHERE name = mr.agent_name)) as orphaned_recipients,
   (SELECT COUNT(*) FROM messages m 
@@ -780,7 +780,7 @@ SELECT
 
 **Expected Result (post-cleanup):**
 ```
-null_bead_ids: 0
+null_cell_ids: 0
 orphaned_recipients: 0
 orphaned_messages: 72 (requires manual review)
 stale_reservations: 0
@@ -813,7 +813,7 @@ swarm cleanup --stale-reservations --execute  # Execute
 
 **Add logging to `swarm_record_outcome`:**
 ```typescript
-console.log(`[swarm_record_outcome] bead_id=${bead_id} duration=${duration_ms}ms errors=${error_count} success=${success}`);
+console.log(`[swarm_record_outcome] cell_id=${cell_id} duration=${duration_ms}ms errors=${error_count} success=${success}`);
 ```
 
 **Test with minimal swarm:**
@@ -901,9 +901,9 @@ if (!reviewCompleted) {
 **Auto-Call Review:**
 ```typescript
 // Option 1: swarm_complete automatically calls swarm_review
-async function swarm_complete({ bead_id, ... }) {
+async function swarm_complete({ cell_id, ... }) {
   // Auto-generate review if not done
-  const review = await swarm_review({ bead_id, files_touched });
+  const review = await swarm_review({ cell_id, files_touched });
   // Block if review rejects
   if (review.status === 'needs_changes') {
     throw new Error(`Review failed: ${review.issues}`);
@@ -1000,11 +1000,11 @@ SELECT project_key, COUNT(*) FROM reservations GROUP BY project_key;
 **Define Error Events:**
 ```typescript
 type ErrorEvent = 
-  | { type: 'worker_failed', bead_id: string, error: string, stack: string }
+  | { type: 'worker_failed', cell_id: string, error: string, stack: string }
   | { type: 'decomposition_failed', task: string, reason: string }
   | { type: 'test_failed', file: string, test_name: string, error: string }
   | { type: 'reservation_conflict', file: string, agent1: string, agent2: string }
-  | { type: 'review_rejected', bead_id: string, attempt: number, issues: Array<...> };
+  | { type: 'review_rejected', cell_id: string, attempt: number, issues: Array<...> };
 ```
 
 **Emit from Error Handlers:**
@@ -1014,7 +1014,7 @@ try {
 } catch (error) {
   await emitEvent({
     type: 'worker_failed',
-    bead_id,
+    cell_id,
     error: error.message,
     stack: error.stack
   });
@@ -1160,7 +1160,7 @@ WHERE agent_name IN (
 ```sql
 SELECT 
   -- Data integrity
-  (SELECT COUNT(*) FROM beads WHERE id IS NULL) as null_bead_ids,
+  (SELECT COUNT(*) FROM beads WHERE id IS NULL) as null_cell_ids,
   (SELECT COUNT(*) FROM message_recipients mr 
    WHERE NOT EXISTS (SELECT 1 FROM agents WHERE name = mr.agent_name)) as orphaned_recipients,
   (SELECT COUNT(*) FROM messages m 
@@ -1182,7 +1182,7 @@ SELECT
 
 **Expected Healthy Values:**
 ```
-null_bead_ids: 0
+null_cell_ids: 0
 orphaned_recipients: 0
 orphaned_messages: 0
 stale_reservations: <10

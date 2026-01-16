@@ -1,6 +1,6 @@
 /**
  * Error Enrichment - Structured error context for swarm agents
- * 
+ *
  * TDD GREEN: Minimal implementation to pass tests
  */
 
@@ -9,7 +9,7 @@ export interface SwarmErrorContext {
 	line?: number;
 	agent?: string;
 	epic_id?: string;
-	bead_id?: string;
+	cell_id?: string;
 	recent_events?: Array<{
 		type: string;
 		timestamp: string;
@@ -79,7 +79,7 @@ export function enrichError(
 
 /**
  * debugLog - Conditional logging based on DEBUG env var
- * 
+ *
  * Patterns:
  * - DEBUG=swarm:* (all)
  * - DEBUG=swarm:coordinator
@@ -113,7 +113,7 @@ export function debugLog(
 		output += `\n│ ${JSON.stringify(data)}`;
 	}
 	output += `\n└──────────────────────────────────────────`;
-	
+
 	console.log(output);
 }
 
@@ -211,8 +211,8 @@ function formatSuggestion(
 	if (context.agent) {
 		result += `\nAgent: ${context.agent}`;
 	}
-	if (context.bead_id) {
-		result += `\nCell: ${context.bead_id}`;
+	if (context.cell_id) {
+		result += `\nCell: ${context.cell_id}`;
 	}
 
 	return result;

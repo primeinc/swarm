@@ -116,7 +116,7 @@ describe("Streams Schema", () => {
 		expect(swarmContextsTable.id).toBeDefined();
 		expect(swarmContextsTable.project_key).toBeDefined();
 		expect(swarmContextsTable.epic_id).toBeDefined();
-		expect(swarmContextsTable.bead_id).toBeDefined();
+		expect(swarmContextsTable.cell_id).toBeDefined();
 		expect(swarmContextsTable.strategy).toBeDefined();
 		expect(swarmContextsTable.files).toBeDefined();
 		expect(swarmContextsTable.dependencies).toBeDefined();

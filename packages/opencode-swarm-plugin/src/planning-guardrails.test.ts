@@ -387,7 +387,7 @@ describe("planning-guardrails", () => {
           toolArgs: {
             project_key: "/path/to/project",
             agent_name: "TestAgent",
-            bead_id: "test-bead",
+            cell_id: "test-cell",
             summary: "Completed work",
           },
           agentContext: "coordinator",
@@ -404,7 +404,7 @@ describe("planning-guardrails", () => {
           epicId,
           toolName: "hive_close",
           toolArgs: {
-            id: "test-bead",
+            id: "test-cell",
             reason: "Done",
           },
           agentContext: "coordinator",
@@ -423,7 +423,7 @@ describe("planning-guardrails", () => {
           toolArgs: {
             project_key: "/path",
             agent_name: "Worker",
-            bead_id: "test",
+            cell_id: "test",
             summary: "Done",
           },
           agentContext: "worker",

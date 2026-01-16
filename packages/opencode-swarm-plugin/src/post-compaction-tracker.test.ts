@@ -183,7 +183,7 @@ describe("PostCompactionTracker - TDD", () => {
   test("does not flag swarm_spawn_subtask as violation", () => {
     tracker.trackToolCall({
       tool: "swarm_spawn_subtask",
-      args: { bead_id: "bd-123", subtask_title: "Test" },
+      args: { cell_id: "bd-123", subtask_title: "Test" },
       timestamp: Date.now(),
     });
 

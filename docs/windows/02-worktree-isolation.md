@@ -535,7 +535,7 @@ exec('git commit -m "feat: implement login form"');
 swarm_complete({
   project_key: "C:\\Users\\will\\dev\\swarm-tools",
   agent_name: "worker-auth-login",
-  bead_id: task.id,
+  cell_id: task.id,
   summary: "Login form implemented with validation"
 });
 ```
@@ -802,7 +802,7 @@ swarmmail_reserve({
 ```typescript
 swarm_progress({
   agent_name: "worker-lcljz",
-  bead_id: "swarm-tools--lcljz-mkdcmeazjbz",
+  cell_id: "swarm-tools--lcljz-mkdcmeazjbz",
   project_key: "C:\\Users\\will\\dev\\swarm-tools",
   status: "in_progress",
   progress_percent: 25,

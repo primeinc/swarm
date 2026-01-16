@@ -433,7 +433,7 @@ For each subtask:
 
 ```bash
 swarm_spawn_subtask(
-  bead_id="<id>",
+  cell_id="<id>",
   epic_id="<epic>",
   subtask_title="<title>",
   files=[...],
@@ -584,7 +584,7 @@ swarm_review_feedback(
 ### 9. Complete
 
 ```bash
-swarm_complete(project_key="$PWD", agent_name="<your-name>", bead_id="<epic-id>", summary="<done>", files_touched=[...])
+swarm_complete(project_key="$PWD", agent_name="<your-name>", cell_id="<epic-id>", summary="<done>", files_touched=[...])
 swarmmail_release()  # Release any remaining reservations
 hive_sync()
 ```

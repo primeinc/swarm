@@ -362,7 +362,7 @@ console.log(`Reserved ${reservation.granted.length} files`);
 // Step 4a: Manual progress reports (keep reservation alive)
 await swarm_progress(
   agent_name: "worker-1",
-  bead_id: "task-abc123",
+  cell_id: "task-abc123",
   project_key: "C:\\Users\\will\\dev\\swarm-tools",
   status: "in_progress",
   progress_percent: 50,
@@ -372,7 +372,7 @@ await swarm_progress(
 // Step 5: Complete task (AUTO-RELEASES all reservations)
 await swarm_complete(
   agent_name: "worker-1",
-  bead_id: "task-abc123",
+  cell_id: "task-abc123",
   project_key: "C:\\Users\\will\\dev\\swarm-tools",
   summary: "Fixed all TypeScript errors in DDPClient",
   files_touched: [
@@ -952,7 +952,7 @@ swarmmail_reserve(
 ```typescript
 swarm_progress(
   agent_name: "FileReservationTester",
-  bead_id: "swarm-tools--lcljz-mkdcmeac2yz",
+  cell_id: "swarm-tools--lcljz-mkdcmeac2yz",
   project_key: "C:\\Users\\will\\dev\\swarm-tools",
   status: "in_progress",
   progress_percent: 50,

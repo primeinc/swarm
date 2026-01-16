@@ -19,7 +19,7 @@
  * **New Schema (in global swarm.db):**
  * - `beads` table with epoch milliseconds timestamps (BIGINT)
  * - Requires project_key, has created_by, deleted_at fields
- * - `cell_events` table with cell_id reference (note: cell_id, not bead_id)
+ * - `cell_events` table with cell_id reference (note: cell_id, not cell_id)
  * - `bead_dependencies` table with cell_id references
  *
  * ## Usage Examples
@@ -53,7 +53,7 @@
  * };
  *
  * const newEvent = transformEvent(legacyEvent);
- * // newEvent.cell_id is "bd-lf2p4u-abc123" (note: cell_id, not bead_id)
+ * // newEvent.cell_id is "bd-lf2p4u-abc123" (note: cell_id, not cell_id)
  * // newEvent.created_at is epoch milliseconds
  * ```
  *
@@ -176,7 +176,7 @@ export function transformIssue(
  *
  * Maps fields from old `events` table to new `bead_events` table:
  * - Converts ISO8601 timestamp to epoch milliseconds
- * - Maps issue_id → bead_id
+ * - Maps issue_id → cell_id
  * - Preserves event_type and payload
  *
  * @param event - Legacy event record
@@ -187,7 +187,7 @@ export function transformEvent(
 ): Omit<NewCellEvent, "created_at"> & { created_at: number } {
 	return {
 		id: event.id,
-		cell_id: event.issue_id, // Map issue_id → bead_id
+		cell_id: event.issue_id, // Map issue_id → cell_id
 		event_type: event.event_type,
 		payload: event.payload,
 		created_at: iso8601ToEpochMs(event.created_at),
@@ -199,7 +199,7 @@ export function transformEvent(
  *
  * Maps fields from old `dependencies` table to new `bead_dependencies` table:
  * - Converts ISO8601 timestamp to epoch milliseconds
- * - Maps issue_id → bead_id
+ * - Maps issue_id → cell_id
  * - Adds created_by = "HistoricalImport"
  *
  * @param dep - Legacy dependency record
@@ -207,7 +207,7 @@ export function transformEvent(
  */
 export function transformDependency(dep: LegacyDependency): NewBeadDependency {
 	return {
-		cell_id: dep.issue_id, // Map issue_id → bead_id
+		cell_id: dep.issue_id, // Map issue_id → cell_id
 		depends_on_id: dep.depends_on_id,
 		relationship: dep.relationship,
 		created_at: iso8601ToEpochMs(dep.created_at),

@@ -36,7 +36,7 @@ describe("DecisionTraceStore", () => {
 			const input: DecisionTraceInput = {
 				decision_type: "strategy_selection",
 				epic_id: "epic-001",
-				bead_id: "bead-001",
+				cell_id: "bead-001",
 				agent_name: "coordinator",
 				project_key: "/project/path",
 				decision: { strategy: "file-based", confidence: 0.85 },
@@ -212,7 +212,7 @@ describe("DecisionTraceStore", () => {
 				decision_type: "worker_spawn",
 				agent_name: "coordinator",
 				project_key: "/project",
-				decision: { worker: "BlueLake", bead_id: "bead-123" },
+				decision: { worker: "BlueLake", cell_id: "bead-123" },
 			});
 
 			expect(trace.decision_type).toBe("worker_spawn");

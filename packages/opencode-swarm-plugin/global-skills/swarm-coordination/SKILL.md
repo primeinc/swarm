@@ -101,7 +101,7 @@ swarmmail_reserve({
 swarm_progress({
   project_key: "/abs/path/to/project",
   agent_name: "WorkerName",
-  bead_id: "bd-123.4",
+  cell_id: "bd-123.4",
   status: "in_progress",
   message: "Auth service 80% complete, testing remaining",
   progress_percent: 80
@@ -109,7 +109,7 @@ swarm_progress({
 
 // 7. CHECKPOINT - Before risky operations
 swarm_checkpoint({
-  bead_id: "bd-123.4",
+  cell_id: "bd-123.4",
   checkpoint_name: "pre-refactor",
   reason: "About to refactor auth flow"
 });
@@ -124,7 +124,7 @@ hivemind_store({
 swarm_complete({
   project_key: "/abs/path/to/project",
   agent_name: "WorkerName",
-  bead_id: "bd-123.4",
+  cell_id: "bd-123.4",
   summary: "Auth service implemented with JWT",
   files_touched: ["src/auth/service.ts", "src/auth/schema.ts"]
 });
@@ -392,7 +392,7 @@ swarmmail_reserve({
 // ✅ CORRECT - Worker reserves their own files
 // Coordinator includes file list in worker prompt
 const prompt = swarm_spawn_subtask({
-  bead_id: "bd-123.4",
+  cell_id: "bd-123.4",
   files: ["src/auth/**"],  // Files listed here
   // ...
 });
@@ -429,7 +429,7 @@ const prompt = swarm_spawn_subtask({
 ```typescript
 for (const subtask of subtasks) {
   const prompt = await swarm_spawn_subtask({
-    bead_id: subtask.id,
+    cell_id: subtask.id,
     epic_id: epic.id,
     subtask_title: subtask.title,
     subtask_description: subtask.description,
@@ -573,7 +573,7 @@ const status = await swarm_status({ epic_id, project_key });
 await swarm_complete({
   project_key: "$PWD",
   agent_name: "coordinator",
-  bead_id: epic_id,
+  cell_id: epic_id,
   summary: "All subtasks complete",
   files_touched: [...],
 });
@@ -622,7 +622,7 @@ const relevantLearnings = await hivemind_find({
 ```typescript
 // Before refactoring
 await swarm_checkpoint({
-  bead_id: "bd-123.4",
+  cell_id: "bd-123.4",
   checkpoint_name: "pre-refactor",
   reason: "About to change auth flow structure"
 });
@@ -631,7 +631,7 @@ await swarm_checkpoint({
 
 // If it fails, restore and try different approach
 await swarm_restore_checkpoint({
-  bead_id: "bd-123.4",
+  cell_id: "bd-123.4",
   checkpoint_name: "pre-refactor"
 });
 ```
@@ -683,7 +683,7 @@ await hivemind_store({
 await swarm_progress({
   project_key: "/abs/path",
   agent_name: "WorkerName",
-  bead_id: "bd-123.4",
+  cell_id: "bd-123.4",
   status: "in_progress",
   progress_percent: 50,  // Auto-checkpoint triggered
   message: "Auth service half complete"

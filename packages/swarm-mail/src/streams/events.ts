@@ -66,7 +66,7 @@ export const MessageSentEventSchema = BaseEventSchema.extend({
 	ack_required: z.boolean().default(false),
 	// Thread context enrichment for observability
 	epic_id: z.string().optional(),
-	bead_id: z.string().optional(),
+	cell_id: z.string().optional(),
 	message_type: z
 		.enum(["progress", "blocked", "question", "status", "general"])
 		.optional(),
@@ -125,7 +125,7 @@ export const FileReservedEventSchema = BaseEventSchema.extend({
 	/** Epic ID if part of swarm work */
 	epic_id: z.string().optional(),
 	/** Cell/bead ID if part of swarm work */
-	bead_id: z.string().optional(),
+	cell_id: z.string().optional(),
 	/** Number of files being reserved */
 	file_count: z.number().optional(),
 	/** Whether this is a retry after conflict */
@@ -150,7 +150,7 @@ export const FileReleasedEventSchema = BaseEventSchema.extend({
 	/** Epic ID if part of swarm work */
 	epic_id: z.string().optional(),
 	/** Cell/bead ID if part of swarm work */
-	bead_id: z.string().optional(),
+	cell_id: z.string().optional(),
 	/** Number of files being released */
 	file_count: z.number().optional(),
 	/** How long files were held (milliseconds) */
@@ -170,7 +170,7 @@ export const FileConflictEventSchema = BaseEventSchema.extend({
 	/** Epic ID if part of swarm work */
 	epic_id: z.string().optional(),
 	/** Cell/bead ID if part of swarm work */
-	bead_id: z.string().optional(),
+	cell_id: z.string().optional(),
 	/** How the conflict was resolved */
 	resolution: z.enum(["wait", "force", "abort"]).optional(),
 });
@@ -182,14 +182,14 @@ export const FileConflictEventSchema = BaseEventSchema.extend({
 export const TaskStartedEventSchema = BaseEventSchema.extend({
 	type: z.literal("task_started"),
 	agent_name: z.string(),
-	bead_id: z.string(),
+	cell_id: z.string(),
 	epic_id: z.string().optional(),
 });
 
 export const TaskProgressEventSchema = BaseEventSchema.extend({
 	type: z.literal("task_progress"),
 	agent_name: z.string(),
-	bead_id: z.string(),
+	cell_id: z.string(),
 	progress_percent: z.number().min(0).max(100).optional(),
 	message: z.string().optional(),
 	files_touched: z.array(z.string()).optional(),
@@ -198,7 +198,7 @@ export const TaskProgressEventSchema = BaseEventSchema.extend({
 export const TaskCompletedEventSchema = BaseEventSchema.extend({
 	type: z.literal("task_completed"),
 	agent_name: z.string(),
-	bead_id: z.string(),
+	cell_id: z.string(),
 	summary: z.string(),
 	files_touched: z.array(z.string()).optional(),
 	success: z.boolean().default(true),
@@ -207,7 +207,7 @@ export const TaskCompletedEventSchema = BaseEventSchema.extend({
 export const TaskBlockedEventSchema = BaseEventSchema.extend({
 	type: z.literal("task_blocked"),
 	agent_name: z.string(),
-	bead_id: z.string(),
+	cell_id: z.string(),
 	reason: z.string(),
 });
 
@@ -241,7 +241,7 @@ export const DecompositionGeneratedEventSchema = BaseEventSchema.extend({
 export const SubtaskOutcomeEventSchema = BaseEventSchema.extend({
 	type: z.literal("subtask_outcome"),
 	epic_id: z.string(),
-	bead_id: z.string(),
+	cell_id: z.string(),
 	planned_files: z.array(z.string()),
 	actual_files: z.array(z.string()),
 	duration_ms: z.number().min(0),
@@ -269,7 +269,7 @@ export const HumanFeedbackEventSchema = BaseEventSchema.extend({
 export const SwarmCheckpointedEventSchema = BaseEventSchema.extend({
 	type: z.literal("swarm_checkpointed"),
 	epic_id: z.string(),
-	bead_id: z.string(),
+	cell_id: z.string(),
 	strategy: z.enum(["file-based", "feature-based", "risk-based"]),
 	files: z.array(z.string()),
 	dependencies: z.array(z.string()),
@@ -295,7 +295,7 @@ export const SwarmCheckpointedEventSchema = BaseEventSchema.extend({
 export const SwarmRecoveredEventSchema = BaseEventSchema.extend({
 	type: z.literal("swarm_recovered"),
 	epic_id: z.string(),
-	bead_id: z.string(),
+	cell_id: z.string(),
 	recovered_from_checkpoint: z.number(), // timestamp
 	// Enhanced observability fields
 	recovery_duration_ms: z.number().int().min(0).optional(),
@@ -307,7 +307,7 @@ export const SwarmRecoveredEventSchema = BaseEventSchema.extend({
 export const CheckpointCreatedEventSchema = BaseEventSchema.extend({
 	type: z.literal("checkpoint_created"),
 	epic_id: z.string(),
-	bead_id: z.string(),
+	cell_id: z.string(),
 	agent_name: z.string(),
 	checkpoint_id: z.string(),
 	trigger: z.enum(["manual", "auto", "progress", "error"]),
@@ -318,7 +318,7 @@ export const CheckpointCreatedEventSchema = BaseEventSchema.extend({
 export const ContextCompactedEventSchema = BaseEventSchema.extend({
 	type: z.literal("context_compacted"),
 	epic_id: z.string().optional(),
-	bead_id: z.string().optional(),
+	cell_id: z.string().optional(),
 	agent_name: z.string(),
 	tokens_before: z.number().int().min(0),
 	tokens_after: z.number().int().min(0),
@@ -343,7 +343,7 @@ export const SwarmStartedEventSchema = BaseEventSchema.extend({
 export const WorkerSpawnedEventSchema = BaseEventSchema.extend({
 	type: z.literal("worker_spawned"),
 	epic_id: z.string(),
-	bead_id: z.string(),
+	cell_id: z.string(),
 	worker_agent: z.string(),
 	subtask_title: z.string(),
 	files_assigned: z.array(z.string()),
@@ -354,7 +354,7 @@ export const WorkerSpawnedEventSchema = BaseEventSchema.extend({
 export const WorkerCompletedEventSchema = BaseEventSchema.extend({
 	type: z.literal("worker_completed"),
 	epic_id: z.string(),
-	bead_id: z.string(),
+	cell_id: z.string(),
 	worker_agent: z.string(),
 	success: z.boolean(),
 	duration_ms: z.number().int().min(0),
@@ -365,14 +365,14 @@ export const WorkerCompletedEventSchema = BaseEventSchema.extend({
 export const ReviewStartedEventSchema = BaseEventSchema.extend({
 	type: z.literal("review_started"),
 	epic_id: z.string(),
-	bead_id: z.string(),
+	cell_id: z.string(),
 	attempt: z.number().int().min(1),
 });
 
 export const ReviewCompletedEventSchema = BaseEventSchema.extend({
 	type: z.literal("review_completed"),
 	epic_id: z.string(),
-	bead_id: z.string(),
+	cell_id: z.string(),
 	status: z.enum(["approved", "needs_changes", "blocked"]),
 	attempt: z.number().int().min(1),
 	duration_ms: z.number().int().min(0).optional(),
@@ -544,7 +544,7 @@ export const DecisionRecordedEventSchema = BaseEventSchema.extend({
 	decision_id: z.string(),
 	decision_type: z.string(),
 	epic_id: z.string().optional(),
-	bead_id: z.string().optional(),
+	cell_id: z.string().optional(),
 	rationale_length: z.number().int().min(0).optional(),
 	precedent_count: z.number().int().min(0).optional(),
 });

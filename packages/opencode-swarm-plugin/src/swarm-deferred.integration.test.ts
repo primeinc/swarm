@@ -43,18 +43,18 @@ describe("swarm_complete DurableDeferred integration", () => {
       type: "task",
       priority: 2,
       status: "in_progress",
-      id: "test-bead-123",
+      id: "test-cell-123",
     });
   });
 
   it("should resolve deferred when swarm_complete is called", async () => {
-    const beadId = "test-bead-123";
+    const beadId = "test-cell-123";
 
     // First create deferred (coordinator side)
     const createProgram = Effect.gen(function* () {
       const service = yield* DurableDeferred;
       
-      // Create deferred keyed by bead_id
+      // Create deferred keyed by cell_id
       const handle = yield* service.create({
         ttlSeconds: 60,
         db,
@@ -81,7 +81,7 @@ describe("swarm_complete DurableDeferred integration", () => {
       {
         project_key: projectKey,
         agent_name: "TestWorker",
-        bead_id: beadId,
+        cell_id: beadId,
         summary: "Task completed successfully",
         start_time: Date.now() - 1500,
         skip_verification: true, // Skip verification for test

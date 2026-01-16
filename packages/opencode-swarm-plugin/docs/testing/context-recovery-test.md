@@ -123,7 +123,7 @@ This test scenario verifies that the swarm coordination system can survive conte
    swarm_progress(
      project_key: "/absolute/path/to/project",
      agent_name: "BlueLake",
-     bead_id: "bd-123.1",
+     cell_id: "bd-123.1",
      status: "in_progress",
      progress_percent: 50,
      message: "Completed first file modification",
@@ -160,7 +160,7 @@ This test scenario verifies that the swarm coordination system can survive conte
    
    **Verify:**
    - ✅ Checkpoint event type: "swarm_checkpoint_created"
-   - ✅ Recovery data includes: epic_id, bead_id, files, progress_percent, files_modified
+   - ✅ Recovery data includes: epic_id, cell_id, files, progress_percent, files_modified
 
 ---
 
@@ -216,7 +216,7 @@ This test scenario verifies that the swarm coordination system can survive conte
    ```typescript
    swarm_recover(
      project_key: "/absolute/path/to/project",
-     bead_id: "bd-123.1"
+     cell_id: "bd-123.1"
    )
    ```
    
@@ -228,7 +228,7 @@ This test scenario verifies that the swarm coordination system can survive conte
        "recovered": true,
        "checkpoint": {
          "epic_id": "bd-123",
-         "bead_id": "bd-123.1",
+         "cell_id": "bd-123.1",
          "strategy": "file-based",
          "files": ["test/file1.ts", "test/file2.ts"],
          "recovery": {
@@ -286,7 +286,7 @@ This test scenario verifies that the swarm coordination system can survive conte
     swarm_complete(
       project_key: "/absolute/path/to/project",
       agent_name: "CrimsonPeak",
-      bead_id: "bd-123.1",
+      cell_id: "bd-123.1",
       summary: "Completed context recovery test - survived session death",
       files_touched: ["test/file1.ts", "test/file2.ts"]
     )
@@ -315,14 +315,14 @@ This test scenario verifies that the swarm coordination system can survive conte
 
 ### Checkpoint Creation
 - [ ] Auto-checkpoint triggered at 50% progress
-- [ ] Checkpoint includes epic_id, bead_id, strategy
+- [ ] Checkpoint includes epic_id, cell_id, strategy
 - [ ] Files list preserved
 - [ ] Progress percentage stored
 - [ ] Files modified list accurate
 - [ ] Last message captured
 
 ### Recovery Mechanism
-- [ ] New session can query checkpoint by bead_id
+- [ ] New session can query checkpoint by cell_id
 - [ ] All checkpoint data restored correctly
 - [ ] Directives and context preserved
 - [ ] Recovery returns actionable state object
@@ -347,7 +347,7 @@ This test scenario verifies that the swarm coordination system can survive conte
 ```typescript
 swarm_recover(
   project_key: "/path/to/project",
-  bead_id: "bd-999.1"  // Non-existent bead
+  cell_id: "bd-999.1"  // Non-existent bead
 )
 ```
 
@@ -364,7 +364,7 @@ swarm_recover(
 // Create bead but never report progress
 swarm_recover(
   project_key: "/path/to/project",
-  bead_id: "bd-123.2"
+  cell_id: "bd-123.2"
 )
 ```
 
@@ -381,7 +381,7 @@ swarm_recover(
 // Agent can force checkpoint at any time
 swarm_checkpoint(
   project_key: "/path/to/project",
-  bead_id: "bd-123.1",
+  cell_id: "bd-123.1",
   checkpoint_data: {
     progress_percent: 33,
     files_modified: ["test/file1.ts"],

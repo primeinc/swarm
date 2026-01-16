@@ -1379,7 +1379,7 @@
   ```typescript
   // A SWARM is defined by this event sequence (no heuristics):
   // 1. hive_create_epic(epic_title, subtasks[]) → epic_id
-  // 2. swarm_spawn_subtask(bead_id, epic_id, ...) → prompt (at least one)
+  // 2. swarm_spawn_subtask(cell_id, epic_id, ...) → prompt (at least one)
 
   // Pure fold over events produces ground truth state
   const projection = projectSwarmState(sessionEvents);
@@ -2810,7 +2810,7 @@
 
   **Structured Error Classes** (swarm-mail)
 
-  - `BaseSwarmError` with rich context: agent, bead_id, epic_id, timestamp, recent events
+  - `BaseSwarmError` with rich context: agent, cell_id, epic_id, timestamp, recent events
   - Specialized errors: `ReservationError`, `CheckpointError`, `ValidationError`, `DecompositionError`
   - Every error includes actionable suggestions for resolution
   - Full `toJSON()` serialization for logging and debugging

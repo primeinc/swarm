@@ -1,5 +1,5 @@
 /**
- * Log Command - View and tail swarm logs
+ * Log Command - View and tail Hive swarm logs
  *
  * Commands:
  *   swarm log [type]                    - Show recent logs (all types or specific: tools, swarmmail, errors, compaction)
@@ -13,13 +13,13 @@
  *   ~/.config/swarm-tools/logs/tools-YYYY-MM-DD.log
  *   ~/.config/swarm-tools/logs/swarmmail-YYYY-MM-DD.log
  *   ~/.config/swarm-tools/logs/errors-YYYY-MM-DD.log
- *   ~/.config/swarm-tools/logs/compaction.log (legacy, single file)
+ *   ~/.config/swarm-tools/logs/compaction.log (Hive context management)
  */
 
-import * as p from "@clack/prompts";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { join } from "node:path";
 import { homedir } from "node:os";
+import { join } from "node:path";
+import * as p from "@clack/prompts";
 
 // Color utilities (inline)
 const cyan = (s: string) => `\x1b[36m${s}\x1b[0m`;
@@ -252,14 +252,12 @@ async function showLogs(options: LogOptions) {
 
 	// Sort by time (newest last for tail-like output)
 	const sorted = filtered.sort(
-		(a, b) => new Date(a.time).getTime() - new Date(b.time).getTime()
+		(a, b) => new Date(a.time).getTime() - new Date(b.time).getTime(),
 	);
 
 	// Limit
 	const limited =
-		options.limit && options.limit > 0
-			? sorted.slice(-options.limit)
-			: sorted;
+		options.limit && options.limit > 0 ? sorted.slice(-options.limit) : sorted;
 
 	if (options.json) {
 		console.log(JSON.stringify(limited, null, 2));
@@ -333,16 +331,16 @@ async function watchLogs(options: LogOptions) {
  */
 function showHelp() {
 	console.log(`
-${cyan("swarm log")} - View and tail swarm logs
+${cyan("swarm log")} - View and tail Hive swarm logs
 
 ${yellow("USAGE:")}
   swarm log [type] [options]
 
 ${yellow("TYPES:")}
-  tools       Tool invocations (hive_*, swarm_*, etc.)
-  swarmmail   Inter-agent messages
+  tools       Hive and swarm tool invocations (hive_*, swarm_*, etc.)
+  swarmmail   Inter-agent messages (Swarm Mail)
   errors      Error logs
-  compaction  Context compaction events (legacy single file)
+  compaction  Context compaction events (Hive context management)
 
 ${yellow("OPTIONS:")}
   --since <time>   Show logs since time (e.g., 30s, 5m, 2h, 24h)

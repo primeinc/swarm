@@ -12,7 +12,7 @@ describe("swarm_complete DurableDeferred integration", () => {
     
     const mockResponse = {
       success: true,
-      bead_id: "test-bead-123",
+      cell_id: "test-cell-123",
       closed: true,
       reservations_released: true,
       deferred_resolved: true,  // NEW FIELD
@@ -26,7 +26,7 @@ describe("swarm_complete DurableDeferred integration", () => {
   it("should handle deferred_error when resolution fails", () => {
     const mockResponse = {
       success: true,
-      bead_id: "test-bead-123",
+      cell_id: "test-cell-123",
       closed: true,
       deferred_resolved: false,
       deferred_error: "Database not available",

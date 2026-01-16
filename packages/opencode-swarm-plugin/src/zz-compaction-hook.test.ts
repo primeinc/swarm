@@ -842,7 +842,7 @@ describe("Compaction Hook", () => {
                     state: {
                       status: "completed",
                       input: {
-                        bead_id: "bd-123.1",
+                        cell_id: "bd-123.1",
                         epic_id: "epic-123",
                         subtask_title: "Add auth",
                         files: ["src/auth.ts"],
@@ -881,7 +881,7 @@ describe("Compaction Hook", () => {
                     state: {
                       status: "completed",
                       input: {
-                        bead_id: "bd-123.1",
+                        cell_id: "bd-123.1",
                         subtask_title: "Add auth",
                       },
                       output: "{}",
@@ -893,7 +893,7 @@ describe("Compaction Hook", () => {
                     tool: "swarm_complete",
                     state: {
                       status: "completed",
-                      input: { bead_id: "bd-123.1" },
+                      input: { cell_id: "bd-123.1" },
                       output: "{}",
                       time: { start: 3000, end: 4000 },
                     },

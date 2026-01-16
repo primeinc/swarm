@@ -1,6 +1,6 @@
 /**
  * GREEN PHASE: SQL Query Tools Implementation
- * 
+ *
  * Provides:
  * - 13 preset queries for observability insights (10 base + 3 decision trace)
  * - Custom SQL execution with timing
@@ -90,7 +90,7 @@ export const presetQueries: Record<PresetQueryName, string> = {
 
 	review_rejections: `
 		SELECT 
-			json_extract(data, '$.bead_id') as bead_id,
+			json_extract(data, '$.cell_id') as cell_id,
 			json_extract(data, '$.agent_name') as agent_name,
 			json_extract(data, '$.issues') as issues,
 			timestamp
@@ -102,7 +102,7 @@ export const presetQueries: Record<PresetQueryName, string> = {
 
 	blocked_tasks: `
 		SELECT 
-			json_extract(data, '$.bead_id') as bead_id,
+			json_extract(data, '$.cell_id') as cell_id,
 			json_extract(data, '$.agent_name') as agent_name,
 			json_extract(data, '$.epic_id') as epic_id,
 			json_extract(data, '$.status') as status,
@@ -229,7 +229,7 @@ async function createDbAdapter(): Promise<DatabaseAdapter> {
 
 /**
  * Execute custom SQL against the events table (low-level).
- * 
+ *
  * @param db - DatabaseAdapter instance
  * @param sql - SQL query string
  * @param params - Optional parameterized query values
@@ -241,9 +241,9 @@ export async function executeQuery(
 	params?: unknown[],
 ): Promise<QueryResult> {
 	const startTime = performance.now();
-	
+
 	const result = await db.query<Record<string, unknown>>(sql, params);
-	
+
 	const endTime = performance.now();
 	const executionTimeMs = endTime - startTime;
 
@@ -260,7 +260,7 @@ export async function executeQuery(
 
 /**
  * Execute a preset query by name (low-level, requires DatabaseAdapter).
- * 
+ *
  * @param db - DatabaseAdapter instance
  * @param presetName - Name of the preset query
  * @returns QueryResult with rows, columns, timing
@@ -271,10 +271,10 @@ export async function executePresetQuery(
 ): Promise<QueryResult> {
 	if (!(presetName in presetQueries)) {
 		throw new Error(
-			`Unknown preset: ${presetName}. Available presets: ${Object.keys(presetQueries).join(", ")}`
+			`Unknown preset: ${presetName}. Available presets: ${Object.keys(presetQueries).join(", ")}`,
 		);
 	}
-	
+
 	const sql = presetQueries[presetName as PresetQueryName];
 	return executeQuery(db, sql);
 }
@@ -282,7 +282,7 @@ export async function executePresetQuery(
 /**
  * Execute custom SQL query (CLI wrapper).
  * Creates database adapter automatically.
- * 
+ *
  * @param projectPath - Project path (unused, queries global database)
  * @param sql - SQL query string
  * @returns Raw rows array for CLI formatting
@@ -299,7 +299,7 @@ export async function executeQueryCLI(
 /**
  * Execute a preset query by name (CLI wrapper).
  * Creates database adapter automatically.
- * 
+ *
  * @param projectPath - Project path (unused, queries global database)
  * @param presetName - Name of the preset query
  * @returns Raw rows array for CLI formatting
@@ -319,7 +319,7 @@ export async function executePreset(
 
 /**
  * Format query result as aligned table with box-drawing characters.
- * 
+ *
  * Example output:
  * ┌──────────┬───────┐
  * │ name     │ count │
@@ -365,15 +365,11 @@ export function formatAsTable(result: QueryResult): string {
 	lines.push(topBorder);
 
 	// Header
-	const headerCells = columns.map((col, idx) => 
-		` ${col.padEnd(widths[idx])} `
-	);
+	const headerCells = columns.map((col, idx) => ` ${col.padEnd(widths[idx])} `);
 	lines.push(`│${headerCells.join("│")}│`);
 
 	// Separator
-	lines.push(
-		`├${widths.map((w) => "─".repeat(w + 2)).join("┼")}┤`,
-	);
+	lines.push(`├${widths.map((w) => "─".repeat(w + 2)).join("┼")}┤`);
 
 	// Data rows
 	for (const row of rows) {
@@ -399,7 +395,7 @@ export function formatAsTable(result: QueryResult): string {
 
 /**
  * Format query result as CSV with proper escaping.
- * 
+ *
  * Escapes:
  * - Commas → wrap in quotes
  * - Quotes → double them
@@ -436,7 +432,7 @@ export function formatAsCSV(result: QueryResult): string {
 
 /**
  * Format query result as pretty-printed JSON array.
- * 
+ *
  * Example:
  * [
  *   { "name": "AgentA", "count": 5 },

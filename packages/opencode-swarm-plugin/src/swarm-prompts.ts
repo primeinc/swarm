@@ -13,10 +13,10 @@
  */
 
 import { tool } from "@opencode-ai/plugin";
-import { generateWorkerHandoff } from "./swarm-orchestrate";
+import { traceWorkerSpawn } from "./decision-trace-integration.js";
 import { captureCoordinatorEvent } from "./eval-capture.js";
 import { getMemoryAdapter } from "./memory-tools.js";
-import { traceWorkerSpawn } from "./decision-trace-integration.js";
+import { generateWorkerHandoff } from "./swarm-orchestrate";
 
 // ============================================================================
 // Prompt Templates
@@ -168,7 +168,7 @@ export const SUBTASK_PROMPT = `You are a swarm agent working on a subtask of a l
 
 ## Your Identity
 - **Agent Name**: {agent_name}
-- **Cell ID**: {bead_id}
+- **Cell ID**: {cell_id}
 - **Epic ID**: {epic_id}
 
 ## Your Subtask
@@ -191,7 +191,7 @@ send a message to the coordinator requesting the change.
 You MUST keep your cell updated as you work:
 
 1. **Your cell is already in_progress** - don't change this unless blocked
-2. **If blocked**: \`hive_update {bead_id} --status blocked\` and message coordinator
+2. **If blocked**: \`hive_update {cell_id} --status blocked\` and message coordinator
 3. **When done**: Use \`swarm_complete\` - it closes your cell automatically
 4. **Discovered issues**: Create new cells with \`hive_create "issue" -t bug\`
 
@@ -258,7 +258,7 @@ export const SUBTASK_PROMPT_V2 = `You are a swarm agent working on: **{subtask_t
 
 ## [IDENTITY]
 Agent: (assigned at spawn)
-Cell: {bead_id}
+Cell: {cell_id}
 Epic: {epic_id}
 
 ## [TASK]
@@ -283,7 +283,7 @@ Only modify these files. Need others? Message the coordinator.
 
 ### Step 1: Initialize Coordination (REQUIRED - DO THIS FIRST)
 \`\`\`
-swarmmail_init(project_path="{project_path}", task_description="{bead_id}: {subtask_title}")
+swarmmail_init(project_path="{project_path}", task_description="{cell_id}: {subtask_title}")
 \`\`\`
 
 **This registers you with the coordination system and enables:**
@@ -341,7 +341,7 @@ skills_use(name="<relevant-skill>", context="<your task>")  # Load skill
 \`\`\`
 swarmmail_reserve(
   paths=[{file_list}],
-  reason="{bead_id}: {subtask_title}",
+  reason="{cell_id}: {subtask_title}",
   exclusive=true
 )
 \`\`\`
@@ -380,7 +380,7 @@ bun test <your-test-file> --watch
 swarm_progress(
   project_key="{project_path}",
   agent_name="<your-agent-name>",
-  bead_id="{bead_id}",
+  cell_id="{cell_id}",
   status="in_progress",
   progress_percent=25,  # or 50, 75
   message="<what you just completed>"
@@ -397,7 +397,7 @@ swarm_progress(
 swarm_checkpoint(
   project_key="{project_path}",
   agent_name="<your-agent-name>",
-  bead_id="{bead_id}"
+  cell_id="{cell_id}"
 )
 \`\`\`
 
@@ -453,7 +453,7 @@ check and use. Implemented with: if (expiresAt - Date.now() < 300000) refresh()"
 swarm_complete(
   project_key="{project_path}",
   agent_name="<your-agent-name>",
-  bead_id="{bead_id}",
+  cell_id="{cell_id}",
   summary="<what you accomplished>",
   files_touched=["list", "of", "files"]
 )
@@ -474,7 +474,7 @@ If you encounter unknown API behavior or version-specific issues:
    \`hivemind_find(query="<library> <version> <topic>", limit=3, expand=true)\`
 
 2. **If not found, spawn researcher:**
-   \`swarm_spawn_researcher(research_id="{bead_id}-research", epic_id="{epic_id}", tech_stack=["<library>"], project_path="{project_path}")\`
+   \`swarm_spawn_researcher(research_id="{cell_id}-research", epic_id="{epic_id}", tech_stack=["<library>"], project_path="{project_path}")\`
    Then spawn with Task tool: \`Task(subagent_type="swarm-researcher", prompt="<from above>")\`
 
 3. **Wait for research, then continue**
@@ -501,19 +501,19 @@ swarmmail_read_message(message_id=N)  # Read specific message
 \`\`\`
 swarmmail_send(
   to=["coordinator"],
-  subject="BLOCKED: {bead_id}",
+  subject="BLOCKED: {cell_id}",
   body="<blocker description, what you need>",
   importance="high",
   thread_id="{epic_id}"
 )
-hive_update(id="{bead_id}", status="blocked")
+hive_update(id="{cell_id}", status="blocked")
 \`\`\`
 
 ### Report Issues to Other Agents
 \`\`\`
 swarmmail_send(
   to=["OtherAgent", "coordinator"],
-  subject="Issue in {bead_id}",
+  subject="Issue in {cell_id}",
   body="<describe problem, don't fix their code>",
   thread_id="{epic_id}"
 )
@@ -549,7 +549,7 @@ hive_create(
   type="bug",  # or "task", "chore"
   priority=2,
   parent_id="{epic_id}",  # Links to this epic
-  description="Found while working on {bead_id}: <details>"
+  description="Found while working on {cell_id}: <details>"
 )
 \`\`\`
 
@@ -588,16 +588,16 @@ Begin now.`;
 
 /**
  * Coordinator Agent Prompt Template
- * 
+ *
  * Used by the /swarm command to instruct coordinators on their role.
  * Coordinators NEVER execute work directly - they clarify, decompose, spawn workers, and review.
- * 
+ *
  * Key sections:
  * - Role boundaries (what coordinators NEVER do)
  * - Phase 1.5: Research Phase (spawn researchers, DON'T fetch docs directly)
  * - Forbidden tools (repo-crawl, webfetch, context7, pdf-brain_search)
  * - MANDATORY review loop after each worker completes
- * 
+ *
  * Placeholders:
  * - {task} - The task description from user
  * - {project_path} - Absolute path to project root
@@ -681,14 +681,14 @@ bash("bun test src/auth.test.ts")  // NO - worker runs tests
 ❌ **WRONG** - Coordinator reserving files:
 \`\`\`
 swarmmail_reserve(paths=["src/auth.ts"])  // NO - worker reserves their own files
-swarm_spawn_subtask(bead_id="...", files=["src/auth.ts"])
+swarm_spawn_subtask(cell_id="...", files=["src/auth.ts"])
 \`\`\`
 
 ✅ **CORRECT** - Coordinator spawning worker:
 \`\`\`
 // Coordinator delegates ALL work
 swarm_spawn_subtask(
-  bead_id="fix-auth-bug",
+  cell_id="fix-auth-bug",
   epic_id="epic-123",
   subtask_title="Fix null check in login handler",
   files=["src/auth/login.ts", "src/auth/login.test.ts"],
@@ -915,20 +915,20 @@ swarm_validate_decomposition(response="<CellTree JSON>")
 **For parallel work:**
 \`\`\`
 // Single message with multiple Task calls
-swarm_spawn_subtask(bead_id_1, epic_id, title_1, files_1, shared_context, project_path="{project_path}")
+swarm_spawn_subtask(cell_id_1, epic_id, title_1, files_1, shared_context, project_path="{project_path}")
 Task(subagent_type="swarm-worker", prompt="<prompt returned by swarm_spawn_subtask>")
-swarm_spawn_subtask(bead_id_2, epic_id, title_2, files_2, shared_context, project_path="{project_path}")
+swarm_spawn_subtask(cell_id_2, epic_id, title_2, files_2, shared_context, project_path="{project_path}")
 Task(subagent_type="swarm-worker", prompt="<prompt returned by swarm_spawn_subtask>")
 \`\`\`
 
 **For sequential work:**
 \`\`\`
 // Spawn worker 1, wait for completion
-swarm_spawn_subtask(bead_id_1, ...)
+swarm_spawn_subtask(cell_id_1, ...)
 const result1 = await Task(subagent_type="swarm-worker", prompt="<prompt returned by swarm_spawn_subtask>")
 
 // THEN spawn worker 2 with context from worker 1
-swarm_spawn_subtask(bead_id_2, ..., shared_context="Worker 1 completed: " + result1)
+swarm_spawn_subtask(cell_id_2, ..., shared_context="Worker 1 completed: " + result1)
 const result2 = await Task(subagent_type="swarm-worker", prompt="<prompt returned by swarm_spawn_subtask>")
 \`\`\`
 
@@ -1024,7 +1024,7 @@ Begin with Phase 0 (Socratic Planning) unless \`--fast\` or \`--auto\` flag is p
 
 /**
  * Researcher Agent Prompt Template
- * 
+ *
  * Spawned BEFORE decomposition to gather technology documentation.
  * Researchers receive an EXPLICIT list of technologies to research from the coordinator.
  * They dynamically discover WHAT TOOLS are available to fetch docs.
@@ -1201,7 +1201,7 @@ swarm_review_feedback(
 - Generate retry prompt:
   \`\`\`
   swarm_spawn_retry(
-    bead_id="{task_id}",
+    cell_id="{task_id}",
     epic_id="{epic_id}",
     original_prompt="<original prompt>",
     attempt=<current_attempt>,
@@ -1229,7 +1229,7 @@ swarm_review_feedback(
 export const EVALUATION_PROMPT = `Evaluate the work completed for this subtask.
 
 ## Subtask
-**Cell ID**: {bead_id}
+**Cell ID**: {cell_id}
 **Title**: {subtask_title}
 
 ## Files Modified
@@ -1269,29 +1269,29 @@ should describe what needs to be fixed.`;
 
 /**
  * Query recent eval failures from semantic memory
- * 
+ *
  * Coordinators call this at session start to learn from recent eval regressions.
  * Returns formatted string for injection into coordinator prompts.
- * 
+ *
  * @returns Formatted string of recent failures (empty if none or memory unavailable)
  */
 export async function getRecentEvalFailures(): Promise<string> {
-  try {
-    const adapter = await getMemoryAdapter();
-    
-    // Query memories for eval failures
-    const result = await adapter.find({
-      query: "eval-failure regression coordinator",
-      limit: 3,
-    });
-    
-    if (result.count === 0) {
-      return "";
-    }
-    
-    const lines = result.results.map((f) => `- ${f.content.slice(0, 200)}...`);
-    
-    return `
+	try {
+		const adapter = await getMemoryAdapter();
+
+		// Query memories for eval failures
+		const result = await adapter.find({
+			query: "eval-failure regression coordinator",
+			limit: 3,
+		});
+
+		if (result.count === 0) {
+			return "";
+		}
+
+		const lines = result.results.map((f) => `- ${f.content.slice(0, 200)}...`);
+
+		return `
 ## ⚠️ Recent Eval Failures (Learn From These)
 
 The following eval regressions were detected recently. Avoid these patterns:
@@ -1300,11 +1300,11 @@ ${lines.join("\n")}
 
 **Action:** Review these failures and ensure your coordination avoids similar issues.
 `;
-  } catch (e) {
-    // Best effort - don't fail if memory unavailable
-    console.warn("Failed to query eval failures:", e);
-    return "";
-  }
+	} catch (e) {
+		// Best effort - don't fail if memory unavailable
+		console.warn("Failed to query eval failures:", e);
+		return "";
+	}
 }
 
 // ============================================================================
@@ -1312,190 +1312,204 @@ ${lines.join("\n")}
 // ============================================================================
 
 interface PromptInsightsOptions {
-  role: "coordinator" | "worker";
-  project_key?: string;
-  files?: string[];
-  domain?: string;
+	role: "coordinator" | "worker";
+	project_key?: string;
+	files?: string[];
+	domain?: string;
 }
 
 /**
  * Get swarm insights for prompt injection
- * 
+ *
  * Queries recent swarm outcomes and semantic memory to surface:
  * - Strategy success rates
  * - Common failure modes
  * - Anti-patterns
  * - File/domain-specific learnings
- * 
+ *
  * Returns formatted string for injection into coordinator or worker prompts.
- * 
+ *
  * @param options - Role and filters for insights
  * @returns Formatted insights string (empty if no data or errors)
  */
 export async function getPromptInsights(
-  options: PromptInsightsOptions,
+	options: PromptInsightsOptions,
 ): Promise<string> {
-  try {
-    if (options.role === "coordinator") {
-      return await getCoordinatorInsights(options.project_key);
-    } else {
-      return await getWorkerInsights(options.files, options.domain);
-    }
-  } catch (e) {
-    // Best effort - don't fail if data unavailable
-    console.warn("Failed to query prompt insights:", e);
-    return "";
-  }
+	try {
+		if (options.role === "coordinator") {
+			return await getCoordinatorInsights(options.project_key);
+		} else {
+			return await getWorkerInsights(options.files, options.domain);
+		}
+	} catch (e) {
+		// Best effort - don't fail if data unavailable
+		console.warn("Failed to query prompt insights:", e);
+		return "";
+	}
 }
 
 /**
  * Get coordinator-specific insights (strategy stats, anti-patterns)
  */
 async function getCoordinatorInsights(project_key?: string): Promise<string> {
-  try {
-    // Import swarm-mail and swarm-insights modules
-    // Use getSwarmMailLibSQL which uses cached adapter (no connection leak)
-    const { getSwarmMailLibSQL } = await import("swarm-mail");
-    const { getStrategyInsights, getPatternInsights, formatInsightsForPrompt } = await import("./swarm-insights.js");
-    
-    // Use cached adapter via getSwarmMailLibSQL (singleton per project_key)
-    const adapter = await getSwarmMailLibSQL(project_key);
-    
-    // Query insights from the new data layer
-    const [strategies, patterns] = await Promise.all([
-      getStrategyInsights(adapter, ""),
-      getPatternInsights(adapter),
-    ]);
-    
-    // Bundle insights
-    const bundle = {
-      strategies,
-      patterns,
-    };
-    
-    // Format for prompt injection (<500 tokens)
-    const formatted = formatInsightsForPrompt(bundle, { maxTokens: 500 });
-    
-    if (!formatted) {
-      return "";
-    }
-    
-    // Add section header
-    return `
+	try {
+		// Import swarm-mail and swarm-insights modules
+		// Use getSwarmMailLibSQL which uses cached adapter (no connection leak)
+		const { getSwarmMailLibSQL } = await import("swarm-mail");
+		const { getStrategyInsights, getPatternInsights, formatInsightsForPrompt } =
+			await import("./swarm-insights.js");
+
+		// Use cached adapter via getSwarmMailLibSQL (singleton per project_key)
+		const adapter = await getSwarmMailLibSQL(project_key);
+
+		// Query insights from the new data layer
+		const [strategies, patterns] = await Promise.all([
+			getStrategyInsights(adapter, ""),
+			getPatternInsights(adapter),
+		]);
+
+		// Bundle insights
+		const bundle = {
+			strategies,
+			patterns,
+		};
+
+		// Format for prompt injection (<500 tokens)
+		const formatted = formatInsightsForPrompt(bundle, { maxTokens: 500 });
+
+		if (!formatted) {
+			return "";
+		}
+
+		// Add section header
+		return `
 ## 📊 Historical Insights
 
 ${formatted}
 
 **Use these learnings when selecting decomposition strategies and planning subtasks.**
 `;
-  } catch (e) {
-    console.warn("Failed to get coordinator insights:", e);
-    return "";
-  }
+	} catch (e) {
+		console.warn("Failed to get coordinator insights:", e);
+		return "";
+	}
 }
 
 /**
  * Get worker-specific insights (file/domain learnings, common pitfalls)
  */
 async function getWorkerInsights(
-  files?: string[],
-  domain?: string,
+	files?: string[],
+	domain?: string,
 ): Promise<string> {
-  try {
-    // Import swarm-mail and swarm-insights modules
-    const { getSwarmMailLibSQL } = await import("swarm-mail");
-    const { getFileInsights, getFileFailureHistory, formatInsightsForPrompt, formatFileHistoryWarnings } = await import("./swarm-insights.js");
-    const memoryAdapter = await getMemoryAdapter();
-    
-    // Build query from files and domain
-    let query = "";
-    if (files && files.length > 0) {
-      // Extract domain keywords from file paths
-      const keywords = files
-        .flatMap((f) => f.split(/[\/\\.]/).filter((part) => part.length > 2))
-        .slice(0, 5);
-      query = keywords.join(" ");
-    } else if (domain) {
-      query = domain;
-    } else {
-      return ""; // No context to query
-    }
-    
-    // Get cached adapter ONCE - shared by both insight queries
-    // This avoids creating 2 new connections per call (was leaking 4+ connections/agent-step)
-    const swarmMail = await getSwarmMailLibSQL();
-    
-    // Query BOTH event store (via swarm-insights) AND semantic memory
-    const [fileInsights, fileFailureHistory, memoryResult] = await Promise.all([
-      // Get file-specific insights from event store
-      (async () => {
-        if (!files || files.length === 0) return [];
-        try {
-          return await getFileInsights(swarmMail, files);
-        } catch (e) {
-          console.warn("Failed to get file insights from event store:", e);
-          return [];
-        }
-      })(),
-      
-      // Get file failure history from review_feedback events
-      (async () => {
-        if (!files || files.length === 0) return [];
-        try {
-          return await getFileFailureHistory(swarmMail, files);
-        } catch (e) {
-          console.warn("Failed to get file failure history from event store:", e);
-          return [];
-        }
-      })(),
-      
-      // Get domain/file learnings from semantic memory
-      memoryAdapter.find({
-        query: `${query} gotcha pitfall pattern bug`,
-        limit: 3,
-      }),
-    ]);
-    
-    // Bundle insights for formatting
-    const bundle = {
-      files: fileInsights,
-    };
-    
-    // Format file insights using swarm-insights formatter
-    const formattedFileInsights = formatInsightsForPrompt(bundle, { maxTokens: 300 });
-    
-    // Format file failure history warnings
-    const formattedWarnings = formatFileHistoryWarnings(fileFailureHistory);
-    
-    // Format semantic memory learnings
-    let formattedMemory = "";
-    if (memoryResult.count > 0) {
-      const learnings = memoryResult.results.map((r) => {
-        const content = r.content.length > 150
-          ? r.content.slice(0, 150) + "..."
-          : r.content;
-        return `- ${content}`;
-      });
-      
-      formattedMemory = `## 💡 Relevant Learnings (from past agents)
+	try {
+		// Import swarm-mail and swarm-insights modules
+		const { getSwarmMailLibSQL } = await import("swarm-mail");
+		const {
+			getFileInsights,
+			getFileFailureHistory,
+			formatInsightsForPrompt,
+			formatFileHistoryWarnings,
+		} = await import("./swarm-insights.js");
+		const memoryAdapter = await getMemoryAdapter();
+
+		// Build query from files and domain
+		let query = "";
+		if (files && files.length > 0) {
+			// Extract domain keywords from file paths
+			const keywords = files
+				.flatMap((f) => f.split(/[/\\.]/).filter((part) => part.length > 2))
+				.slice(0, 5);
+			query = keywords.join(" ");
+		} else if (domain) {
+			query = domain;
+		} else {
+			return ""; // No context to query
+		}
+
+		// Get cached adapter ONCE - shared by both insight queries
+		// This avoids creating 2 new connections per call (was leaking 4+ connections/agent-step)
+		const swarmMail = await getSwarmMailLibSQL();
+
+		// Query BOTH event store (via swarm-insights) AND semantic memory
+		const [fileInsights, fileFailureHistory, memoryResult] = await Promise.all([
+			// Get file-specific insights from event store
+			(async () => {
+				if (!files || files.length === 0) return [];
+				try {
+					return await getFileInsights(swarmMail, files);
+				} catch (e) {
+					console.warn("Failed to get file insights from event store:", e);
+					return [];
+				}
+			})(),
+
+			// Get file failure history from review_feedback events
+			(async () => {
+				if (!files || files.length === 0) return [];
+				try {
+					return await getFileFailureHistory(swarmMail, files);
+				} catch (e) {
+					console.warn(
+						"Failed to get file failure history from event store:",
+						e,
+					);
+					return [];
+				}
+			})(),
+
+			// Get domain/file learnings from semantic memory
+			memoryAdapter.find({
+				query: `${query} gotcha pitfall pattern bug`,
+				limit: 3,
+			}),
+		]);
+
+		// Bundle insights for formatting
+		const bundle = {
+			files: fileInsights,
+		};
+
+		// Format file insights using swarm-insights formatter
+		const formattedFileInsights = formatInsightsForPrompt(bundle, {
+			maxTokens: 300,
+		});
+
+		// Format file failure history warnings
+		const formattedWarnings = formatFileHistoryWarnings(fileFailureHistory);
+
+		// Format semantic memory learnings
+		let formattedMemory = "";
+		if (memoryResult.count > 0) {
+			const learnings = memoryResult.results.map((r) => {
+				const content =
+					r.content.length > 150 ? r.content.slice(0, 150) + "..." : r.content;
+				return `- ${content}`;
+			});
+
+			formattedMemory = `## 💡 Relevant Learnings (from past agents)
 
 ${learnings.join("\n")}
 
 **Check hivemind for full details if needed.**`;
-    }
-    
-    // Combine all sources: file insights, warnings (before semantic memory), semantic memory
-    const sections = [formattedFileInsights, formattedWarnings, formattedMemory].filter(s => s.length > 0);
-    
-    if (sections.length === 0) {
-      return "";
-    }
-    
-    return sections.join("\n\n");
-  } catch (e) {
-    console.warn("Failed to get worker insights:", e);
-    return "";
-  }
+		}
+
+		// Combine all sources: file insights, warnings (before semantic memory), semantic memory
+		const sections = [
+			formattedFileInsights,
+			formattedWarnings,
+			formattedMemory,
+		].filter((s) => s.length > 0);
+
+		if (sections.length === 0) {
+			return "";
+		}
+
+		return sections.join("\n\n");
+	} catch (e) {
+		console.warn("Failed to get worker insights:", e);
+		return "";
+	}
 }
 
 // ============================================================================
@@ -1506,184 +1520,186 @@ ${learnings.join("\n")}
  * Format the researcher prompt for a documentation research task
  */
 export function formatResearcherPrompt(params: {
-  research_id: string;
-  epic_id: string;
-  tech_stack: string[];
-  project_path: string;
-  check_upgrades: boolean;
+	research_id: string;
+	epic_id: string;
+	tech_stack: string[];
+	project_path: string;
+	check_upgrades: boolean;
 }): string {
-  const techList = params.tech_stack.map((t) => `- ${t}`).join("\n");
-  
-  const upgradesMode = params.check_upgrades
-    ? "**UPGRADE COMPARISON MODE**: Fetch docs for BOTH installed AND latest versions. Compare and note breaking changes."
-    : "**DEFAULT MODE**: Fetch docs for INSTALLED versions only (from lockfiles).";
+	const techList = params.tech_stack.map((t) => `- ${t}`).join("\n");
 
-  return RESEARCHER_PROMPT
-    .replace(/{research_id}/g, params.research_id)
-    .replace(/{epic_id}/g, params.epic_id)
-    .replace("{tech_stack}", techList)
-    .replace("{project_path}", params.project_path)
-    .replace("{check_upgrades}", upgradesMode);
+	const upgradesMode = params.check_upgrades
+		? "**UPGRADE COMPARISON MODE**: Fetch docs for BOTH installed AND latest versions. Compare and note breaking changes."
+		: "**DEFAULT MODE**: Fetch docs for INSTALLED versions only (from lockfiles).";
+
+	return RESEARCHER_PROMPT.replace(/{research_id}/g, params.research_id)
+		.replace(/{epic_id}/g, params.epic_id)
+		.replace("{tech_stack}", techList)
+		.replace("{project_path}", params.project_path)
+		.replace("{check_upgrades}", upgradesMode);
 }
 
 /**
  * Format the coordinator prompt with task and project path substitution
  */
 export function formatCoordinatorPrompt(params: {
-  task: string;
-  projectPath: string;
-  model?: string;
+	task: string;
+	projectPath: string;
+	model?: string;
 }): string {
-  return COORDINATOR_PROMPT
-    .replace(/{task}/g, params.task)
-    .replace(/{project_path}/g, params.projectPath);
+	return COORDINATOR_PROMPT.replace(/{task}/g, params.task).replace(
+		/{project_path}/g,
+		params.projectPath,
+	);
 }
 
 /**
  * Format the V2 subtask prompt for a specific agent
  */
 export async function formatSubtaskPromptV2(params: {
-  bead_id: string;
-  epic_id: string;
-  subtask_title: string;
-  subtask_description: string;
-  files: string[];
-  shared_context?: string;
-  compressed_context?: string;
-  error_context?: string;
-  project_path?: string;
-  model?: string;
-  recovery_context?: {
-    shared_context?: string;
-    skills_to_load?: string[];
-    coordinator_notes?: string;
-  };
+	cell_id: string;
+	epic_id: string;
+	subtask_title: string;
+	subtask_description: string;
+	files: string[];
+	shared_context?: string;
+	compressed_context?: string;
+	error_context?: string;
+	project_path?: string;
+	model?: string;
+	recovery_context?: {
+		shared_context?: string;
+		skills_to_load?: string[];
+		coordinator_notes?: string;
+	};
 }): Promise<string> {
-  const fileList =
-    params.files.length > 0
-      ? params.files.map((f) => `- \`${f}\``).join("\n")
-      : "(no specific files - use judgment)";
+	const fileList =
+		params.files.length > 0
+			? params.files.map((f) => `- \`${f}\``).join("\n")
+			: "(no specific files - use judgment)";
 
-  const compressedSection = params.compressed_context
-    ? params.compressed_context
-    : "";
+	const compressedSection = params.compressed_context
+		? params.compressed_context
+		: "";
 
-  const errorSection = params.error_context ? params.error_context : "";
-  
-  // Fetch worker insights (file/domain specific learnings)
-  const insights = await getPromptInsights({ 
-    role: "worker", 
-    files: params.files,
-    domain: params.subtask_title.split(/\s+/).slice(0, 3).join(" ") // Extract domain from title
-  });
+	const errorSection = params.error_context ? params.error_context : "";
 
-  // Build recovery context section
-  let recoverySection = "";
-  if (params.recovery_context) {
-    const sections: string[] = [];
+	// Fetch worker insights (file/domain specific learnings)
+	const insights = await getPromptInsights({
+		role: "worker",
+		files: params.files,
+		domain: params.subtask_title.split(/\s+/).slice(0, 3).join(" "), // Extract domain from title
+	});
 
-    if (params.recovery_context.shared_context) {
-      sections.push(
-        `### Recovery Context\n${params.recovery_context.shared_context}`,
-      );
-    }
+	// Build recovery context section
+	let recoverySection = "";
+	if (params.recovery_context) {
+		const sections: string[] = [];
 
-    if (
-      params.recovery_context.skills_to_load &&
-      params.recovery_context.skills_to_load.length > 0
-    ) {
-      sections.push(
-        `### Skills to Load\nBefore starting work, load these skills for specialized guidance:\n${params.recovery_context.skills_to_load.map((s) => `- skills_use(name="${s}")`).join("\n")}`,
-      );
-    }
+		if (params.recovery_context.shared_context) {
+			sections.push(
+				`### Recovery Context\n${params.recovery_context.shared_context}`,
+			);
+		}
 
-    if (params.recovery_context.coordinator_notes) {
-      sections.push(
-        `### Coordinator Notes\n${params.recovery_context.coordinator_notes}`,
-      );
-    }
+		if (
+			params.recovery_context.skills_to_load &&
+			params.recovery_context.skills_to_load.length > 0
+		) {
+			sections.push(
+				`### Skills to Load\nBefore starting work, load these skills for specialized guidance:\n${params.recovery_context.skills_to_load.map((s) => `- skills_use(name="${s}")`).join("\n")}`,
+			);
+		}
 
-    if (sections.length > 0) {
-      recoverySection = `\n## [RECOVERY CONTEXT]\n\n${sections.join("\n\n")}`;
-    }
-  }
+		if (params.recovery_context.coordinator_notes) {
+			sections.push(
+				`### Coordinator Notes\n${params.recovery_context.coordinator_notes}`,
+			);
+		}
 
-  // Generate WorkerHandoff contract (machine-readable section)
-  const handoff = generateWorkerHandoff({
-    task_id: params.bead_id,
-    files_owned: params.files,
-    files_readonly: [],
-    dependencies_completed: [],
-    success_criteria: [
-      "All files compile without errors",
-      "Tests pass for modified code",
-      "Code follows project patterns",
-    ],
-    epic_summary: params.subtask_description || params.subtask_title,
-    your_role: params.subtask_title,
-    what_others_did: params.recovery_context?.shared_context || "",
-    what_comes_next: "",
-  });
+		if (sections.length > 0) {
+			recoverySection = `\n## [RECOVERY CONTEXT]\n\n${sections.join("\n\n")}`;
+		}
+	}
 
-  const handoffJson = JSON.stringify(handoff, null, 2);
-  const handoffSection = `\n## WorkerHandoff Contract\n\nThis is your machine-readable contract. The contract IS the instruction.\n\n\`\`\`json\n${handoffJson}\n\`\`\`\n`;
+	// Generate WorkerHandoff contract (machine-readable section)
+	const handoff = generateWorkerHandoff({
+		task_id: params.cell_id,
+		files_owned: params.files,
+		files_readonly: [],
+		dependencies_completed: [],
+		success_criteria: [
+			"All files compile without errors",
+			"Tests pass for modified code",
+			"Code follows project patterns",
+		],
+		epic_summary: params.subtask_description || params.subtask_title,
+		your_role: params.subtask_title,
+		what_others_did: params.recovery_context?.shared_context || "",
+		what_comes_next: "",
+	});
 
-  // Inject insights into shared_context section
-  const sharedContextWithInsights = insights
-    ? `${params.shared_context || "(none)"}\n\n${insights}`
-    : params.shared_context || "(none)";
+	const handoffJson = JSON.stringify(handoff, null, 2);
+	const handoffSection = `\n## WorkerHandoff Contract\n\nThis is your machine-readable contract. The contract IS the instruction.\n\n\`\`\`json\n${handoffJson}\n\`\`\`\n`;
 
+	// Inject insights into shared_context section
+	const sharedContextWithInsights = insights
+		? `${params.shared_context || "(none)"}\n\n${insights}`
+		: params.shared_context || "(none)";
 
-  return SUBTASK_PROMPT_V2.replace(/{bead_id}/g, params.bead_id)
-    .replace(/{epic_id}/g, params.epic_id)
-    .replace(/{project_path}/g, params.project_path || "$PWD")
-    .replace("{subtask_title}", params.subtask_title)
-    .replace(
-      "{subtask_description}",
-      params.subtask_description || "(see title)",
-    )
-    .replace("{file_list}", fileList)
-    .replace("{shared_context}", sharedContextWithInsights)
-    .replace("{compressed_context}", compressedSection)
-    .replace("{error_context}", errorSection + recoverySection + handoffSection);
+	return SUBTASK_PROMPT_V2.replace(/{cell_id}/g, params.cell_id)
+		.replace(/{epic_id}/g, params.epic_id)
+		.replace(/{project_path}/g, params.project_path || "$PWD")
+		.replace("{subtask_title}", params.subtask_title)
+		.replace(
+			"{subtask_description}",
+			params.subtask_description || "(see title)",
+		)
+		.replace("{file_list}", fileList)
+		.replace("{shared_context}", sharedContextWithInsights)
+		.replace("{compressed_context}", compressedSection)
+		.replace(
+			"{error_context}",
+			errorSection + recoverySection + handoffSection,
+		);
 }
 
 /**
  * Format the subtask prompt for a specific agent
  */
 export function formatSubtaskPrompt(params: {
-  agent_name: string;
-  bead_id: string;
-  epic_id: string;
-  subtask_title: string;
-  subtask_description: string;
-  files: string[];
-  shared_context?: string;
+	agent_name: string;
+	cell_id: string;
+	epic_id: string;
+	subtask_title: string;
+	subtask_description: string;
+	files: string[];
+	shared_context?: string;
 }): string {
-  const fileList = params.files.map((f) => `- \`${f}\``).join("\n");
+	const fileList = params.files.map((f) => `- \`${f}\``).join("\n");
 
-  return SUBTASK_PROMPT.replace("{agent_name}", params.agent_name)
-    .replace("{bead_id}", params.bead_id)
-    .replace(/{epic_id}/g, params.epic_id)
-    .replace("{subtask_title}", params.subtask_title)
-    .replace("{subtask_description}", params.subtask_description || "(none)")
-    .replace("{file_list}", fileList || "(no files assigned)")
-    .replace("{shared_context}", params.shared_context || "(none)");
+	return SUBTASK_PROMPT.replace("{agent_name}", params.agent_name)
+		.replace("{cell_id}", params.cell_id)
+		.replace(/{epic_id}/g, params.epic_id)
+		.replace("{subtask_title}", params.subtask_title)
+		.replace("{subtask_description}", params.subtask_description || "(none)")
+		.replace("{file_list}", fileList || "(no files assigned)")
+		.replace("{shared_context}", params.shared_context || "(none)");
 }
 
 /**
  * Format the evaluation prompt
  */
 export function formatEvaluationPrompt(params: {
-  bead_id: string;
-  subtask_title: string;
-  files_touched: string[];
+	cell_id: string;
+	subtask_title: string;
+	files_touched: string[];
 }): string {
-  const filesList = params.files_touched.map((f) => `- \`${f}\``).join("\n");
+	const filesList = params.files_touched.map((f) => `- \`${f}\``).join("\n");
 
-  return EVALUATION_PROMPT.replace("{bead_id}", params.bead_id)
-    .replace("{subtask_title}", params.subtask_title)
-    .replace("{files_touched}", filesList || "(no files recorded)");
+	return EVALUATION_PROMPT.replace("{cell_id}", params.cell_id)
+		.replace("{subtask_title}", params.subtask_title)
+		.replace("{files_touched}", filesList || "(no files recorded)");
 }
 
 // ============================================================================
@@ -1694,41 +1710,41 @@ export function formatEvaluationPrompt(params: {
  * Generate subtask prompt for a spawned agent
  */
 export const swarm_subtask_prompt = tool({
-  description: "Generate the prompt for a spawned subtask agent",
-  args: {
-    agent_name: tool.schema.string().describe("Agent Mail name for the agent"),
-    bead_id: tool.schema.string().describe("Subtask bead ID"),
-    epic_id: tool.schema.string().describe("Epic bead ID"),
-    subtask_title: tool.schema.string().describe("Subtask title"),
-    subtask_description: tool.schema
-      .string()
-      .optional()
-      .describe("Detailed subtask instructions"),
-    files: tool.schema
-      .array(tool.schema.string())
-      .describe("Files assigned to this subtask"),
-    shared_context: tool.schema
-      .string()
-      .optional()
-      .describe("Context shared across all agents"),
-    project_path: tool.schema
-      .string()
-      .optional()
-      .describe("Absolute project path for swarmmail_init"),
-  },
-  async execute(args) {
-    const prompt = formatSubtaskPrompt({
-      agent_name: args.agent_name,
-      bead_id: args.bead_id,
-      epic_id: args.epic_id,
-      subtask_title: args.subtask_title,
-      subtask_description: args.subtask_description || "",
-      files: args.files,
-      shared_context: args.shared_context,
-    });
+	description: "Generate the prompt for a spawned subtask agent",
+	args: {
+		agent_name: tool.schema.string().describe("Agent Mail name for the agent"),
+		cell_id: tool.schema.string().describe("Subtask cell ID"),
+		epic_id: tool.schema.string().describe("Epic cell ID"),
+		subtask_title: tool.schema.string().describe("Subtask title"),
+		subtask_description: tool.schema
+			.string()
+			.optional()
+			.describe("Detailed subtask instructions"),
+		files: tool.schema
+			.array(tool.schema.string())
+			.describe("Files assigned to this subtask"),
+		shared_context: tool.schema
+			.string()
+			.optional()
+			.describe("Context shared across all agents"),
+		project_path: tool.schema
+			.string()
+			.optional()
+			.describe("Absolute project path for swarmmail_init"),
+	},
+	async execute(args) {
+		const prompt = formatSubtaskPrompt({
+			agent_name: args.agent_name,
+			cell_id: args.cell_id,
+			epic_id: args.epic_id,
+			subtask_title: args.subtask_title,
+			subtask_description: args.subtask_description || "",
+			files: args.files,
+			shared_context: args.shared_context,
+		});
 
-    return prompt;
-  },
+		return prompt;
+	},
 });
 
 /**
@@ -1738,298 +1754,328 @@ export const swarm_subtask_prompt = tool({
  * Returns JSON that can be directly used with Task tool.
  */
 export const swarm_spawn_subtask: ReturnType<typeof tool> = tool({
-  description:
-    "Prepare a subtask for spawning. Returns prompt with Agent Mail/hive tracking instructions. IMPORTANT: Pass project_path for swarmmail_init. Automatically selects appropriate model based on file types.",
-  args: {
-    bead_id: tool.schema.string().describe("Subtask bead ID"),
-    epic_id: tool.schema.string().describe("Parent epic bead ID"),
-    subtask_title: tool.schema.string().describe("Subtask title"),
-    subtask_description: tool.schema
-      .string()
-      .optional()
-      .describe("Detailed subtask instructions"),
-    files: tool.schema
-      .array(tool.schema.string())
-      .describe("Files assigned to this subtask"),
-    shared_context: tool.schema
-      .string()
-      .optional()
-      .describe("Context shared across all agents"),
-    project_path: tool.schema
-      .string()
-      .optional()
-      .describe(
-        "Absolute project path for swarmmail_init (REQUIRED for tracking)",
-      ),
-    recovery_context: tool.schema
-      .object({
-        shared_context: tool.schema.string().optional(),
-        skills_to_load: tool.schema.array(tool.schema.string()).optional(),
-        coordinator_notes: tool.schema.string().optional(),
-      })
-      .optional()
-      .describe("Recovery context from checkpoint compaction"),
-    model: tool.schema
-      .string()
-      .optional()
-      .describe("Optional explicit model override (auto-selected if not provided)"),
-  },
-  async execute(args, _ctx) {
-    const prompt = await formatSubtaskPromptV2({
-      bead_id: args.bead_id,
-      epic_id: args.epic_id,
-      subtask_title: args.subtask_title,
-      subtask_description: args.subtask_description || "",
-      files: args.files,
-      shared_context: args.shared_context,
-      project_path: args.project_path,
-      recovery_context: args.recovery_context,
-      model: args.model,
-    });
+	description:
+		"Prepare a subtask for spawning. Returns prompt with Agent Mail/hive tracking instructions. IMPORTANT: Pass project_path for swarmmail_init. Automatically selects appropriate model based on file types.",
+	args: {
+		cell_id: tool.schema.string().describe("Subtask cell ID"),
+		epic_id: tool.schema.string().describe("Parent epic cell ID"),
+		subtask_title: tool.schema.string().describe("Subtask title"),
+		subtask_description: tool.schema
+			.string()
+			.optional()
+			.describe("Detailed subtask instructions"),
+		files: tool.schema
+			.array(tool.schema.string())
+			.describe("Files assigned to this subtask"),
+		shared_context: tool.schema
+			.string()
+			.optional()
+			.describe("Context shared across all agents"),
+		project_path: tool.schema
+			.string()
+			.optional()
+			.describe(
+				"Absolute project path for swarmmail_init (REQUIRED for tracking)",
+			),
+		recovery_context: tool.schema
+			.object({
+				shared_context: tool.schema.string().optional(),
+				skills_to_load: tool.schema.array(tool.schema.string()).optional(),
+				coordinator_notes: tool.schema.string().optional(),
+			})
+			.optional()
+			.describe("Recovery context from checkpoint compaction"),
+		model: tool.schema
+			.string()
+			.optional()
+			.describe(
+				"Optional explicit model override (auto-selected if not provided)",
+			),
+	},
+	async execute(args, _ctx) {
+		const prompt = await formatSubtaskPromptV2({
+			cell_id: args.cell_id,
+			epic_id: args.epic_id,
+			subtask_title: args.subtask_title,
+			subtask_description: args.subtask_description || "",
+			files: args.files,
+			shared_context: args.shared_context,
+			project_path: args.project_path,
+			recovery_context: args.recovery_context,
+			model: args.model,
+		});
 
-    // Import selectWorkerModel at function scope to avoid circular dependencies
-    const { selectWorkerModel } = await import("./model-selection.js");
-    
-    // Create a mock subtask for model selection
-    const subtask = {
-      title: args.subtask_title,
-      description: args.subtask_description || "",
-      files: args.files,
-      estimated_effort: "medium" as const,
-      risks: [],
-      model: args.model,
-    };
-    
-    // Use placeholder config - actual config should be passed from coordinator
-    // For now, we use reasonable defaults
-    const config = {
-      primaryModel: "anthropic/claude-sonnet-4-5",
-      liteModel: "anthropic/claude-haiku-4-5",
-    };
-    
-    const selectedModel = selectWorkerModel(subtask, config);
+		// Import selectWorkerModel at function scope to avoid circular dependencies
+		const { selectWorkerModel } = await import("./model-selection.js");
 
-    // Generate post-completion instructions for coordinator
-    const filesJoined = args.files.map(f => `"${f}"`).join(", ");
-    const postCompletionInstructions = COORDINATOR_POST_WORKER_CHECKLIST
-      .replace(/{project_key}/g, args.project_path || "$PWD")
-      .replace(/{epic_id}/g, args.epic_id)
-      .replace(/{task_id}/g, args.bead_id)
-      .replace(/{files_touched}/g, filesJoined)
-      .replace(/{worker_id}/g, "worker");  // Will be filled by actual worker name
+		// Create a mock subtask for model selection
+		const subtask = {
+			title: args.subtask_title,
+			description: args.subtask_description || "",
+			files: args.files,
+			estimated_effort: "medium" as const,
+			risks: [],
+			model: args.model,
+		};
 
-    // Capture worker spawn decision (legacy eval capture)
-    try {
-      captureCoordinatorEvent({
-        session_id: _ctx.sessionID || "unknown",
-        epic_id: args.epic_id,
-        timestamp: new Date().toISOString(),
-        event_type: "DECISION",
-        decision_type: "worker_spawned",
-        payload: {
-          bead_id: args.bead_id,
-          files: args.files,
-          worker_model: selectedModel,
-        },
-      });
-    } catch (error) {
-      // Non-fatal - don't block spawn if capture fails
-      console.warn("[swarm_spawn_subtask] Failed to capture worker_spawned:", error);
-    }
+		// Use placeholder config - actual config should be passed from coordinator
+		// For now, we use reasonable defaults
+		const config = {
+			primaryModel: "anthropic/claude-sonnet-4-5",
+			liteModel: "anthropic/claude-haiku-4-5",
+		};
 
-    // Capture decision trace (new context graph architecture)
-    try {
-      await traceWorkerSpawn({
-        projectKey: args.project_path || process.cwd(),
-        agentName: "coordinator",
-        epicId: args.epic_id,
-        beadId: args.bead_id,
-        workerName: "worker", // Will be set at swarmmail_init
-        subtaskTitle: args.subtask_title,
-        files: args.files,
-        model: selectedModel,
-        spawnOrder: 0, // TODO: Query existing worker_spawned events for this epic
-        isParallel: false, // TODO: Detect from coordinator strategy
-        rationale: args.subtask_description || `Spawning worker for: ${args.subtask_title}`,
-      });
-    } catch (error) {
-      // Non-fatal - don't block spawn if trace fails
-      console.warn("[swarm_spawn_subtask] Failed to trace worker_spawn:", error);
-    }
+		const selectedModel = selectWorkerModel(subtask, config);
 
-    // Emit WorkerSpawnedEvent for lifecycle tracking
-    if (args.project_path) {
-      try {
-        const { createEvent, appendEvent } = await import("swarm-mail");
-        // Track spawn order globally - simple incrementing counter
-        // In production, this should query existing events to get accurate order
-        const spawnOrder = 0; // TODO: Query existing worker_spawned events for this epic
-        const workerSpawnedEvent = createEvent("worker_spawned", {
-          project_key: args.project_path,
-          epic_id: args.epic_id,
-          bead_id: args.bead_id,
-          worker_agent: "worker", // Worker name will be set at swarmmail_init
-          subtask_title: args.subtask_title,
-          files_assigned: args.files,
-          spawn_order: spawnOrder,
-          is_parallel: false, // TODO: Detect from coordinator strategy
-        });
-        await appendEvent(workerSpawnedEvent, args.project_path);
-      } catch (error) {
-        // Non-fatal - log and continue
-        console.warn("[swarm_spawn_subtask] Failed to emit WorkerSpawnedEvent:", error);
-      }
-    }
+		// Generate post-completion instructions for coordinator
+		const filesJoined = args.files.map((f) => `"${f}"`).join(", ");
+		const postCompletionInstructions =
+			COORDINATOR_POST_WORKER_CHECKLIST.replace(
+				/{project_key}/g,
+				args.project_path || "$PWD",
+			)
+				.replace(/{epic_id}/g, args.epic_id)
+				.replace(/{task_id}/g, args.cell_id)
+				.replace(/{files_touched}/g, filesJoined)
+				.replace(/{worker_id}/g, "worker"); // Will be filled by actual worker name
 
-    return JSON.stringify(
-      {
-        prompt,
-        bead_id: args.bead_id,
-        epic_id: args.epic_id,
-        files: args.files,
-        project_path: args.project_path,
-        recovery_context: args.recovery_context,
-        recommended_model: selectedModel,
-        post_completion_instructions: postCompletionInstructions,
-      },
-      null,
-      2,
-    );
-  },
+		// Capture worker spawn decision (legacy eval capture)
+		try {
+			captureCoordinatorEvent({
+				session_id: _ctx.sessionID || "unknown",
+				epic_id: args.epic_id,
+				timestamp: new Date().toISOString(),
+				event_type: "DECISION",
+				decision_type: "worker_spawned",
+				payload: {
+					cell_id: args.cell_id,
+					files: args.files,
+					worker_model: selectedModel,
+				},
+			});
+		} catch (error) {
+			// Non-fatal - don't block spawn if capture fails
+			console.warn(
+				"[swarm_spawn_subtask] Failed to capture worker_spawned:",
+				error,
+			);
+		}
+
+		// Capture decision trace (new context graph architecture)
+		try {
+			await traceWorkerSpawn({
+				projectKey: args.project_path || process.cwd(),
+				agentName: "coordinator",
+				epicId: args.epic_id,
+				beadId: args.cell_id,
+				workerName: "worker", // Will be set at swarmmail_init
+				subtaskTitle: args.subtask_title,
+				files: args.files,
+				model: selectedModel,
+				spawnOrder: 0, // TODO: Query existing worker_spawned events for this epic
+				isParallel: false, // TODO: Detect from coordinator strategy
+				rationale:
+					args.subtask_description ||
+					`Spawning worker for: ${args.subtask_title}`,
+			});
+		} catch (error) {
+			// Non-fatal - don't block spawn if trace fails
+			console.warn(
+				"[swarm_spawn_subtask] Failed to trace worker_spawn:",
+				error,
+			);
+		}
+
+		// Emit WorkerSpawnedEvent for lifecycle tracking
+		if (args.project_path) {
+			try {
+				const { createEvent, appendEvent } = await import("swarm-mail");
+				// Track spawn order globally - simple incrementing counter
+				// In production, this should query existing events to get accurate order
+				const spawnOrder = 0; // TODO: Query existing worker_spawned events for this epic
+				const workerSpawnedEvent = createEvent("worker_spawned", {
+					project_key: args.project_path,
+					epic_id: args.epic_id,
+					cell_id: args.cell_id,
+					worker_agent: "worker", // Worker name will be set at swarmmail_init
+					subtask_title: args.subtask_title,
+					files_assigned: args.files,
+					spawn_order: spawnOrder,
+					is_parallel: false, // TODO: Detect from coordinator strategy
+				});
+				await appendEvent(workerSpawnedEvent, args.project_path);
+			} catch (error) {
+				// Non-fatal - log and continue
+				console.warn(
+					"[swarm_spawn_subtask] Failed to emit WorkerSpawnedEvent:",
+					error,
+				);
+			}
+		}
+
+		return JSON.stringify(
+			{
+				prompt,
+				cell_id: args.cell_id,
+				epic_id: args.epic_id,
+				files: args.files,
+				project_path: args.project_path,
+				recovery_context: args.recovery_context,
+				recommended_model: selectedModel,
+				post_completion_instructions: postCompletionInstructions,
+			},
+			null,
+			2,
+		);
+	},
 });
 
 /**
  * Prepare a researcher task for spawning with Task tool
- * 
+ *
  * Generates a prompt that tells the researcher to fetch documentation for specific technologies.
  * Returns JSON that can be directly used with Task tool.
  */
 export const swarm_spawn_researcher = tool({
-  description:
-    "Prepare a research task for spawning. Returns prompt for gathering technology documentation. Researcher fetches docs and stores findings in hivemind.",
-  args: {
-    research_id: tool.schema.string().describe("Unique ID for this research task"),
-    epic_id: tool.schema.string().describe("Parent epic ID"),
-    tech_stack: tool.schema
-      .array(tool.schema.string())
-      .describe("Explicit list of technologies to research (from coordinator)"),
-    project_path: tool.schema
-      .string()
-      .describe("Absolute project path for swarmmail_init"),
-    check_upgrades: tool.schema
-      .boolean()
-      .optional()
-      .describe("If true, compare installed vs latest versions (default: false)"),
-  },
-  async execute(args) {
-    const prompt = formatResearcherPrompt({
-      research_id: args.research_id,
-      epic_id: args.epic_id,
-      tech_stack: args.tech_stack,
-      project_path: args.project_path,
-      check_upgrades: args.check_upgrades ?? false,
-    });
+	description:
+		"Prepare a research task for spawning. Returns prompt for gathering technology documentation. Researcher fetches docs and stores findings in hivemind.",
+	args: {
+		research_id: tool.schema
+			.string()
+			.describe("Unique ID for this research task"),
+		epic_id: tool.schema.string().describe("Parent epic ID"),
+		tech_stack: tool.schema
+			.array(tool.schema.string())
+			.describe("Explicit list of technologies to research (from coordinator)"),
+		project_path: tool.schema
+			.string()
+			.describe("Absolute project path for swarmmail_init"),
+		check_upgrades: tool.schema
+			.boolean()
+			.optional()
+			.describe(
+				"If true, compare installed vs latest versions (default: false)",
+			),
+	},
+	async execute(args) {
+		const prompt = formatResearcherPrompt({
+			research_id: args.research_id,
+			epic_id: args.epic_id,
+			tech_stack: args.tech_stack,
+			project_path: args.project_path,
+			check_upgrades: args.check_upgrades ?? false,
+		});
 
-    return JSON.stringify(
-      {
-        prompt,
-        research_id: args.research_id,
-        epic_id: args.epic_id,
-        tech_stack: args.tech_stack,
-        project_path: args.project_path,
-        check_upgrades: args.check_upgrades ?? false,
-        subagent_type: "swarm-researcher",
-        expected_output: {
-          technologies: [
-            {
-              name: "string",
-              installed_version: "string",
-              latest_version: "string | null",
-              key_patterns: ["string"],
-              gotchas: ["string"],
-              breaking_changes: ["string"],
-              memory_id: "string",
-            },
-          ],
-          summary: "string",
-        },
-      },
-      null,
-      2,
-    );
-  },
+		return JSON.stringify(
+			{
+				prompt,
+				research_id: args.research_id,
+				epic_id: args.epic_id,
+				tech_stack: args.tech_stack,
+				project_path: args.project_path,
+				check_upgrades: args.check_upgrades ?? false,
+				subagent_type: "swarm-researcher",
+				expected_output: {
+					technologies: [
+						{
+							name: "string",
+							installed_version: "string",
+							latest_version: "string | null",
+							key_patterns: ["string"],
+							gotchas: ["string"],
+							breaking_changes: ["string"],
+							memory_id: "string",
+						},
+					],
+					summary: "string",
+				},
+			},
+			null,
+			2,
+		);
+	},
 });
 
 /**
  * Generate retry prompt for a worker that needs to fix issues from review feedback
- * 
+ *
  * Coordinators use this when swarm_review_feedback returns "needs_changes".
  * Creates a new worker spawn with context about what went wrong and what to fix.
  */
 export const swarm_spawn_retry = tool({
-  description:
-    "Generate retry prompt for a worker that failed review. Includes issues from previous attempt, diff if provided, and standard worker contract.",
-  args: {
-    bead_id: tool.schema.string().describe("Original subtask bead ID"),
-    epic_id: tool.schema.string().describe("Parent epic bead ID"),
-    original_prompt: tool.schema.string().describe("The prompt given to failed worker"),
-    attempt: tool.schema.number().int().min(1).max(3).describe("Current attempt number (1, 2, or 3)"),
-    issues: tool.schema.string().describe("JSON array of ReviewIssue objects from swarm_review_feedback"),
-    diff: tool.schema
-      .string()
-      .optional()
-      .describe("Git diff of previous changes"),
-    files: tool.schema
-      .array(tool.schema.string())
-      .describe("Files to modify (from original subtask)"),
-    project_path: tool.schema
-      .string()
-      .optional()
-      .describe("Absolute project path for swarmmail_init"),
-  },
-  async execute(args) {
-    // Validate attempt number
-    if (args.attempt > 3) {
-      throw new Error(
-        `Retry attempt ${args.attempt} exceeds maximum of 3. After 3 failures, task should be marked blocked.`,
-      );
-    }
+	description:
+		"Generate retry prompt for a worker that failed review. Includes issues from previous attempt, diff if provided, and standard worker contract.",
+	args: {
+		cell_id: tool.schema.string().describe("Original subtask cell ID"),
+		epic_id: tool.schema.string().describe("Parent epic cell ID"),
+		original_prompt: tool.schema
+			.string()
+			.describe("The prompt given to failed worker"),
+		attempt: tool.schema
+			.number()
+			.int()
+			.min(1)
+			.max(3)
+			.describe("Current attempt number (1, 2, or 3)"),
+		issues: tool.schema
+			.string()
+			.describe("JSON array of ReviewIssue objects from swarm_review_feedback"),
+		diff: tool.schema
+			.string()
+			.optional()
+			.describe("Git diff of previous changes"),
+		files: tool.schema
+			.array(tool.schema.string())
+			.describe("Files to modify (from original subtask)"),
+		project_path: tool.schema
+			.string()
+			.optional()
+			.describe("Absolute project path for swarmmail_init"),
+	},
+	async execute(args) {
+		// Validate attempt number
+		if (args.attempt > 3) {
+			throw new Error(
+				`Retry attempt ${args.attempt} exceeds maximum of 3. After 3 failures, task should be marked blocked.`,
+			);
+		}
 
-    // Parse issues
-    let issuesArray: Array<{
-      file: string;
-      line: number;
-      issue: string;
-      suggestion: string;
-    }> = [];
-    try {
-      issuesArray = JSON.parse(args.issues);
-    } catch (e) {
-      // If issues is not valid JSON, treat as empty array
-      issuesArray = [];
-    }
+		// Parse issues
+		let issuesArray: Array<{
+			file: string;
+			line: number;
+			issue: string;
+			suggestion: string;
+		}> = [];
+		try {
+			issuesArray = JSON.parse(args.issues);
+		} catch (e) {
+			// If issues is not valid JSON, treat as empty array
+			issuesArray = [];
+		}
 
-    // Format issues section
-    const issuesSection = issuesArray.length > 0
-      ? `## ISSUES FROM PREVIOUS ATTEMPT
+		// Format issues section
+		const issuesSection =
+			issuesArray.length > 0
+				? `## ISSUES FROM PREVIOUS ATTEMPT
 
 The previous attempt had the following issues that need to be fixed:
 
 ${issuesArray
-  .map(
-    (issue, idx) =>
-      `**${idx + 1}. ${issue.file}:${issue.line}**
+	.map(
+		(issue, idx) =>
+			`**${idx + 1}. ${issue.file}:${issue.line}**
    - **Issue**: ${issue.issue}
    - **Suggestion**: ${issue.suggestion}`,
-  )
-  .join("\n\n")}
+	)
+	.join("\n\n")}
 
 **Critical**: Fix these issues while preserving any working changes from the previous attempt.`
-      : "";
+				: "";
 
-    // Format diff section
-    const diffSection = args.diff
-      ? `## PREVIOUS ATTEMPT
+		// Format diff section
+		const diffSection = args.diff
+			? `## PREVIOUS ATTEMPT
 
 Here's what was tried in the previous attempt:
 
@@ -2038,10 +2084,10 @@ ${args.diff}
 \`\`\`
 
 Review this carefully - some changes may be correct and should be preserved.`
-      : "";
+			: "";
 
-    // Build the retry prompt
-    const retryPrompt = `⚠️ **RETRY ATTEMPT ${args.attempt}/3**
+		// Build the retry prompt
+		const retryPrompt = `⚠️ **RETRY ATTEMPT ${args.attempt}/3**
 
 This is a retry of a previously attempted subtask. The coordinator reviewed the previous attempt and found issues that need to be fixed.
 
@@ -2064,14 +2110,14 @@ ${args.original_prompt}
 
 ### Step 1: Initialize (REQUIRED FIRST)
 \`\`\`
-swarmmail_init(project_path="${args.project_path || "$PWD"}", task_description="${args.bead_id}: Retry ${args.attempt}/3")
+swarmmail_init(project_path="${args.project_path || "$PWD"}", task_description="${args.cell_id}: Retry ${args.attempt}/3")
 \`\`\`
 
 ### Step 2: Reserve Files
 \`\`\`
 swarmmail_reserve(
   paths=${JSON.stringify(args.files)},
-  reason="${args.bead_id}: Retry attempt ${args.attempt}",
+  reason="${args.cell_id}: Retry attempt ${args.attempt}",
   exclusive=true
 )
 \`\`\`
@@ -2086,7 +2132,7 @@ swarmmail_reserve(
 swarm_complete(
   project_key="${args.project_path || "$PWD"}",
   agent_name="<your-agent-name>",
-  bead_id="${args.bead_id}",
+  cell_id="${args.cell_id}",
   summary="Fixed issues from review: <brief summary>",
   files_touched=[<files you modified>]
 )
@@ -2096,60 +2142,60 @@ swarm_complete(
 
 Begin work now.`;
 
-    return JSON.stringify(
-      {
-        prompt: retryPrompt,
-        bead_id: args.bead_id,
-        attempt: args.attempt,
-        max_attempts: 3,
-        files: args.files,
-        issues_count: issuesArray.length,
-      },
-      null,
-      2,
-    );
-  },
+		return JSON.stringify(
+			{
+				prompt: retryPrompt,
+				cell_id: args.cell_id,
+				attempt: args.attempt,
+				max_attempts: 3,
+				files: args.files,
+				issues_count: issuesArray.length,
+			},
+			null,
+			2,
+		);
+	},
 });
 
 /**
  * Generate self-evaluation prompt
  */
 export const swarm_evaluation_prompt = tool({
-  description: "Generate self-evaluation prompt for a completed subtask",
-  args: {
-    bead_id: tool.schema.string().describe("Subtask bead ID"),
-    subtask_title: tool.schema.string().describe("Subtask title"),
-    files_touched: tool.schema
-      .array(tool.schema.string())
-      .describe("Files that were modified"),
-  },
-  async execute(args) {
-    const prompt = formatEvaluationPrompt({
-      bead_id: args.bead_id,
-      subtask_title: args.subtask_title,
-      files_touched: args.files_touched,
-    });
+	description: "Generate self-evaluation prompt for a completed subtask",
+	args: {
+		cell_id: tool.schema.string().describe("Subtask cell ID"),
+		subtask_title: tool.schema.string().describe("Subtask title"),
+		files_touched: tool.schema
+			.array(tool.schema.string())
+			.describe("Files that were modified"),
+	},
+	async execute(args) {
+		const prompt = formatEvaluationPrompt({
+			cell_id: args.cell_id,
+			subtask_title: args.subtask_title,
+			files_touched: args.files_touched,
+		});
 
-    return JSON.stringify(
-      {
-        prompt,
-        expected_schema: "Evaluation",
-        schema_hint: {
-          passed: "boolean",
-          criteria: {
-            type_safe: { passed: "boolean", feedback: "string" },
-            no_bugs: { passed: "boolean", feedback: "string" },
-            patterns: { passed: "boolean", feedback: "string" },
-            readable: { passed: "boolean", feedback: "string" },
-          },
-          overall_feedback: "string",
-          retry_suggestion: "string | null",
-        },
-      },
-      null,
-      2,
-    );
-  },
+		return JSON.stringify(
+			{
+				prompt,
+				expected_schema: "Evaluation",
+				schema_hint: {
+					passed: "boolean",
+					criteria: {
+						type_safe: { passed: "boolean", feedback: "string" },
+						no_bugs: { passed: "boolean", feedback: "string" },
+						patterns: { passed: "boolean", feedback: "string" },
+						readable: { passed: "boolean", feedback: "string" },
+					},
+					overall_feedback: "string",
+					retry_suggestion: "string | null",
+				},
+			},
+			null,
+			2,
+		);
+	},
 });
 
 /**
@@ -2159,146 +2205,148 @@ export const swarm_evaluation_prompt = tool({
  * Use this when you want the full planning experience with strategy-specific advice.
  */
 export const swarm_plan_prompt = tool({
-  description:
-    "Generate strategy-specific decomposition prompt. Auto-selects strategy or uses provided one. Queries Hivemind sessions for similar tasks.",
-  args: {
-    task: tool.schema.string().min(1).describe("Task description to decompose"),
-    strategy: tool.schema
-      .enum(["file-based", "feature-based", "risk-based", "auto"])
-      .optional()
-      .describe("Decomposition strategy (default: auto-detect)"),
-    context: tool.schema
-      .string()
-      .optional()
-      .describe("Additional context (codebase info, constraints, etc.)"),
-    query_cass: tool.schema
-      .boolean()
-      .optional()
-      .describe("Query Hivemind sessions for similar past tasks (default: true)"),
-    cass_limit: tool.schema
-      .number()
-      .int()
-      .min(1)
-      .optional()
-      .describe("Max Hivemind session results to include (default: 3)"),
-    include_skills: tool.schema
-      .boolean()
-      .optional()
-      .describe("Include available skills in context (default: true)"),
-  },
-  async execute(args) {
-    // Import needed modules dynamically
-    const { selectStrategy, formatStrategyGuidelines, STRATEGIES } =
-      await import("./swarm-strategies");
-    const { formatMemoryQueryForDecomposition } = await import("./learning");
-    const { listSkills, getSkillsContextForSwarm, findRelevantSkills } =
-      await import("./skills");
+	description:
+		"Generate strategy-specific decomposition prompt. Auto-selects strategy or uses provided one. Queries Hivemind sessions for similar tasks.",
+	args: {
+		task: tool.schema.string().min(1).describe("Task description to decompose"),
+		strategy: tool.schema
+			.enum(["file-based", "feature-based", "risk-based", "auto"])
+			.optional()
+			.describe("Decomposition strategy (default: auto-detect)"),
+		context: tool.schema
+			.string()
+			.optional()
+			.describe("Additional context (codebase info, constraints, etc.)"),
+		query_cass: tool.schema
+			.boolean()
+			.optional()
+			.describe(
+				"Query Hivemind sessions for similar past tasks (default: true)",
+			),
+		cass_limit: tool.schema
+			.number()
+			.int()
+			.min(1)
+			.optional()
+			.describe("Max Hivemind session results to include (default: 3)"),
+		include_skills: tool.schema
+			.boolean()
+			.optional()
+			.describe("Include available skills in context (default: true)"),
+	},
+	async execute(args) {
+		// Import needed modules dynamically
+		const { selectStrategy, formatStrategyGuidelines, STRATEGIES } =
+			await import("./swarm-strategies");
+		const { formatMemoryQueryForDecomposition } = await import("./learning");
+		const { listSkills, getSkillsContextForSwarm, findRelevantSkills } =
+			await import("./skills");
 
-    // Select strategy
-    type StrategyName =
-      | "file-based"
-      | "feature-based"
-      | "risk-based"
-      | "research-based";
-    let selectedStrategy: StrategyName;
-    let strategyReasoning: string;
+		// Select strategy
+		type StrategyName =
+			| "file-based"
+			| "feature-based"
+			| "risk-based"
+			| "research-based";
+		let selectedStrategy: StrategyName;
+		let strategyReasoning: string;
 
-    if (args.strategy && args.strategy !== "auto") {
-      selectedStrategy = args.strategy as StrategyName;
-      strategyReasoning = `User-specified strategy: ${selectedStrategy}`;
-    } else {
-      const selection = await selectStrategy(args.task);
-      selectedStrategy = selection.strategy;
-      strategyReasoning = selection.reasoning;
-    }
+		if (args.strategy && args.strategy !== "auto") {
+			selectedStrategy = args.strategy as StrategyName;
+			strategyReasoning = `User-specified strategy: ${selectedStrategy}`;
+		} else {
+			const selection = await selectStrategy(args.task);
+			selectedStrategy = selection.strategy;
+			strategyReasoning = selection.reasoning;
+		}
 
-    // Fetch skills context
-    let skillsContext = "";
-    let skillsInfo: { included: boolean; count?: number; relevant?: string[] } =
-      {
-        included: false,
-      };
+		// Fetch skills context
+		let skillsContext = "";
+		let skillsInfo: { included: boolean; count?: number; relevant?: string[] } =
+			{
+				included: false,
+			};
 
-    if (args.include_skills !== false) {
-      const allSkills = await listSkills();
-      if (allSkills.length > 0) {
-        skillsContext = await getSkillsContextForSwarm();
-        const relevantSkills = await findRelevantSkills(args.task);
-        skillsInfo = {
-          included: true,
-          count: allSkills.length,
-          relevant: relevantSkills,
-        };
+		if (args.include_skills !== false) {
+			const allSkills = await listSkills();
+			if (allSkills.length > 0) {
+				skillsContext = await getSkillsContextForSwarm();
+				const relevantSkills = await findRelevantSkills(args.task);
+				skillsInfo = {
+					included: true,
+					count: allSkills.length,
+					relevant: relevantSkills,
+				};
 
-        // Add suggestion for relevant skills
-        if (relevantSkills.length > 0) {
-          skillsContext += `\n\n**Suggested skills for this task**: ${relevantSkills.join(", ")}`;
-        }
-      }
-    }
+				// Add suggestion for relevant skills
+				if (relevantSkills.length > 0) {
+					skillsContext += `\n\n**Suggested skills for this task**: ${relevantSkills.join(", ")}`;
+				}
+			}
+		}
 
-    // Fetch swarm insights (strategy success rates, anti-patterns)
-    const insights = await getPromptInsights({ role: "coordinator" });
+		// Fetch swarm insights (strategy success rates, anti-patterns)
+		const insights = await getPromptInsights({ role: "coordinator" });
 
-    // Format strategy guidelines
-    const strategyGuidelines = formatStrategyGuidelines(selectedStrategy);
+		// Format strategy guidelines
+		const strategyGuidelines = formatStrategyGuidelines(selectedStrategy);
 
-    // Combine user context and insights
-    const contextSection = args.context
-      ? `## Additional Context\n${args.context}\n\n${insights}`
-      : insights
-        ? `## Additional Context\n(none provided)\n\n${insights}`
-        : "## Additional Context\n(none provided)";
+		// Combine user context and insights
+		const contextSection = args.context
+			? `## Additional Context\n${args.context}\n\n${insights}`
+			: insights
+				? `## Additional Context\n(none provided)\n\n${insights}`
+				: "## Additional Context\n(none provided)";
 
-    // Build the prompt (without Hivemind history - we'll let the module handle that)
-    const prompt = STRATEGY_DECOMPOSITION_PROMPT.replace("{task}", args.task)
-      .replace("{strategy_guidelines}", strategyGuidelines)
-      .replace("{context_section}", contextSection)
-      .replace("{hivemind_history}", "") // Empty for now
-      .replace("{skills_context}", skillsContext || "");
+		// Build the prompt (without Hivemind history - we'll let the module handle that)
+		const prompt = STRATEGY_DECOMPOSITION_PROMPT.replace("{task}", args.task)
+			.replace("{strategy_guidelines}", strategyGuidelines)
+			.replace("{context_section}", contextSection)
+			.replace("{hivemind_history}", "") // Empty for now
+			.replace("{skills_context}", skillsContext || "");
 
-    return JSON.stringify(
-      {
-        prompt,
-        strategy: {
-          selected: selectedStrategy,
-          reasoning: strategyReasoning,
-          guidelines:
-            STRATEGIES[selectedStrategy as keyof typeof STRATEGIES].guidelines,
-          anti_patterns:
-            STRATEGIES[selectedStrategy as keyof typeof STRATEGIES]
-              .antiPatterns,
-        },
-        expected_schema: "CellTree",
-        schema_hint: {
-          epic: { title: "string", description: "string?" },
-          subtasks: [
-            {
-              title: "string",
-              description: "string?",
-              files: "string[]",
-              dependencies: "number[]",
-              estimated_complexity: "1-5",
-            },
-          ],
-        },
-        validation_note:
-          "Parse agent response as JSON and validate with swarm_validate_decomposition",
-        skills: skillsInfo,
-        // Add semantic-memory query instruction
-        memory_query: formatMemoryQueryForDecomposition(args.task, 3),
-      },
-      null,
-      2,
-    );
-  },
+		return JSON.stringify(
+			{
+				prompt,
+				strategy: {
+					selected: selectedStrategy,
+					reasoning: strategyReasoning,
+					guidelines:
+						STRATEGIES[selectedStrategy as keyof typeof STRATEGIES].guidelines,
+					anti_patterns:
+						STRATEGIES[selectedStrategy as keyof typeof STRATEGIES]
+							.antiPatterns,
+				},
+				expected_schema: "CellTree",
+				schema_hint: {
+					epic: { title: "string", description: "string?" },
+					subtasks: [
+						{
+							title: "string",
+							description: "string?",
+							files: "string[]",
+							dependencies: "number[]",
+							estimated_complexity: "1-5",
+						},
+					],
+				},
+				validation_note:
+					"Parse agent response as JSON and validate with swarm_validate_decomposition",
+				skills: skillsInfo,
+				// Add semantic-memory query instruction
+				memory_query: formatMemoryQueryForDecomposition(args.task, 3),
+			},
+			null,
+			2,
+		);
+	},
 });
 
 export const promptTools: Record<string, ReturnType<typeof tool>> = {
-  swarm_subtask_prompt,
-  swarm_spawn_subtask,
-  swarm_spawn_researcher,
-  swarm_spawn_retry,
-  swarm_evaluation_prompt,
-  swarm_plan_prompt,
+	swarm_subtask_prompt,
+	swarm_spawn_subtask,
+	swarm_spawn_researcher,
+	swarm_spawn_retry,
+	swarm_evaluation_prompt,
+	swarm_plan_prompt,
 };

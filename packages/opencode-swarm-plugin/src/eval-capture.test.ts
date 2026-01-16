@@ -787,7 +787,7 @@ describe("session_id propagation from ctx.sessionID", () => {
         timestamp: new Date().toISOString(),
         event_type: "OUTCOME",
         outcome_type: "subtask_success",
-        payload: { bead_id: "bd-456.1" },
+        payload: { cell_id: "bd-456.1" },
       };
 
       await captureCoordinatorEvent(event);

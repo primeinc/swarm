@@ -833,7 +833,7 @@ async function handleSubtaskOutcome(
 		? ((typeof row.outcomes === "string"
 				? JSON.parse(row.outcomes)
 				: row.outcomes) as Array<{
-				bead_id: string;
+				cell_id: string;
 				planned_files: string[];
 				actual_files: string[];
 				duration_ms: number;
@@ -845,7 +845,7 @@ async function handleSubtaskOutcome(
 
 	// Create new outcome
 	const newOutcome = {
-		bead_id: event.bead_id,
+		cell_id: event.cell_id,
 		planned_files: event.planned_files,
 		actual_files: event.actual_files,
 		duration_ms: event.duration_ms,
@@ -931,10 +931,10 @@ async function handleSwarmCheckpointed(
 
 	await db.query(
 		`INSERT INTO swarm_contexts (
-      id, project_key, epic_id, bead_id, strategy, files, dependencies, 
+      id, project_key, epic_id, cell_id, strategy, files, dependencies, 
       directives, recovery, created_at, checkpointed_at, updated_at
     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10, $10)
-    ON CONFLICT (project_key, epic_id, bead_id) DO UPDATE SET
+    ON CONFLICT (project_key, epic_id, cell_id) DO UPDATE SET
       id = EXCLUDED.id,
       strategy = EXCLUDED.strategy,
       files = EXCLUDED.files,
@@ -944,10 +944,10 @@ async function handleSwarmCheckpointed(
       checkpointed_at = EXCLUDED.checkpointed_at,
       updated_at = EXCLUDED.updated_at`,
 		[
-			event.bead_id, // Use bead_id as the unique id
+			event.cell_id, // Use cell_id as the unique id
 			event.project_key,
 			event.epic_id,
-			event.bead_id,
+			event.cell_id,
 			event.strategy,
 			JSON.stringify(event.files),
 			JSON.stringify(event.dependencies),
@@ -970,13 +970,13 @@ async function handleSwarmRecovered(
       recovered_at = $1,
       recovered_from_checkpoint = $2,
       updated_at = $1
-    WHERE project_key = $3 AND epic_id = $4 AND bead_id = $5`,
+    WHERE project_key = $3 AND epic_id = $4 AND cell_id = $5`,
 		[
 			event.timestamp,
 			event.recovered_from_checkpoint,
 			event.project_key,
 			event.epic_id,
-			event.bead_id,
+			event.cell_id,
 		],
 	);
 }
@@ -1129,7 +1129,7 @@ export async function reserveFiles(
 		ttlSeconds?: number;
 		lockHolderIds?: string[];
 		epicId?: string;
-		beadId?: string;
+		cellId?: string;
 		isRetry?: boolean;
 		conflictAgent?: string;
 	} = {},
@@ -1148,7 +1148,7 @@ export async function reserveFiles(
 		lock_holder_ids: options.lockHolderIds,
 		file_count: paths.length,
 		epic_id: options.epicId,
-		bead_id: options.beadId,
+		cell_id: options.cellId,
 		is_retry: options.isRetry,
 		conflict_agent: options.conflictAgent,
 	});

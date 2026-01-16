@@ -29,7 +29,7 @@ describe("BaseSwarmError", () => {
 
 		const error = new BaseSwarmError("Failed", {
 			agent: "WiseStone",
-			bead_id: "bd-123",
+			cell_id: "bd-123",
 			epic_id: "bd-100",
 			timestamp: now,
 			sequence: 42,
@@ -39,7 +39,7 @@ describe("BaseSwarmError", () => {
 		});
 
 		expect(error.context.agent).toBe("WiseStone");
-		expect(error.context.bead_id).toBe("bd-123");
+		expect(error.context.cell_id).toBe("bd-123");
 		expect(error.context.epic_id).toBe("bd-100");
 		expect(error.context.timestamp).toBe(now);
 		expect(error.context.sequence).toBe(42);
@@ -51,7 +51,7 @@ describe("BaseSwarmError", () => {
 	test("toJSON produces valid serializable object", () => {
 		const error = new BaseSwarmError("Test", {
 			agent: "WiseStone",
-			bead_id: "bd-123",
+			cell_id: "bd-123",
 			suggestions: ["Fix it"],
 		});
 
@@ -61,7 +61,7 @@ describe("BaseSwarmError", () => {
 		expect(json).toHaveProperty("message");
 		expect(json).toHaveProperty("context");
 		expect(json.context.agent).toBe("WiseStone");
-		expect(json.context.bead_id).toBe("bd-123");
+		expect(json.context.cell_id).toBe("bd-123");
 
 		// Verify it round-trips through JSON
 		const serialized = JSON.stringify(json);
@@ -80,7 +80,7 @@ describe("ReservationError", () => {
 	test("constructs with reservation context", () => {
 		const error = new ReservationError("Path reserved by other agent", {
 			agent: "WiseStone",
-			bead_id: "bd-123",
+			cell_id: "bd-123",
 			current_holder: {
 				agent: "OtherAgent",
 				expires_at: Date.now() + 3600000,
@@ -113,7 +113,7 @@ describe("CheckpointError", () => {
 	test("constructs with checkpoint context", () => {
 		const error = new CheckpointError("Failed to save checkpoint", {
 			agent: "WiseStone",
-			bead_id: "bd-123",
+			cell_id: "bd-123",
 			sequence: 10,
 			reason: "Disk full",
 			suggestions: ["Clear disk space", "Retry checkpoint"],

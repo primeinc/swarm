@@ -61,7 +61,7 @@ export function createBeadsAdapter(
     async createBead(projectKey, options) {
       const event = createBeadEvent("bead_created", { ... });
       await appendBeadEvent(event, undefined, db);
-      return await getBead(db, projectKey, event.bead_id);
+      return await getBead(db, projectKey, event.cell_id);
     },
     
     async getBead(projectKey, beadId) {

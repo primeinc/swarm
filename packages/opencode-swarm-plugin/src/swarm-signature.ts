@@ -6,7 +6,7 @@
  *
  * A SWARM is defined by this event sequence:
  * 1. hive_create_epic(epic_title, subtasks[]) → epic_id
- * 2. swarm_spawn_subtask(bead_id, epic_id, ...) → prompt (at least one)
+ * 2. swarm_spawn_subtask(cell_id, epic_id, ...) → prompt (at least one)
  *
  * The projection folds over events to produce ground truth state:
  * - Which epic is being coordinated
@@ -24,76 +24,76 @@
  * Subtask lifecycle status derived from events
  */
 export type SubtaskStatus =
-  | "created" // hive_create_epic included it in subtasks array
-  | "spawned" // swarm_spawn_subtask called
-  | "in_progress" // hive_start called
-  | "completed" // swarm_complete called
-  | "closed"; // hive_close called
+	| "created" // hive_create_epic included it in subtasks array
+	| "spawned" // swarm_spawn_subtask called
+	| "in_progress" // hive_start called
+	| "completed" // swarm_complete called
+	| "closed"; // hive_close called
 
 /**
  * Subtask state projected from events
  */
 export interface SubtaskState {
-  id: string;
-  title: string;
-  status: SubtaskStatus;
-  files: string[];
-  worker?: string;
-  spawnedAt?: number;
-  completedAt?: number;
+	id: string;
+	title: string;
+	status: SubtaskStatus;
+	files: string[];
+	worker?: string;
+	spawnedAt?: number;
+	completedAt?: number;
 }
 
 /**
  * Epic state projected from events
  */
 export interface EpicState {
-  id: string;
-  title: string;
-  status: "open" | "in_progress" | "closed";
-  createdAt: number;
+	id: string;
+	title: string;
+	status: "open" | "in_progress" | "closed";
+	createdAt: number;
 }
 
 /**
  * Complete swarm state projected from session events
  */
 export interface SwarmProjection {
-  /** Whether a valid swarm signature was detected */
-  isSwarm: boolean;
+	/** Whether a valid swarm signature was detected */
+	isSwarm: boolean;
 
-  /** Epic being coordinated (if any) */
-  epic?: EpicState;
+	/** Epic being coordinated (if any) */
+	epic?: EpicState;
 
-  /** Subtasks by ID */
-  subtasks: Map<string, SubtaskState>;
+	/** Subtasks by ID */
+	subtasks: Map<string, SubtaskState>;
 
-  /** Project path from swarmmail_init */
-  projectPath?: string;
+	/** Project path from swarmmail_init */
+	projectPath?: string;
 
-  /** Coordinator agent name from swarmmail_init */
-  coordinatorName?: string;
+	/** Coordinator agent name from swarmmail_init */
+	coordinatorName?: string;
 
-  /** Last event timestamp */
-  lastEventAt?: number;
+	/** Last event timestamp */
+	lastEventAt?: number;
 
-  /** Summary counts for quick access */
-  counts: {
-    total: number;
-    created: number;
-    spawned: number;
-    inProgress: number;
-    completed: number;
-    closed: number;
-  };
+	/** Summary counts for quick access */
+	counts: {
+		total: number;
+		created: number;
+		spawned: number;
+		inProgress: number;
+		completed: number;
+		closed: number;
+	};
 }
 
 /**
  * Tool call event extracted from session messages
  */
 export interface ToolCallEvent {
-  tool: string;
-  input: Record<string, unknown>;
-  output: string;
-  timestamp: number;
+	tool: string;
+	input: Record<string, unknown>;
+	output: string;
+	timestamp: number;
 }
 
 // =============================================================================
@@ -110,230 +110,236 @@ export interface ToolCallEvent {
  * @returns Projected swarm state
  */
 export function projectSwarmState(events: ToolCallEvent[]): SwarmProjection {
-  const state: SwarmProjection = {
-    isSwarm: false,
-    subtasks: new Map(),
-    counts: {
-      total: 0,
-      created: 0,
-      spawned: 0,
-      inProgress: 0,
-      completed: 0,
-      closed: 0,
-    },
-  };
+	const state: SwarmProjection = {
+		isSwarm: false,
+		subtasks: new Map(),
+		counts: {
+			total: 0,
+			created: 0,
+			spawned: 0,
+			inProgress: 0,
+			completed: 0,
+			closed: 0,
+		},
+	};
 
-  let hasEpic = false;
-  let hasSpawn = false;
+	let hasEpic = false;
+	let hasSpawn = false;
 
-  for (const event of events) {
-    state.lastEventAt = event.timestamp;
+	for (const event of events) {
+		state.lastEventAt = event.timestamp;
 
-    switch (event.tool) {
-      case "hive_create_epic": {
-        const epicId = parseEpicId(event.output);
-        const epicTitle =
-          typeof event.input.epic_title === "string"
-            ? event.input.epic_title
-            : undefined;
+		switch (event.tool) {
+			case "hive_create_epic": {
+				const epicId = parseEpicId(event.output);
+				const epicTitle =
+					typeof event.input.epic_title === "string"
+						? event.input.epic_title
+						: undefined;
 
-        if (epicId) {
-          state.epic = {
-            id: epicId,
-            title: epicTitle || "Unknown Epic",
-            status: "open",
-            createdAt: event.timestamp,
-          };
-          hasEpic = true;
+				if (epicId) {
+					state.epic = {
+						id: epicId,
+						title: epicTitle || "Unknown Epic",
+						status: "open",
+						createdAt: event.timestamp,
+					};
+					hasEpic = true;
 
-          // Extract subtasks from input if present
-          const subtasks = event.input.subtasks;
-          if (Array.isArray(subtasks)) {
-            for (const subtask of subtasks) {
-              if (typeof subtask === "object" && subtask !== null) {
-                const st = subtask as Record<string, unknown>;
-                // Subtask IDs are generated by hive_create_epic output
-                // We'll match them up when we see swarm_spawn_subtask
-                const title =
-                  typeof st.title === "string" ? st.title : "Unknown";
-                const files = Array.isArray(st.files)
-                  ? (st.files as string[])
-                  : [];
+					// Extract subtasks from input if present
+					const subtasks = event.input.subtasks;
+					if (Array.isArray(subtasks)) {
+						for (const subtask of subtasks) {
+							if (typeof subtask === "object" && subtask !== null) {
+								const st = subtask as Record<string, unknown>;
+								// Subtask IDs are generated by hive_create_epic output
+								// We'll match them up when we see swarm_spawn_subtask
+								const title =
+									typeof st.title === "string" ? st.title : "Unknown";
+								const files = Array.isArray(st.files)
+									? (st.files as string[])
+									: [];
 
-                // We don't have the ID yet - it's in the output
-                // Store by title temporarily, will be updated on spawn
-                state.counts.created++;
-                state.counts.total++;
-              }
-            }
-          }
+								// We don't have the ID yet - it's in the output
+								// Store by title temporarily, will be updated on spawn
+								state.counts.created++;
+								state.counts.total++;
+							}
+						}
+					}
 
-          // Parse subtask IDs from output
-          const subtaskIds = parseSubtaskIds(event.output);
-          for (const id of subtaskIds) {
-            if (!state.subtasks.has(id)) {
-              state.subtasks.set(id, {
-                id,
-                title: "Unknown", // Will be updated on spawn
-                status: "created",
-                files: [],
-              });
-              state.counts.total++;
-              state.counts.created++;
-            }
-          }
-        }
-        break;
-      }
+					// Parse subtask IDs from output
+					const subtaskIds = parseSubtaskIds(event.output);
+					for (const id of subtaskIds) {
+						if (!state.subtasks.has(id)) {
+							state.subtasks.set(id, {
+								id,
+								title: "Unknown", // Will be updated on spawn
+								status: "created",
+								files: [],
+							});
+							state.counts.total++;
+							state.counts.created++;
+						}
+					}
+				}
+				break;
+			}
 
-      case "swarm_spawn_subtask": {
-        const beadId =
-          typeof event.input.bead_id === "string"
-            ? event.input.bead_id
-            : undefined;
-        const epicId =
-          typeof event.input.epic_id === "string"
-            ? event.input.epic_id
-            : undefined;
-        const title =
-          typeof event.input.subtask_title === "string"
-            ? event.input.subtask_title
-            : "Unknown";
-        const files = Array.isArray(event.input.files)
-          ? (event.input.files as string[])
-          : [];
+			case "swarm_spawn_subtask": {
+				const cellId =
+					typeof event.input.cell_id === "string"
+						? event.input.cell_id
+						: undefined;
+				const epicId =
+					typeof event.input.epic_id === "string"
+						? event.input.epic_id
+						: undefined;
+				const title =
+					typeof event.input.subtask_title === "string"
+						? event.input.subtask_title
+						: "Unknown";
+				const files = Array.isArray(event.input.files)
+					? (event.input.files as string[])
+					: [];
 
-        if (beadId) {
-          hasSpawn = true;
+				if (cellId) {
+					hasSpawn = true;
 
-          // Update or create subtask
-          const existing = state.subtasks.get(beadId);
-          if (existing) {
-            // Update from created to spawned
-            if (existing.status === "created") {
-              state.counts.created--;
-              state.counts.spawned++;
-            }
-            existing.status = "spawned";
-            existing.title = title;
-            existing.files = files;
-            existing.spawnedAt = event.timestamp;
-          } else {
-            state.subtasks.set(beadId, {
-              id: beadId,
-              title,
-              status: "spawned",
-              files,
-              spawnedAt: event.timestamp,
-            });
-            state.counts.total++;
-            state.counts.spawned++;
-          }
+					// Update or create subtask
+					const existing = state.subtasks.get(cellId);
+					if (existing) {
+						// Update from created to spawned
+						if (existing.status === "created") {
+							state.counts.created--;
+							state.counts.spawned++;
+						}
+						existing.status = "spawned";
+						existing.title = title;
+						existing.files = files;
+						existing.spawnedAt = event.timestamp;
+					} else {
+						state.subtasks.set(cellId, {
+							id: cellId,
+							title,
+							status: "spawned",
+							files,
+							spawnedAt: event.timestamp,
+						});
+						state.counts.total++;
+						state.counts.spawned++;
+					}
 
-          // If we see epic_id and don't have an epic yet, record it for reference
-          // BUT don't set hasEpic - we need hive_create_epic for a proper swarm signature
-          // This handles recovery scenarios where we only have spawn events
-          if (epicId && !state.epic) {
-            state.epic = {
-              id: epicId,
-              title: "Unknown Epic",
-              status: "in_progress",
-              createdAt: event.timestamp,
-            };
-            // Note: hasEpic stays false - spawn-only doesn't constitute a swarm signature
-          }
-        }
-        break;
-      }
+					// If we see epic_id and don't have an epic yet, record it for reference
+					// BUT don't set hasEpic - we need hive_create_epic for a proper swarm signature
+					// This handles recovery scenarios where we only have spawn events
+					if (epicId && !state.epic) {
+						state.epic = {
+							id: epicId,
+							title: "Unknown Epic",
+							status: "in_progress",
+							createdAt: event.timestamp,
+						};
+						// Note: hasEpic stays false - spawn-only doesn't constitute a swarm signature
+					}
+				}
+				break;
+			}
 
-      case "hive_start": {
-        const id =
-          typeof event.input.id === "string" ? event.input.id : undefined;
-        if (id) {
-          const subtask = state.subtasks.get(id);
-          if (subtask && subtask.status !== "completed" && subtask.status !== "closed") {
-            // Decrement old status count
-            if (subtask.status === "created") state.counts.created--;
-            else if (subtask.status === "spawned") state.counts.spawned--;
+			case "hive_start": {
+				const id =
+					typeof event.input.id === "string" ? event.input.id : undefined;
+				if (id) {
+					const subtask = state.subtasks.get(id);
+					if (
+						subtask &&
+						subtask.status !== "completed" &&
+						subtask.status !== "closed"
+					) {
+						// Decrement old status count
+						if (subtask.status === "created") state.counts.created--;
+						else if (subtask.status === "spawned") state.counts.spawned--;
 
-            subtask.status = "in_progress";
-            state.counts.inProgress++;
-          }
+						subtask.status = "in_progress";
+						state.counts.inProgress++;
+					}
 
-          // Check if this is the epic being started
-          if (state.epic && state.epic.id === id) {
-            state.epic.status = "in_progress";
-          }
-        }
-        break;
-      }
+					// Check if this is the epic being started
+					if (state.epic && state.epic.id === id) {
+						state.epic.status = "in_progress";
+					}
+				}
+				break;
+			}
 
-      case "swarm_complete": {
-        const beadId =
-          typeof event.input.bead_id === "string"
-            ? event.input.bead_id
-            : undefined;
-        if (beadId) {
-          const subtask = state.subtasks.get(beadId);
-          if (subtask && subtask.status !== "closed") {
-            // Decrement old status count
-            if (subtask.status === "created") state.counts.created--;
-            else if (subtask.status === "spawned") state.counts.spawned--;
-            else if (subtask.status === "in_progress") state.counts.inProgress--;
+			case "swarm_complete": {
+				const cellId =
+					typeof event.input.cell_id === "string"
+						? event.input.cell_id
+						: undefined;
+				if (cellId) {
+					const subtask = state.subtasks.get(cellId);
+					if (subtask && subtask.status !== "closed") {
+						// Decrement old status count
+						if (subtask.status === "created") state.counts.created--;
+						else if (subtask.status === "spawned") state.counts.spawned--;
+						else if (subtask.status === "in_progress")
+							state.counts.inProgress--;
 
-            subtask.status = "completed";
-            subtask.completedAt = event.timestamp;
-            state.counts.completed++;
-          }
-        }
-        break;
-      }
+						subtask.status = "completed";
+						subtask.completedAt = event.timestamp;
+						state.counts.completed++;
+					}
+				}
+				break;
+			}
 
-      case "hive_close": {
-        const id =
-          typeof event.input.id === "string" ? event.input.id : undefined;
-        if (id) {
-          const subtask = state.subtasks.get(id);
-          if (subtask) {
-            // Decrement old status count
-            if (subtask.status === "created") state.counts.created--;
-            else if (subtask.status === "spawned") state.counts.spawned--;
-            else if (subtask.status === "in_progress") state.counts.inProgress--;
-            else if (subtask.status === "completed") state.counts.completed--;
+			case "hive_close": {
+				const id =
+					typeof event.input.id === "string" ? event.input.id : undefined;
+				if (id) {
+					const subtask = state.subtasks.get(id);
+					if (subtask) {
+						// Decrement old status count
+						if (subtask.status === "created") state.counts.created--;
+						else if (subtask.status === "spawned") state.counts.spawned--;
+						else if (subtask.status === "in_progress")
+							state.counts.inProgress--;
+						else if (subtask.status === "completed") state.counts.completed--;
 
-            subtask.status = "closed";
-            state.counts.closed++;
-          }
+						subtask.status = "closed";
+						state.counts.closed++;
+					}
 
-          // Check if this is the epic being closed
-          if (state.epic && state.epic.id === id) {
-            state.epic.status = "closed";
-          }
-        }
-        break;
-      }
+					// Check if this is the epic being closed
+					if (state.epic && state.epic.id === id) {
+						state.epic.status = "closed";
+					}
+				}
+				break;
+			}
 
-      case "swarmmail_init": {
-        try {
-          const parsed = JSON.parse(event.output);
-          if (parsed.agent_name) {
-            state.coordinatorName = parsed.agent_name;
-          }
-          if (parsed.project_key) {
-            state.projectPath = parsed.project_key;
-          }
-        } catch {
-          // Invalid JSON, skip
-        }
-        break;
-      }
-    }
-  }
+			case "swarmmail_init": {
+				try {
+					const parsed = JSON.parse(event.output);
+					if (parsed.agent_name) {
+						state.coordinatorName = parsed.agent_name;
+					}
+					if (parsed.project_key) {
+						state.projectPath = parsed.project_key;
+					}
+				} catch {
+					// Invalid JSON, skip
+				}
+				break;
+			}
+		}
+	}
 
-  // A swarm exists if we have both an epic and at least one spawn
-  state.isSwarm = hasEpic && hasSpawn;
+	// A swarm exists if we have both an epic and at least one spawn
+	state.isSwarm = hasEpic && hasSpawn;
 
-  return state;
+	return state;
 }
 
 // =============================================================================
@@ -344,32 +350,32 @@ export function projectSwarmState(events: ToolCallEvent[]): SwarmProjection {
  * Parse epic ID from hive_create_epic output
  */
 function parseEpicId(output: string): string | undefined {
-  try {
-    const parsed = JSON.parse(output);
-    return parsed.epic?.id || parsed.id;
-  } catch {
-    return undefined;
-  }
+	try {
+		const parsed = JSON.parse(output);
+		return parsed.epic?.id || parsed.id;
+	} catch {
+		return undefined;
+	}
 }
 
 /**
  * Parse subtask IDs from hive_create_epic output
  */
 function parseSubtaskIds(output: string): string[] {
-  try {
-    const parsed = JSON.parse(output);
-    const subtasks = parsed.subtasks || parsed.epic?.subtasks || [];
-    return subtasks
-      .map((s: unknown) => {
-        if (typeof s === "object" && s !== null && "id" in s) {
-          return (s as { id: string }).id;
-        }
-        return undefined;
-      })
-      .filter((id: unknown): id is string => typeof id === "string");
-  } catch {
-    return [];
-  }
+	try {
+		const parsed = JSON.parse(output);
+		const subtasks = parsed.subtasks || parsed.epic?.subtasks || [];
+		return subtasks
+			.map((s: unknown) => {
+				if (typeof s === "object" && s !== null && "id" in s) {
+					return (s as { id: string }).id;
+				}
+				return undefined;
+			})
+			.filter((id: unknown): id is string => typeof id === "string");
+	} catch {
+		return [];
+	}
 }
 
 // =============================================================================
@@ -386,66 +392,66 @@ function parseSubtaskIds(output: string): string[] {
  * This is a quick check without full projection.
  */
 export function hasSwarmSignature(events: ToolCallEvent[]): boolean {
-  let hasEpic = false;
-  let hasSpawn = false;
+	let hasEpic = false;
+	let hasSpawn = false;
 
-  for (const event of events) {
-    if (event.tool === "hive_create_epic") {
-      hasEpic = true;
-    } else if (event.tool === "swarm_spawn_subtask") {
-      hasSpawn = true;
-    }
+	for (const event of events) {
+		if (event.tool === "hive_create_epic") {
+			hasEpic = true;
+		} else if (event.tool === "swarm_spawn_subtask") {
+			hasSpawn = true;
+		}
 
-    // Early exit if we have both
-    if (hasEpic && hasSpawn) {
-      return true;
-    }
-  }
+		// Early exit if we have both
+		if (hasEpic && hasSpawn) {
+			return true;
+		}
+	}
 
-  return false;
+	return false;
 }
 
 /**
  * Check if swarm is still active (has pending work)
  */
 export function isSwarmActive(projection: SwarmProjection): boolean {
-  if (!projection.isSwarm) {
-    return false;
-  }
+	if (!projection.isSwarm) {
+		return false;
+	}
 
-  // Active if any subtask is not closed
-  return (
-    projection.counts.created > 0 ||
-    projection.counts.spawned > 0 ||
-    projection.counts.inProgress > 0 ||
-    projection.counts.completed > 0 // completed but not closed = needs review
-  );
+	// Active if any subtask is not closed
+	return (
+		projection.counts.created > 0 ||
+		projection.counts.spawned > 0 ||
+		projection.counts.inProgress > 0 ||
+		projection.counts.completed > 0 // completed but not closed = needs review
+	);
 }
 
 /**
  * Get human-readable swarm status summary
  */
 export function getSwarmSummary(projection: SwarmProjection): string {
-  if (!projection.isSwarm) {
-    return "No swarm detected";
-  }
+	if (!projection.isSwarm) {
+		return "No swarm detected";
+	}
 
-  const { counts, epic } = projection;
-  const parts: string[] = [];
+	const { counts, epic } = projection;
+	const parts: string[] = [];
 
-  if (epic) {
-    parts.push(`Epic: ${epic.id} - ${epic.title} [${epic.status}]`);
-  }
+	if (epic) {
+		parts.push(`Epic: ${epic.id} - ${epic.title} [${epic.status}]`);
+	}
 
-  parts.push(
-    `Subtasks: ${counts.total} total (${counts.spawned} spawned, ${counts.inProgress} in_progress, ${counts.completed} completed, ${counts.closed} closed)`
-  );
+	parts.push(
+		`Subtasks: ${counts.total} total (${counts.spawned} spawned, ${counts.inProgress} in_progress, ${counts.completed} completed, ${counts.closed} closed)`,
+	);
 
-  if (isSwarmActive(projection)) {
-    parts.push("Status: ACTIVE - has pending work");
-  } else {
-    parts.push("Status: COMPLETE - all work closed");
-  }
+	if (isSwarmActive(projection)) {
+		parts.push("Status: ACTIVE - has pending work");
+	} else {
+		parts.push("Status: COMPLETE - all work closed");
+	}
 
-  return parts.join("\n");
+	return parts.join("\n");
 }

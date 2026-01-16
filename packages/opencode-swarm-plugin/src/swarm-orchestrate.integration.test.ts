@@ -45,7 +45,7 @@ describe("swarm_complete integration", () => {
 	});
 
 	test("swarm_complete accesses database without dbOverride error", async () => {
-		const beadId = "test-bead-123";
+		const beadId = "test-cell-123";
 		
 		// Call swarm_complete - the key test is that it doesn't throw "dbOverride required"
 		// when trying to access the database for deferred resolution
@@ -53,7 +53,7 @@ describe("swarm_complete integration", () => {
 		const result = await swarm_complete.execute({
 			project_key: testProjectPath,
 			agent_name: "TestWorker",
-			bead_id: beadId,
+			cell_id: beadId,
 			summary: "Test task completed",
 			files_touched: ["test.ts"],
 			start_time: Date.now() - 1000, // 1 second ago
@@ -71,7 +71,7 @@ describe("swarm_complete integration", () => {
 		const result = await swarm_complete.execute({
 			project_key: testProjectPath,
 			agent_name: "TestWorker",
-			bead_id: "no-deferred-bead",
+			cell_id: "no-deferred-bead",
 			summary: "Task without deferred",
 			files_touched: ["test.ts"],
 			start_time: Date.now() - 1000,
@@ -239,7 +239,7 @@ describe("E2E swarm coordination", () => {
 		const worker1CompleteResult = await swarm_complete.execute({
 			project_key: testProjectPath,
 			agent_name: "Worker1",
-			bead_id: subtask1Id,
+			cell_id: subtask1Id,
 			summary: "Setup completed",
 			files_touched: ["src/setup.ts"],
 			start_time: Date.now() - 2000,
@@ -254,7 +254,7 @@ describe("E2E swarm coordination", () => {
 		const worker2CompleteResult = await swarm_complete.execute({
 			project_key: testProjectPath,
 			agent_name: "Worker2",
-			bead_id: subtask2Id,
+			cell_id: subtask2Id,
 			summary: "Implementation completed",
 			files_touched: ["src/impl.ts"],
 			start_time: Date.now() - 3000,
@@ -270,11 +270,11 @@ describe("E2E swarm coordination", () => {
 		// Both workers should have successfully completed their tasks
 		expect(worker1Complete.success).toBe(true);
 		expect(worker1Complete.closed).toBe(true);
-		expect(worker1Complete.bead_id).toBe(subtask1Id);
+		expect(worker1Complete.cell_id).toBe(subtask1Id);
 		
 		expect(worker2Complete.success).toBe(true);
 		expect(worker2Complete.closed).toBe(true);
-		expect(worker2Complete.bead_id).toBe(subtask2Id);
+		expect(worker2Complete.cell_id).toBe(subtask2Id);
 		
 		// Step 6: Verify coordination flow completed
 		// SUCCESS CRITERIA MET:

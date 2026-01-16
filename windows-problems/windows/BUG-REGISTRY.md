@@ -93,14 +93,14 @@ Error: SQLITE_BUSY: database is locked
 ```typescript
 // ❌ BAD - Will fail with SQLITE_BUSY
 await Promise.all([
-  swarm_complete({ bead_id: "task1", ... }),
-  swarm_complete({ bead_id: "task2", ... }),
+  swarm_complete({ cell_id: "task1", ... }),
+  swarm_complete({ cell_id: "task2", ... }),
   hive_close({ id: "task3", ... })
 ]);
 
 // ✅ GOOD - Sequential writes
-await swarm_complete({ bead_id: "task1", ... });
-await swarm_complete({ bead_id: "task2", ... });
+await swarm_complete({ cell_id: "task1", ... });
+await swarm_complete({ cell_id: "task2", ... });
 await hive_close({ id: "task3", ... });
 ```
 
@@ -131,7 +131,7 @@ async function withRetry<T>(
 }
 
 // Usage
-await withRetry(() => swarm_complete({ bead_id: "task1", ... }));
+await withRetry(() => swarm_complete({ cell_id: "task1", ... }));
 ```
 
 **Solution 3: Coordinator Serialization Pattern**
@@ -152,8 +152,8 @@ class SwarmCoordinator {
 const coordinator = new SwarmCoordinator();
 
 await Promise.all([
-  coordinator.queueWrite(() => swarm_complete({ bead_id: "task1", ... })),
-  coordinator.queueWrite(() => swarm_complete({ bead_id: "task2", ... })),
+  coordinator.queueWrite(() => swarm_complete({ cell_id: "task1", ... })),
+  coordinator.queueWrite(() => swarm_complete({ cell_id: "task2", ... })),
   coordinator.queueWrite(() => hive_close({ id: "task3", ... }))
 ]);
 ```
@@ -952,24 +952,24 @@ Based on Oracle code review of the swarm-tools project, consider these enhanceme
 ```typescript
 // ❌ BAD - Silent error swallowing
 try {
-  await swarm_complete({ bead_id, ... });
+  await swarm_complete({ cell_id, ... });
 } catch (error) {
   // Error silently ignored
 }
 
 // ⚠️ ACCEPTABLE - Basic logging
 try {
-  await swarm_complete({ bead_id, ... });
+  await swarm_complete({ cell_id, ... });
 } catch (error) {
   console.error('Completion failed:', error);
 }
 
 // ✅ BEST - Structured logging with context
 try {
-  await swarm_complete({ bead_id, ... });
+  await swarm_complete({ cell_id, ... });
 } catch (error) {
   logger.error('Swarm completion failed', {
-    bead_id,
+    cell_id,
     agent_name,
     error: error instanceof Error ? error.message : String(error),
     stack: error instanceof Error ? error.stack : undefined,
@@ -1120,7 +1120,7 @@ async function sendReviewFeedback(status: string, issues?: any) {
 import { logger } from './utils/logger';
 
 interface SwarmCompletionOptions {
-  bead_id: string;
+  cell_id: string;
   agent_name: string;
   project_key: string;
   summary: string;
@@ -1132,9 +1132,9 @@ function isSwarmCompletionOptions(data: unknown): data is SwarmCompletionOptions
   return (
     typeof data === 'object' &&
     data !== null &&
-    'bead_id' in data &&
+    'cell_id' in data &&
     'agent_name' in data &&
-    typeof (data as any).bead_id === 'string'
+    typeof (data as any).cell_id === 'string'
   );
 }
 
@@ -1150,13 +1150,13 @@ class SwarmSession implements IDisposable {
     try {
       await swarm_complete(this.options);
       logger.info('Swarm completion successful', {
-        bead_id: this.options.bead_id,
+        cell_id: this.options.cell_id,
         files_count: this.options.files_touched.length
       });
     } catch (error) {
       // Enhanced error logging
       logger.error('Swarm completion failed', {
-        bead_id: this.options.bead_id,
+        cell_id: this.options.cell_id,
         agent_name: this.options.agent_name,
         error: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined,

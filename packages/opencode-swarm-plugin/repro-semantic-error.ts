@@ -7,7 +7,7 @@ const mockEvent: FeedbackEvent = {
 	type: "helpful",
 	timestamp: new Date().toISOString(),
 	raw_value: 1,
-	bead_id: "test-bead",
+	cell_id: "test-cell",
 };
 
 async function run() {

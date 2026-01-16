@@ -232,7 +232,7 @@ in_progress (0%)
 ```typescript
 // COORDINATOR
 const { prompt } = swarm_spawn_subtask({
-  bead_id: "task-1",
+  cell_id: "task-1",
   epic_id: "epic-parent",
   subtask_title: "Implement feature",
   files: ["src/feature.ts"]
@@ -247,7 +247,7 @@ const task = background_task({
 const result = background_output({ task_id: task.id });
 
 swarm_complete_subtask({
-  bead_id: "task-1",
+  cell_id: "task-1",
   task_result: result
 });
 
@@ -360,7 +360,7 @@ swarmmail_reserve({
 swarm_progress({
   project_key: "C:\\Users\\will\\dev\\swarm-tools",
   agent_name: "auth-worker",
-  bead_id: "swarm-tools--auth-task-1",
+  cell_id: "swarm-tools--auth-task-1",
   status: "in_progress",
   progress_percent: 0,
   message: "Starting JWT implementation"
@@ -373,7 +373,7 @@ swarm_progress({
 swarm_progress({
   project_key: "C:\\Users\\will\\dev\\swarm-tools",
   agent_name: "auth-worker",
-  bead_id: "swarm-tools--auth-task-1",
+  cell_id: "swarm-tools--auth-task-1",
   status: "in_progress",
   progress_percent: 50,
   message: "JWT signing implemented, working on validation",
@@ -393,7 +393,7 @@ hivemind_store({
 swarm_complete({
   project_key: "C:\\Users\\will\\dev\\swarm-tools",
   agent_name: "auth-worker",
-  bead_id: "swarm-tools--auth-task-1",
+  cell_id: "swarm-tools--auth-task-1",
   summary: "Implemented JWT authentication with RS256, including token signing and validation. All tests passing.",
   files_touched: [
     path.normalize("src/auth/jwt.ts"),
@@ -429,7 +429,7 @@ const { epic_id, subtasks } = hive_create_epic({
 const workers = [];
 for (const subtask of subtasks) {
   const { prompt } = swarm_spawn_subtask({
-    bead_id: subtask.id,
+    cell_id: subtask.id,
     epic_id: epic_id,
     subtask_title: subtask.title,
     files: subtask.files,
@@ -454,7 +454,7 @@ for (const { subtask_id, task_id } of workers) {
   const result = await background_output({ task_id });
   
   swarm_complete_subtask({
-    bead_id: subtask_id,
+    cell_id: subtask_id,
     task_result: result
   });
 }
@@ -607,7 +607,7 @@ async function safeProgress(params: ProgressParams, retries = 3): Promise<void> 
 **Required:**
 - `project_key: string` - Project path (Windows absolute)
 - `agent_name: string` - Worker agent name
-- `bead_id: string` - Task bead ID
+- `cell_id: string` - Task bead ID
 - `status: "in_progress" | "blocked" | "completed" | "failed"`
 
 **Optional:**
@@ -621,7 +621,7 @@ async function safeProgress(params: ProgressParams, retries = 3): Promise<void> 
 **Required:**
 - `project_key: string` - Project path
 - `agent_name: string` - Worker agent name
-- `bead_id: string` - Task bead ID
+- `cell_id: string` - Task bead ID
 - `summary: string` - What was accomplished
 
 **Optional:**
@@ -633,7 +633,7 @@ async function safeProgress(params: ProgressParams, retries = 3): Promise<void> 
 ### swarm_spawn_subtask
 
 **Required (Coordinator Only):**
-- `bead_id: string` - Subtask bead ID
+- `cell_id: string` - Subtask bead ID
 - `epic_id: string` - Parent epic ID
 - `subtask_title: string` - Short description
 - `files: string[]` - Assigned files (Windows paths)
@@ -647,7 +647,7 @@ async function safeProgress(params: ProgressParams, retries = 3): Promise<void> 
 ### swarm_complete_subtask
 
 **Required (Coordinator Only):**
-- `bead_id: string` - Subtask bead ID
+- `cell_id: string` - Subtask bead ID
 - `task_result: string` - Full worker output
 
 **Optional:**

@@ -128,7 +128,7 @@ describe("DurableStreamAdapter", () => {
 				createEvent("task_started", {
 					project_key: projectKey,
 					agent_name: "SubscribeTest",
-					bead_id: "test-bead-1",
+					cell_id: "test-cell-1",
 				}),
 			);
 
@@ -159,7 +159,7 @@ describe("DurableStreamAdapter", () => {
 				createEvent("task_completed", {
 					project_key: projectKey,
 					agent_name: "UnsubscribeTest",
-					bead_id: "test-bead-2",
+					cell_id: "test-cell-2",
 					summary: "Done",
 					success: true,
 				}),

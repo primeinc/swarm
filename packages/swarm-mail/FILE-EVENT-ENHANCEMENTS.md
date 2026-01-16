@@ -12,7 +12,7 @@ Enhanced file reservation and release events with richer context fields for impr
 {
   // ... existing fields ...
   epic_id?: string,           // Epic ID if part of swarm work
-  bead_id?: string,           // Cell/bead ID if part of swarm work
+  cell_id?: string,           // Cell/bead ID if part of swarm work
   file_count?: number,        // Number of files being reserved
   is_retry?: boolean,         // Whether this is a retry after conflict
   conflict_agent?: string,    // Agent that caused a conflict (if any)
@@ -31,7 +31,7 @@ Enhanced file reservation and release events with richer context fields for impr
 {
   // ... existing fields ...
   epic_id?: string,           // Epic ID if part of swarm work
-  bead_id?: string,           // Cell/bead ID if part of swarm work
+  cell_id?: string,           // Cell/bead ID if part of swarm work
   file_count?: number,        // Number of files being released
   hold_duration_ms?: number,  // How long files were held
   files_modified?: number,    // How many files were actually modified
@@ -54,7 +54,7 @@ Enhanced file reservation and release events with richer context fields for impr
   holding_agent: string,      // Agent currently holding the files
   paths: string[],            // Paths that are in conflict
   epic_id?: string,           // Epic ID if part of swarm work
-  bead_id?: string,           // Cell/bead ID if part of swarm work
+  cell_id?: string,           // Cell/bead ID if part of swarm work
   resolution?: "wait" | "force" | "abort",  // How conflict was resolved
   timestamp: number
 }

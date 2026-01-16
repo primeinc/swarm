@@ -271,24 +271,24 @@ CREATE INDEX idx_beads_parent ON beads(parent_id) WHERE parent_id IS NOT NULL;
 CREATE INDEX idx_beads_priority ON beads(priority, created_at);
 
 CREATE TABLE bead_dependencies (
-  bead_id TEXT NOT NULL REFERENCES beads(id) ON DELETE CASCADE,
+  cell_id TEXT NOT NULL REFERENCES beads(id) ON DELETE CASCADE,
   depends_on_id TEXT NOT NULL REFERENCES beads(id) ON DELETE CASCADE,
   relationship TEXT NOT NULL CHECK (relationship IN ('blocks', 'blocked-by', 'related', 'discovered-from')),
   created_at BIGINT NOT NULL,
   created_by TEXT,
-  PRIMARY KEY (bead_id, depends_on_id, relationship)
+  PRIMARY KEY (cell_id, depends_on_id, relationship)
 );
 
 CREATE TABLE bead_labels (
-  bead_id TEXT NOT NULL REFERENCES beads(id) ON DELETE CASCADE,
+  cell_id TEXT NOT NULL REFERENCES beads(id) ON DELETE CASCADE,
   label TEXT NOT NULL,
   created_at BIGINT NOT NULL,
-  PRIMARY KEY (bead_id, label)
+  PRIMARY KEY (cell_id, label)
 );
 
 CREATE TABLE bead_comments (
   id SERIAL PRIMARY KEY,
-  bead_id TEXT NOT NULL REFERENCES beads(id) ON DELETE CASCADE,
+  cell_id TEXT NOT NULL REFERENCES beads(id) ON DELETE CASCADE,
   author TEXT NOT NULL,
   body TEXT NOT NULL,
   parent_id INTEGER REFERENCES bead_comments(id),
@@ -296,17 +296,17 @@ CREATE TABLE bead_comments (
   updated_at BIGINT
 );
 
-CREATE INDEX idx_bead_comments_bead ON bead_comments(bead_id, created_at);
+CREATE INDEX idx_bead_comments_bead ON bead_comments(cell_id, created_at);
 
 -- Derived views
 CREATE TABLE blocked_beads_cache (
-  bead_id TEXT PRIMARY KEY REFERENCES beads(id) ON DELETE CASCADE,
+  cell_id TEXT PRIMARY KEY REFERENCES beads(id) ON DELETE CASCADE,
   blocker_ids TEXT[] NOT NULL,  -- Array of blocking bead IDs
   updated_at BIGINT NOT NULL
 );
 
 CREATE TABLE dirty_beads (
-  bead_id TEXT PRIMARY KEY,
+  cell_id TEXT PRIMARY KEY,
   marked_at BIGINT NOT NULL
 );
 ```

@@ -1300,7 +1300,7 @@ skills_create({
 
 ```typescript
 swarm_record_outcome({
-  bead_id: "bd-123.1",
+  cell_id: "bd-123.1",
   strategy: "skill-testing",
   duration_ms: 900000, // 15 minutes
   success: true,
