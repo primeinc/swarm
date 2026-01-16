@@ -27,6 +27,15 @@ import {
   findCellsByPartialId,
 } from "swarm-mail";
 import { normalizePath } from "./utils/normalize-path";
+import {
+  normalizeCreateArgs,
+  normalizeUpdateArgs,
+  normalizeQueryArgs,
+  normalizeEpicCreateArgs,
+  normalizeCellsArgs,
+  normalizeCloseArgs,
+  formatZodError,
+} from "./utils/arg-normalizer";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -85,6 +94,43 @@ async function runGitCommand(
   const exitCode = await proc.exited;
 
   return { exitCode, stdout, stderr };
+}
+
+// ============================================================================
+// Utilities
+// ============================================================================
+
+/**
+ * Retry helper for transient operations (e.g., SQLITE_BUSY)
+ */
+async function withRetry<T>(
+  operation: () => Promise<T>,
+  retries = 3,
+  delayMs = 100,
+): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await operation();
+    } catch (err) {
+      lastError = err;
+      const message = err instanceof Error ? err.message : String(err);
+      // Retry on common transient errors
+      if (
+        attempt < retries &&
+        (message.includes("SQLITE_BUSY") ||
+          message.includes("SQLITE_BUSY_RECOVERY") ||
+          message.includes("database is locked"))
+      ) {
+        await new Promise((r) => setTimeout(r, delayMs * (attempt + 1)));
+        continue;
+      }
+      break;
+    }
+  }
+  // Exhausted retries
+  if (lastError instanceof Error) throw lastError;
+  throw new Error(String(lastError));
 }
 
 import {
@@ -646,7 +692,24 @@ export const hive_create = tool({
       .describe("Parent cell ID for epic children"),
   },
   async execute(args, ctx) {
-    const validated = CellCreateArgsSchema.parse(args);
+    // Be permissive: normalize first, then strictly validate
+    const normalized = normalizeCreateArgs(args);
+    const parsed = CellCreateArgsSchema.safeParse(normalized);
+    if (!parsed.success) {
+      const message = formatZodError(
+        "hive_create",
+        parsed.error,
+        `{
+  "title": "Fix login bug",
+  "type": "bug",
+  "priority": 2,
+  "description": "Null check on session token",
+  "parent_id": "project-abc12"
+}`,
+      );
+      throw new HiveValidationError(message, parsed.error);
+    }
+    const validated = parsed.data;
     const projectKey = getHiveWorkingDirectory();
     const adapter = await getHiveAdapter(projectKey);
 
@@ -743,7 +806,25 @@ export const hive_create_epic = tool({
       .describe("Recovery context from checkpoint compaction"),
   },
   async execute(args, ctx) {
-    const validated = EpicCreateArgsSchema.parse(args);
+    // Be permissive: normalize first, then strictly validate
+    const normalized = normalizeEpicCreateArgs(args);
+    const parsed = EpicCreateArgsSchema.safeParse(normalized);
+    if (!parsed.success) {
+      const message = formatZodError(
+        "hive_create_epic",
+        parsed.error,
+        `{
+  "epic_title": "Ship new Auth",
+  "epic_description": "Auth overhaul with passwordless",
+  "subtasks": [
+    { "title": "DB migration", "priority": 1 },
+    { "title": "Add magic links", "priority": 2 }
+  ]
+}`,
+      );
+      throw new HiveValidationError(message, parsed.error);
+    }
+    const validated = parsed.data;
     const projectKey = getHiveWorkingDirectory();
     const adapter = await getHiveAdapter(projectKey);
     const created: AdapterCell[] = [];
@@ -771,6 +852,19 @@ export const hive_create_epic = tool({
         created.push(subtaskCell);
       }
 
+      // 2a. Validation: ensure subtasks are retrievable via parent_id
+      try {
+        const children = await adapter.queryCells(projectKey, { parent_id: epic.id });
+        if (children.length !== validated.subtasks.length) {
+          throw new Error(
+            `Post-create validation failed: expected ${validated.subtasks.length} subtasks, found ${children.length}`,
+          );
+        }
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        throw new Error(`Epic integrity check failed: ${msg}`);
+      }
+
       const result: EpicCreateResult = {
         success: true,
         epic: formatCellForOutput(epic) as Cell,
@@ -778,7 +872,7 @@ export const hive_create_epic = tool({
       };
 
       // Emit epic_created event for observability
-      const effectiveProjectKey = args.project_key || projectKey;
+      const effectiveProjectKey = (normalized as any).project_key || projectKey;
       try {
         const epicCreatedEvent = createEvent("epic_created", {
           project_key: effectiveProjectKey,
@@ -801,16 +895,16 @@ export const hive_create_epic = tool({
         const event = createEvent("decomposition_generated", {
           project_key: effectiveProjectKey,
           epic_id: epic.id,
-          task: args.task || validated.epic_title,
+          task: (normalized as any).task || validated.epic_title,
           context: validated.epic_description,
-          strategy: args.strategy || "feature-based",
+          strategy: (normalized as any).strategy || "feature-based",
           epic_title: validated.epic_title,
           subtasks: validated.subtasks.map((st) => ({
             title: st.title,
             files: st.files || [],
             priority: st.priority,
           })),
-          recovery_context: args.recovery_context,
+          recovery_context: (normalized as any).recovery_context,
         });
         await appendEvent(event, effectiveProjectKey);
       } catch (error) {
@@ -823,7 +917,7 @@ export const hive_create_epic = tool({
 
       // Emit SwarmStartedEvent for orchestration lifecycle tracking
       try {
-        const totalFiles = validated.subtasks.reduce(
+          const totalFiles = validated.subtasks.reduce(
           (count, st) => count + (st.files?.length || 0),
           0,
         );
@@ -831,7 +925,7 @@ export const hive_create_epic = tool({
           project_key: effectiveProjectKey,
           epic_id: epic.id,
           epic_title: validated.epic_title,
-          strategy: args.strategy || "feature-based",
+          strategy: (normalized as any).strategy || "feature-based",
           subtask_count: validated.subtasks.length,
           total_files: totalFiles,
           coordinator_agent: "coordinator", // Default coordinator name
@@ -865,10 +959,10 @@ export const hive_create_epic = tool({
             decision_type: "decomposition_complete",
             payload: {
               subtask_count: validated.subtasks.length,
-              strategy_used: args.strategy || "feature-based",
+              strategy_used: (normalized as any).strategy || "feature-based",
               files_per_subtask: filesPerSubtask,
               epic_title: validated.epic_title,
-              task: args.task,
+              task: (normalized as any).task,
             },
           });
       } catch (error) {
@@ -960,7 +1054,22 @@ export const hive_query = tool({
       .describe("Max results to return (default: 20)"),
   },
   async execute(args, ctx) {
-    const validated = CellQueryArgsSchema.parse(args);
+    const normalized = normalizeQueryArgs(args);
+    const parsed = CellQueryArgsSchema.safeParse(normalized);
+    if (!parsed.success) {
+      const message = formatZodError(
+        "hive_query",
+        parsed.error,
+        `{
+  "status": "in_progress",
+  "type": "task",
+  "parent_id": "project-abc12",
+  "limit": 10
+}`,
+      );
+      throw new HiveValidationError(message, parsed.error);
+    }
+    const validated = parsed.data;
     const projectKey = getHiveWorkingDirectory();
     const adapter = await getHiveAdapter(projectKey);
 
@@ -1011,7 +1120,22 @@ export const hive_update = tool({
       .describe("New priority"),
   },
   async execute(args, ctx) {
-    const validated = CellUpdateArgsSchema.parse(args);
+    const normalized = normalizeUpdateArgs(args);
+    const parsed = CellUpdateArgsSchema.safeParse(normalized);
+    if (!parsed.success) {
+      const message = formatZodError(
+        "hive_update",
+        parsed.error,
+        `{
+  "id": "project-abc12",
+  "status": "in_progress",
+  "priority": 1,
+  "description": "Ready for review"
+}`,
+      );
+      throw new HiveValidationError(message, parsed.error);
+    }
+    const validated = parsed.data;
     const projectKey = getHiveWorkingDirectory();
     const adapter = await getHiveAdapter(projectKey);
 
@@ -1022,20 +1146,21 @@ export const hive_update = tool({
       let cell: AdapterCell;
 
       // Status changes use changeCellStatus, other fields use updateCell
-      if (validated.status) {
-        cell = await adapter.changeCellStatus(
-          projectKey,
-          cellId,
-          validated.status,
+      if (validated.status !== undefined) {
+        const newStatus = validated.status as any; // already validated by Zod
+        cell = await withRetry(() =>
+          adapter.changeCellStatus(projectKey, cellId, newStatus),
         );
       }
 
       // Update other fields if provided
       if (validated.description !== undefined || validated.priority !== undefined) {
-        cell = await adapter.updateCell(projectKey, cellId, {
-          description: validated.description,
-          priority: validated.priority,
-        });
+        cell = await withRetry(() =>
+          adapter.updateCell(projectKey, cellId, {
+            description: validated.description,
+            priority: validated.priority,
+          }),
+        );
       } else if (!validated.status) {
         // No changes requested
         const existingCell = await adapter.getCell(projectKey, cellId);
@@ -1105,7 +1230,20 @@ export const hive_close = tool({
     reason: tool.schema.string().describe("Completion reason"),
   },
   async execute(args, ctx) {
-    const validated = CellCloseArgsSchema.parse(args);
+    const normalized = normalizeCloseArgs(args);
+    const parsed = CellCloseArgsSchema.safeParse(normalized);
+    if (!parsed.success) {
+      const message = formatZodError(
+        "hive_close",
+        parsed.error,
+        `{
+  "id": "project-abc12",
+  "reason": "Merged in main"
+}`,
+      );
+      throw new HiveValidationError(message, parsed.error);
+    }
+    const validated = parsed.data;
     const projectKey = getHiveWorkingDirectory();
     const adapter = await getHiveAdapter(projectKey);
 
@@ -1117,10 +1255,8 @@ export const hive_close = tool({
       const cellBeforeClose = await adapter.getCell(projectKey, cellId);
       const isEpic = cellBeforeClose?.type === "epic";
       
-      const cell = await adapter.closeCell(
-        projectKey,
-        cellId,
-        validated.reason,
+      const cell = await withRetry(() =>
+        adapter.closeCell(projectKey, cellId, validated.reason),
       );
 
       await adapter.markDirty(projectKey, cellId);
@@ -1299,10 +1435,8 @@ export const hive_start = tool({
       // Resolve partial ID to full ID
       const cellId = await resolvePartialId(adapter, projectKey, args.id) || args.id;
       
-      const cell = await adapter.changeCellStatus(
-        projectKey,
-        cellId,
-        "in_progress",
+      const cell = await withRetry(() =>
+        adapter.changeCellStatus(projectKey, cellId, "in_progress"),
       );
 
       await adapter.markDirty(projectKey, cellId);
@@ -1409,20 +1543,21 @@ PREFER THIS OVER hive_query when you need to:
   async execute(args, ctx) {
     const projectKey = getHiveWorkingDirectory();
     const adapter = await getHiveAdapter(projectKey);
+    const normalized = normalizeCellsArgs(args) as any;
     
     try {
       // If specific ID requested, find all matching cells (supports partial IDs)
-      if (args.id) {
-        const matchingCells = await findCellsByPartialId(adapter, projectKey, args.id);
+      if (normalized.id) {
+        const matchingCells = await findCellsByPartialId(adapter, projectKey, normalized.id);
         if (matchingCells.length === 0) {
-          throw new HiveError(`No cell found matching ID '${args.id}'`, "hive_cells");
+          throw new HiveError(`No cell found matching ID '${normalized.id}'`, "hive_cells");
         }
         const formatted = matchingCells.map(c => formatCellForOutput(c));
         return JSON.stringify(formatted, null, 2);
       }
       
       // If ready flag, return next unblocked cell
-      if (args.ready) {
+      if (normalized.ready) {
         const ready = await adapter.getNextReadyCell(projectKey);
         if (!ready) {
           return JSON.stringify([], null, 2);
@@ -1433,10 +1568,10 @@ PREFER THIS OVER hive_query when you need to:
       
       // Query with filters
       const cells = await adapter.queryCells(projectKey, {
-        status: args.status,
-        type: args.type,
-        parent_id: args.parent_id,
-        limit: args.limit || 20,
+        status: normalized.status,
+        type: normalized.type,
+        parent_id: normalized.parent_id,
+        limit: normalized.limit || 20,
       });
       
       const formatted = cells.map(c => formatCellForOutput(c));
@@ -1452,7 +1587,7 @@ PREFER THIS OVER hive_query when you need to:
       // Provide helpful error messages
       if (message.includes("Bead not found") || message.includes("Cell not found")) {
         throw new HiveError(
-          `No cell found matching ID '${args.id || "unknown"}'`,
+          `No cell found matching ID '${(normalized as any).id || "unknown"}'`,
           "hive_cells",
         );
       }
@@ -1584,12 +1719,24 @@ export const hive_sync = tool({
       }
     }
 
-    // 6. Pull if requested (check if remote exists first)
+    // 6. Pull if requested (check if remote and upstream exist first)
     if (autoPull) {
       const remoteCheckResult = await runGitCommand(["remote"]);
       const hasRemote = remoteCheckResult.stdout.trim() !== "";
 
       if (hasRemote) {
+        // Fetch latest and prune deleted branches to avoid stale upstream refs
+        await withTimeout(runGitCommand(["fetch", "--all", "--prune"]), TIMEOUT_MS, "git fetch");
+
+        // Detect if current branch has an upstream configured
+        const upstreamResult = await runGitCommand([
+          "rev-parse",
+          "--abbrev-ref",
+          "--symbolic-full-name",
+          "@{u}",
+        ]);
+        const hasUpstream = upstreamResult.exitCode === 0;
+
         // Check for unstaged changes that would block pull --rebase
         const statusResult = await runGitCommand(["status", "--porcelain"]);
         const hasUnstagedChanges = statusResult.stdout.trim() !== "";
@@ -1605,17 +1752,23 @@ export const hive_sync = tool({
         }
 
         try {
-          const pullResult = await withTimeout(
-            runGitCommand(["pull", "--rebase"]),
-            TIMEOUT_MS,
-            "git pull --rebase",
-          );
-
-          if (pullResult.exitCode !== 0) {
-            throw new HiveError(
-              `Failed to pull: ${pullResult.stderr}`,
+          if (hasUpstream) {
+            const pullResult = await withTimeout(
+              runGitCommand(["pull", "--rebase"]),
+              TIMEOUT_MS,
               "git pull --rebase",
-              pullResult.exitCode,
+            );
+            if (pullResult.exitCode !== 0) {
+              throw new HiveError(
+                `Failed to pull: ${pullResult.stderr}`,
+                "git pull --rebase",
+                pullResult.exitCode,
+              );
+            }
+          } else {
+            // No upstream configured for this branch - skip pull gracefully
+            console.warn(
+              "[hive_sync] No upstream configured for current branch. Skipping pull.",
             );
           }
         } finally {

@@ -233,6 +233,63 @@ describe("swarm-mail integration (embedded)", () => {
 
       clearSessionState(ctx.sessionID);
     });
+
+    it("returns mismatch diagnostics when already initialized with different args", async () => {
+      const ctx = createTestContext();
+
+      // First init with AgentA
+      await executeTool(
+        swarmmail_init,
+        { project_path: TEST_DB_PATH, agent_name: "AgentA" },
+        ctx,
+      );
+
+      // Second init requests AgentB
+      const result = await executeTool<{
+        already_initialized?: boolean;
+        agent_mismatch?: boolean;
+        project_mismatch?: boolean;
+        requested?: { agent_name?: string; project_key?: string };
+        session_id?: string;
+      }>(
+        swarmmail_init,
+        { project_path: TEST_DB_PATH, agent_name: "AgentB" },
+        ctx,
+      );
+
+      expect(result.already_initialized).toBe(true);
+      expect(result.agent_mismatch).toBe(true);
+      expect(result.project_mismatch).toBeFalsy();
+      expect(result.requested?.agent_name).toBe("AgentB");
+
+      clearSessionState(ctx.sessionID);
+    });
+
+    it("force_reinit reinitializes with requested agent", async () => {
+      const ctx = createTestContext();
+
+      // First init with AgentA
+      await executeTool(
+        swarmmail_init,
+        { project_path: TEST_DB_PATH, agent_name: "AgentA" },
+        ctx,
+      );
+
+      // Force reinit with AgentB
+      const result = await executeTool<{
+        agent_name: string;
+        project_key: string;
+      }>(
+        swarmmail_init,
+        { project_path: TEST_DB_PATH, agent_name: "AgentB", force_reinit: true },
+        ctx,
+      );
+
+      expect(result.agent_name).toBe("AgentB");
+      expect(result.project_key).toBe(TEST_DB_PATH);
+
+      clearSessionState(ctx.sessionID);
+    });
   });
 
   // ============================================================================

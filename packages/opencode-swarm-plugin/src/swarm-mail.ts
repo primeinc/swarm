@@ -65,6 +65,8 @@ interface InitArgs {
   project_path?: string;
   agent_name?: string;
   task_description?: string;
+  /** If true and a different session is already initialized, reinitialize with provided args */
+  force_reinit?: boolean;
 }
 
 /** Send tool arguments */
@@ -253,16 +255,42 @@ export const swarmmail_init = tool({
     // Check if already initialized
     const existingState = loadSessionState(sessionID);
     if (existingState) {
-      return JSON.stringify(
-        {
-          agent_name: existingState.agentName,
-          project_key: existingState.projectKey,
-          message: `Session already initialized as ${existingState.agentName}`,
-          already_initialized: true,
-        },
-        null,
-        2,
+      const requestedAgent = args.agent_name;
+      const projectMismatch = existingState.projectKey !== projectPath;
+      const agentMismatch = Boolean(
+        requestedAgent && requestedAgent !== existingState.agentName,
       );
+
+      // If caller explicitly asked to reinit, clear and continue
+      if (args.force_reinit) {
+        clearSessionState(sessionID);
+        // fall through to fresh init below
+      } else {
+        return JSON.stringify(
+          {
+            agent_name: existingState.agentName,
+            project_key: existingState.projectKey,
+            message: `Session already initialized as ${existingState.agentName}`,
+            already_initialized: true,
+            session_id: sessionID,
+            project_mismatch: projectMismatch || undefined,
+            agent_mismatch: agentMismatch || undefined,
+            note:
+              projectMismatch || agentMismatch
+                ? "To switch project/agent, call swarmmail_init again with force_reinit: true (or end the session)."
+                : undefined,
+            requested:
+              requestedAgent || args.project_path
+                ? {
+                    agent_name: requestedAgent,
+                    project_key: args.project_path,
+                  }
+                : undefined,
+          },
+          null,
+          2,
+        );
+      }
     }
 
     try {

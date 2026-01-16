@@ -247,12 +247,48 @@ export async function initSwarmAgent(
     taskDescription,
     dbOverride,
   } = options;
+  // Ensure agent name is unique within the project (best-effort)
+  let uniqueName = agentName;
+  try {
+    const { getOrCreateAdapter } = await import("./store-drizzle");
+    const { toDrizzleDb } = await import("../libsql.convenience");
+    const { agentsTable } = await import("../db/schema/streams");
+    const { and, eq } = await import("drizzle-orm");
+
+    const adapter = await getOrCreateAdapter(projectPath, dbOverride);
+    const db = toDrizzleDb(adapter);
+
+    // Try up to 10 random names before falling back to suffixing
+    let attempts = 0;
+    while (attempts < 10) {
+      const exists = await db
+        .select({ id: agentsTable.id })
+        .from(agentsTable)
+        .where(
+          and(
+            eq(agentsTable.project_key, projectPath),
+            eq(agentsTable.name, uniqueName),
+          ),
+        );
+      if (exists.length === 0) break;
+      // Collision - try another adjective/noun combo
+      uniqueName = generateSwarmAgentName();
+      attempts++;
+    }
+    if (attempts >= 10) {
+      // Extremely unlikely; append a short suffix while keeping readability
+      const short = Math.random().toString(36).slice(2, 6);
+      uniqueName = `${uniqueName}${short.charAt(0).toUpperCase()}${short.slice(1, 2)}`;
+    }
+  } catch (e) {
+    // Best-effort only; if uniqueness check fails, continue with provided name
+  }
 
   // Register the agent (creates event + updates view)
   // Inline the registerAgent logic using appendEvent + createEvent
   const event = createEvent("agent_registered", {
     project_key: projectPath,
-    agent_name: agentName,
+    agent_name: uniqueName,
     program,
     model,
     task_description: taskDescription,
@@ -261,7 +297,7 @@ export async function initSwarmAgent(
 
   return {
     projectKey: projectPath,
-    agentName,
+    agentName: uniqueName,
   };
 }
 

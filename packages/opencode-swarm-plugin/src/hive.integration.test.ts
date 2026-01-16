@@ -38,11 +38,14 @@ import type { HiveAdapter } from "swarm-mail";
  * Mock tool context for execute functions
  * The real context is provided by OpenCode runtime
  */
-const mockContext = {
+const mockContext: any = {
   sessionID: "test-session-" + Date.now(),
   messageID: "test-message-" + Date.now(),
   agent: "test-agent",
   abort: new AbortController().signal,
+  // Fields expected by @opencode-ai/plugin ToolContext in some tools
+  metadata: {},
+  ask: async () => undefined,
 };
 
 /**
@@ -309,6 +312,38 @@ describe("beads integration", () => {
           mockContext,
         ),
       ).rejects.toThrow(BeadError);
+    });
+  });
+
+  describe("hive_create_epic", () => {
+    it("creates epic and subtasks that are retrievable by parent_id", async () => {
+      const result = await hive_create_epic.execute(
+        {
+          epic_title: "Validation Epic",
+          epic_description: "Ensure subtasks are retrievable",
+          subtasks: [
+            { title: "Sub 1", priority: 1 },
+            { title: "Sub 2", priority: 2 },
+            { title: "Sub 3", priority: 3 },
+          ],
+        },
+        mockContext,
+      );
+
+      const epic = parseResponse<{ success: boolean; epic: Cell; subtasks: Cell[] }>(result);
+      expect(epic.success).toBe(true);
+      expect(epic.subtasks.length).toBe(3);
+
+      // Track for cleanup
+      createdBeadIds.push(epic.epic.id);
+      for (const st of epic.subtasks) {
+        createdBeadIds.push(st.id);
+      }
+
+      // Query children via hive_cells
+      const childrenJson = await hive_cells.execute({ parent_id: epic.epic.id }, mockContext);
+      const children = parseResponse<Cell[]>(childrenJson);
+      expect(children.length).toBe(3);
     });
   });
 
@@ -2081,7 +2116,7 @@ describe("beads integration", () => {
 
         // Verify dates are actually valid by parsing
         const createdDate = new Date(cell!.created_at);
-        const updatedDate = new Date(cell!.updated_at);
+        const updatedDate = new Date(cell!.updated_at as string);
         expect(createdDate.getTime()).toBeGreaterThan(0);
         expect(updatedDate.getTime()).toBeGreaterThan(0);
       } finally {
