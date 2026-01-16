@@ -1,6 +1,6 @@
 {
   "name": "@primeinc/cross-path",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Cross-platform path normalization for consistent identifiers across Windows, WSL, and Linux",
   "type": "module",
   "main": "./dist/index.js",

@@ -41,16 +41,20 @@ jobs:
         run: bun scripts/scope-packages.ts ${{ github.repository_owner }}
 
       - name: Refresh workspace after scoping
-        run: bun install
-        # Re-run install to pick up renamed package names for workspace resolution
+        run: |
+          # Delete old lockfile - it references pre-scoped package names
+          # (e.g., "opencode-swarm-plugin" instead of "@primeinc/swarm")
+          rm bun.lock
+          # Regenerate lockfile with the new scoped package names
+          bun install
 
       - name: Build only publishable packages
         run: |
-          # Build cross-path first (no dependencies)
+          # Build cross-path first (no workspace dependencies)
           (cd packages/cross-path && bun run build)
-          # Build swarm-mail (dependency)
+          # Build swarm-mail (depends on cross-path)
           (cd packages/swarm-mail && bun run build)
-          # Build opencode-swarm-plugin
+          # Build opencode-swarm-plugin (depends on both)
           (cd packages/opencode-swarm-plugin && bun run build)
 
       - name: Publish to NPM
@@ -58,14 +62,19 @@ jobs:
         run: |
           set -euo pipefail
 
+          # Publish in dependency order:
+          # 1. cross-path (no deps)
+          # 2. swarm-mail (depends on cross-path)
+          # 3. swarm (depends on both)
           for pkg in packages/cross-path packages/swarm-mail packages/opencode-swarm-plugin; do
             echo "📦 Publishing $pkg..."
-            # Use bun publish to properly resolve workspace:* dependencies
-            # Always publish as beta - this is a fork, not the canonical release
+            # bun publish resolves workspace:* to actual versions automatically
+            # --access public required for scoped packages
+            # --tag beta marks these as beta releases (fork of upstream)
             (cd "$pkg" && bun publish --access public --tag beta) || echo "⚠️ May already exist"
           done
         env:
-          # bun publish uses NPM_CONFIG_TOKEN, not NODE_AUTH_TOKEN
+          # bun publish uses NPM_CONFIG_TOKEN (not NODE_AUTH_TOKEN)
           NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Dry run - show what would be published
@@ -73,5 +82,5 @@ jobs:
         run: |
           for pkg in packages/cross-path packages/swarm-mail packages/opencode-swarm-plugin; do
             echo "📦 Would publish $pkg:"
-            cat "$pkg/package.json" | jq '{name, version}'
+            cat "$pkg/package.json" | jq '{name, version, dependencies}'
           done
