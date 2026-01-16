@@ -1,0 +1,50 @@
+{
+  "name": "@primeinc/cross-path",
+  "version": "1.0.0",
+  "description": "Cross-platform path normalization for consistent identifiers across Windows, WSL, and Linux",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": ["dist", "README.md"],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/primeinc/swarm-tools"
+  },
+  "keywords": [
+    "path",
+    "normalize",
+    "cross-platform",
+    "wsl",
+    "windows",
+    "linux",
+    "posix"
+  ],
+  "author": "Prime Inc",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc",
+    "test": "bun test src/__tests__/*.test.ts",
+    "test:watch": "bun test --watch",
+    "test:security": "bun test src/__tests__/invariants.test.ts",
+    "typecheck": "tsc --noEmit",
+    "prepack": "bun run build && bun run test && bun run typecheck"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.3",
+    "bun-types": "^1.3.4",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
