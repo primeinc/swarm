@@ -6,7 +6,7 @@
  *
  * Reference: steveyegge/cells/internal/storage/sqlite/labels.go
  *
- * @module cells/labels
+ * @module hive/labels
  */
 
 import type { DatabaseAdapter } from "../types/database.js";

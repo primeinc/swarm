@@ -94,14 +94,14 @@ describe("SessionParser - OpenCode Swarm Format", () => {
 
 	test("preserves metadata from original event", async () => {
 		const jsonl =
-			'{"session_id":"ses_1","event_type":"DECISION","timestamp":"2025-12-26T10:00:00Z","payload":{"action":"spawn","cell_id":"bd-123"}}';
+			'{"session_id":"ses_1","event_type":"DECISION","timestamp":"2025-12-26T10:00:00Z","payload":{"action":"spawn","cell_id":"cell-123"}}';
 
 		const parser = new SessionParser("opencode-swarm");
 		const messages = await parser.parse(jsonl);
 
 		expect(messages[0].metadata).toMatchObject({
 			event_type: "DECISION",
-			payload: { action: "spawn", cell_id: "bd-123" },
+			payload: { action: "spawn", cell_id: "cell-123" },
 		});
 	});
 });

@@ -143,11 +143,11 @@ describe("Agent Mail Tools", () => {
 				toAgents: [receiver.agentName],
 				subject: "Task update",
 				body: "Progress report",
-				threadId: "bd-123",
+				threadId: "cell-123",
 			});
 
 			expect(result.success).toBe(true);
-			expect(result.threadId).toBe("bd-123");
+			expect(result.threadId).toBe("cell-123");
 		});
 
 		it("supports importance levels", async () => {
@@ -446,7 +446,7 @@ describe("Agent Mail Tools", () => {
 				projectPath: TEST_PROJECT_PATH,
 				agentName: agent.agentName,
 				paths: ["src/auth/**", "src/config.ts"],
-				reason: "bd-123: Working on auth",
+				reason: "cell-123: Working on auth",
 				dbOverride: db,
 			});
 
@@ -592,7 +592,7 @@ describe("Agent Mail Tools", () => {
 				projectPath: TEST_PROJECT_PATH,
 				agentName: agent1.agentName,
 				paths: ["src/**"],
-				reason: "bd-123: Working on src",
+				reason: "cell-123: Working on src",
 				dbOverride: db,
 			});
 
@@ -601,7 +601,7 @@ describe("Agent Mail Tools", () => {
 				projectPath: TEST_PROJECT_PATH,
 				agentName: agent2.agentName,
 				paths: ["src/file.ts"],
-				reason: "bd-124: Trying to edit file",
+				reason: "cell-124: Trying to edit file",
 				dbOverride: db,
 			});
 
@@ -640,7 +640,7 @@ describe("Agent Mail Tools", () => {
 				projectPath: TEST_PROJECT_PATH,
 				agentName: agent1.agentName,
 				paths: ["src/**"],
-				reason: "bd-123: Working on src",
+				reason: "cell-123: Working on src",
 				dbOverride: db,
 			});
 
@@ -649,7 +649,7 @@ describe("Agent Mail Tools", () => {
 				projectPath: TEST_PROJECT_PATH,
 				agentName: agent2.agentName,
 				paths: ["src/file.ts"],
-				reason: "bd-124: Emergency fix",
+				reason: "cell-124: Emergency fix",
 				force: true,
 				dbOverride: db,
 			});
@@ -683,7 +683,7 @@ describe("Agent Mail Tools", () => {
 				projectPath: TEST_PROJECT_PATH,
 				agentName: agent.agentName,
 				paths: ["src/new-file.ts"],
-				reason: "bd-125: Creating new file",
+				reason: "cell-125: Creating new file",
 				dbOverride: db,
 			});
 
@@ -761,7 +761,7 @@ describe("Agent Mail Tools", () => {
 				projectPath: TEST_PROJECT_PATH,
 				agentName: agent1.agentName,
 				paths: ["src/locked-file.ts"],
-				reason: "bd-123: First reservation",
+				reason: "cell-123: First reservation",
 				exclusive: true,
 				ttlSeconds: 3600, // Long TTL to ensure lock doesn't expire
 				dbOverride: db,
@@ -775,7 +775,7 @@ describe("Agent Mail Tools", () => {
 				projectPath: TEST_PROJECT_PATH,
 				agentName: agent2.agentName,
 				paths: ["src/locked-file.ts"],
-				reason: "bd-124: Second reservation attempt",
+				reason: "cell-124: Second reservation attempt",
 				exclusive: true,
 				dbOverride: db,
 			});

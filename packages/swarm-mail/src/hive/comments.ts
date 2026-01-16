@@ -6,7 +6,7 @@
  *
  * Reference: steveyegge/cells/internal/storage/sqlite/comments.go
  *
- * @module cells/comments
+ * @module hive/comments
  */
 
 import type { DatabaseAdapter } from "../types/database.js";

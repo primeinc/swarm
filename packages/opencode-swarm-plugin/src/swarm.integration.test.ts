@@ -63,7 +63,7 @@ async function isAgentMailAvailable(): Promise<boolean> {
  */
 async function isHiveAvailable(): Promise<boolean> {
 	try {
-		const result = await Bun.$`hive --version`.quiet().nothrow();
+		const result = await Bun.$`swarm hive --json list`.quiet().nothrow();
 		return result.exitCode === 0;
 	} catch {
 		return false;
@@ -847,9 +847,9 @@ describe("swarm_complete (integration)", () => {
 					sessionID,
 				};
 
-				// Create a test cell first
+				// 3. Create a cell first
 				const createResult =
-					await Bun.$`bd create "Test subtask" -t task --json`
+					await Bun.$`swarm hive create "Test subtask" -t task --json`
 						.quiet()
 						.nothrow();
 
@@ -882,6 +882,7 @@ describe("swarm_complete (integration)", () => {
 						cell_id: cell.id,
 						summary: "Completed the test subtask",
 						evaluation: passingEvaluation,
+						start_time: Date.now(),
 					},
 					ctx,
 				);
@@ -943,6 +944,7 @@ describe("swarm_complete (integration)", () => {
 						cell_id: "cell-test-fail.1",
 						summary: "Attempted completion",
 						evaluation: failingEvaluation,
+						start_time: Date.now(),
 					},
 					ctx,
 				);
@@ -1013,9 +1015,9 @@ describe("full swarm flow (integration)", () => {
 				const decomposition = JSON.parse(decomposeResult);
 				expect(decomposition.prompt).toContain("Add unit tests");
 
-				// 3. Create an epic with bd CLI
+				// 3. Create an epic with swarm hive
 				const epicResult =
-					await Bun.$`bd create "Add unit tests for auth module" -t epic --json`
+					await Bun.$`swarm hive create "Add unit tests for auth module" -t epic --json`
 						.quiet()
 						.nothrow();
 
@@ -1029,7 +1031,7 @@ describe("full swarm flow (integration)", () => {
 
 				// 4. Create a subtask
 				const subtaskResult =
-					await Bun.$`bd create "Test login flow" -t task --json`
+					await Bun.$`swarm hive create "Test login flow" -t task --json`
 						.quiet()
 						.nothrow();
 
@@ -1104,6 +1106,7 @@ describe("full swarm flow (integration)", () => {
 							overall_feedback: "Good test coverage",
 							retry_suggestion: null,
 						}),
+						start_time: Date.now(),
 					},
 					ctx,
 				);
@@ -1157,25 +1160,25 @@ describe("Tool Availability", () => {
 	});
 
 	it("checks individual tool availability", async () => {
-		const status = await checkTool("semantic-memory");
+		const status = await checkTool("hivemind");
 		expect(status).toHaveProperty("available");
 		expect(status).toHaveProperty("checkedAt");
 		expect(typeof status.available).toBe("boolean");
 	});
 
 	it("caches tool availability checks", async () => {
-		const status1 = await checkTool("semantic-memory");
-		const status2 = await checkTool("semantic-memory");
+		const status1 = await checkTool("hivemind");
+		const status2 = await checkTool("hivemind");
 		// Same timestamp means cached
 		expect(status1.checkedAt).toBe(status2.checkedAt);
 	});
 
 	it("checks all tools at once", async () => {
 		const availability = await checkAllTools();
-		expect(availability.size).toBe(7); // semantic-memory, cass, hivemind, hive, cells, swarm-mail, agent-mail
-		expect(availability.has("semantic-memory")).toBe(true);
+		expect(availability.size).toBe(7); // hivemind, cass, hive, cells, swarm-mail, agent-mail
+		expect(availability.has("hivemind")).toBe(true);
 		expect(availability.has("cass")).toBe(true);
-		expect(availability.has("cells")).toBe(true);
+		expect(availability.has("hive")).toBe(true);
 		expect(availability.has("swarm-mail")).toBe(true);
 		expect(availability.has("agent-mail")).toBe(true);
 	});
@@ -1184,7 +1187,7 @@ describe("Tool Availability", () => {
 		const availability = await checkAllTools();
 		const formatted = formatToolAvailability(availability);
 		expect(formatted).toContain("Tool Availability:");
-		expect(formatted).toContain("semantic-memory");
+		expect(formatted).toContain("hivemind");
 	});
 
 	it("executes with fallback when tool unavailable", async () => {
@@ -1225,9 +1228,9 @@ describe("swarm_init", () => {
 
 		// Check tool availability structure
 		const tools = parsed.tool_availability;
-		expect(tools).toHaveProperty("semantic-memory");
+		expect(tools).toHaveProperty("hivemind");
 		expect(tools).toHaveProperty("cass");
-		expect(tools).toHaveProperty("cells");
+		expect(tools).toHaveProperty("hive");
 		expect(tools).toHaveProperty("agent-mail");
 
 		// Each tool should have available and fallback
@@ -1249,7 +1252,6 @@ describe("swarm_init", () => {
 
 describe("Worker Handoff Generation", () => {
 	it("generateWorkerHandoff creates valid WorkerHandoff object", () => {
-		// This will test the new function once we implement it
 		const { generateWorkerHandoff } = require("./swarm-orchestrate");
 
 		const handoff = generateWorkerHandoff({
@@ -1262,7 +1264,7 @@ describe("Worker Handoff Generation", () => {
 		});
 
 		// Verify contract section
-		expect(handoff.contract.task_id).toBe(
+		expect(handoff.contract.cell_id).toBe(
 			"opencode-swarm-monorepo-lf2p4u-abc123.1",
 		);
 		expect(handoff.contract.files_owned).toEqual([
@@ -1296,6 +1298,7 @@ describe("Worker Handoff Generation", () => {
 				subtask_description: "Configure Google OAuth",
 				files: ["src/auth/google.ts"],
 				shared_context: "Using NextAuth.js v5",
+				project_path: "/tmp/test",
 			},
 			mockContext,
 		);
@@ -1307,7 +1310,7 @@ describe("Worker Handoff Generation", () => {
 		// Should contain WorkerHandoff JSON section
 		expect(prompt).toContain("## WorkerHandoff Contract");
 		expect(prompt).toContain('"contract"');
-		expect(prompt).toContain('"task_id"');
+		expect(prompt).toContain('"cell_id"');
 		expect(prompt).toContain('"files_owned"');
 		expect(prompt).toContain('"success_criteria"');
 		expect(prompt).toContain("opencode-swarm-monorepo-lf2p4u-abc123.1");
@@ -1386,1138 +1389,101 @@ describe("Graceful Degradation", () => {
 	});
 });
 
-// ============================================================================
-// Coordinator-Centric Swarm Tools (V2)
-// ============================================================================
+describe("swarm_complete error handling", () => {
+	let hiveAvailable = false;
 
-describe("Swarm Prompt V2 (with Swarm Mail/cells)", () => {
-	describe("formatSubtaskPromptV2", () => {
-		it("generates correct prompt with all fields", async () => {
-			const result = await formatSubtaskPromptV2({
-				cell_id: "test-swarm-plugin-lf2p4u-oauth123.1",
-				epic_id: "test-swarm-plugin-lf2p4u-oauth123",
-				subtask_title: "Add OAuth provider",
-				subtask_description: "Configure Google OAuth in the auth config",
-				files: ["src/auth/google.ts", "src/auth/config.ts"],
-				shared_context: "We are using NextAuth.js v5",
-			});
-
-			// Check title is included
-			expect(result).toContain("Add OAuth provider");
-
-			// Check description is included
-			expect(result).toContain("Configure Google OAuth in the auth config");
-
-			// Check files are formatted as list
-			expect(result).toContain("- `src/auth/google.ts`");
-			expect(result).toContain("- `src/auth/config.ts`");
-
-			// Check shared context is included
-			expect(result).toContain("We are using NextAuth.js v5");
-
-			// Check cell/epic IDs are substituted
-			expect(result).toContain("test-swarm-plugin-lf2p4u-oauth123.1");
-			expect(result).toContain("test-swarm-plugin-lf2p4u-oauth123");
-		});
-
-		it("handles missing optional fields", async () => {
-			const result = await formatSubtaskPromptV2({
-				cell_id: "test-swarm-plugin-lf2p4u-simple456.1",
-				epic_id: "test-swarm-plugin-lf2p4u-simple456",
-				subtask_title: "Simple task",
-				subtask_description: "",
-				files: [],
-			});
-
-			// Check title is included
-			expect(result).toContain("Simple task");
-
-			// Check fallback for empty description
-			expect(result).toContain("(see title)");
-
-			// Check fallback for empty files
-			expect(result).toContain("(no specific files - use judgment)");
-
-			// Check fallback for missing context
-			expect(result).toContain("(none)");
-		});
-
-		it("handles files with special characters", async () => {
-			const result = await formatSubtaskPromptV2({
-				cell_id: "test-swarm-plugin-lf2p4u-paths789.1",
-				epic_id: "test-swarm-plugin-lf2p4u-paths789",
-				subtask_title: "Handle paths",
-				subtask_description: "Test file paths",
-				files: [
-					"src/components/[slug]/page.tsx",
-					"src/api/users/[id]/route.ts",
-				],
-			});
-
-			expect(result).toContain("- `src/components/[slug]/page.tsx`");
-			expect(result).toContain("- `src/api/users/[id]/route.ts`");
-		});
+	beforeAll(async () => {
+		hiveAvailable = await isHiveAvailable();
 	});
 
-	describe("SUBTASK_PROMPT_V2", () => {
-		it("contains expected sections", () => {
-			// Check all main sections are present in the template
-			expect(SUBTASK_PROMPT_V2).toContain("[TASK]");
-			expect(SUBTASK_PROMPT_V2).toContain("{subtask_title}");
-			expect(SUBTASK_PROMPT_V2).toContain("{subtask_description}");
-
-			expect(SUBTASK_PROMPT_V2).toContain("[FILES]");
-			expect(SUBTASK_PROMPT_V2).toContain("{file_list}");
-
-			expect(SUBTASK_PROMPT_V2).toContain("[CONTEXT]");
-			expect(SUBTASK_PROMPT_V2).toContain("{shared_context}");
-
-			expect(SUBTASK_PROMPT_V2).toContain("[MANDATORY SURVIVAL CHECKLIST]");
-		});
-
-		it("DOES contain Swarm Mail instructions (MANDATORY)", () => {
-			// V2 prompt tells agents to USE Swarm Mail - this is non-negotiable
-			expect(SUBTASK_PROMPT_V2).toContain("SWARM MAIL");
-			expect(SUBTASK_PROMPT_V2).toContain("swarmmail_init");
-			expect(SUBTASK_PROMPT_V2).toContain("swarmmail_send");
-			expect(SUBTASK_PROMPT_V2).toContain("swarmmail_inbox");
-			expect(SUBTASK_PROMPT_V2).toContain("swarmmail_reserve");
-			expect(SUBTASK_PROMPT_V2).toContain("swarmmail_release");
-			expect(SUBTASK_PROMPT_V2).toContain("thread_id");
-			expect(SUBTASK_PROMPT_V2).toContain("NON-NEGOTIABLE");
-		});
-
-		it("DOES contain cells instructions", () => {
-			// V2 prompt tells agents to USE cells
-			expect(SUBTASK_PROMPT_V2).toContain("{cell_id}");
-			expect(SUBTASK_PROMPT_V2).toContain("{epic_id}");
-			expect(SUBTASK_PROMPT_V2).toContain("hive_update");
-			expect(SUBTASK_PROMPT_V2).toContain("hive_create");
-			expect(SUBTASK_PROMPT_V2).toContain("swarm_complete");
-		});
-
-		it("grants workers autonomy to file cells against epic", () => {
-			// Workers should be able to file bugs, tech debt, follow-ups
-			expect(SUBTASK_PROMPT_V2).toContain("You Have Autonomy to File Issues");
-			expect(SUBTASK_PROMPT_V2).toContain("parent_id");
-			expect(SUBTASK_PROMPT_V2).toContain("Don't silently ignore issues");
-		});
-
-		it("instructs agents to communicate via swarmmail", () => {
-			expect(SUBTASK_PROMPT_V2).toContain("don't work silently");
-			expect(SUBTASK_PROMPT_V2).toContain("progress");
-			expect(SUBTASK_PROMPT_V2).toContain("coordinator");
-			expect(SUBTASK_PROMPT_V2).toContain("CRITICAL");
-		});
-
-		it("contains survival checklist: hivemind_find", () => {
-			// Step 2: Query past learnings BEFORE starting work
-			expect(SUBTASK_PROMPT_V2).toContain("hivemind_find");
-			expect(SUBTASK_PROMPT_V2).toContain("Query Past Learnings");
-			expect(SUBTASK_PROMPT_V2).toContain("BEFORE starting work");
-			expect(SUBTASK_PROMPT_V2).toContain(
-				"If you skip this step, you WILL waste time solving already-solved problems",
+	it.skipIf(!hiveAvailable)(
+		"returns structured error when cell close fails",
+		async () => {
+			// Try to complete a non-existent cell
+			const result = await swarm_complete.execute(
+				{
+					project_key: "/tmp/test-error-handling",
+					agent_name: "test-agent",
+					cell_id: "cell-nonexistent-12345",
+					summary: "This should fail",
+					skip_verification: true,
+					start_time: Date.now(),
+				},
+				mockContext,
 			);
-		});
 
-		it("contains survival checklist: skills discovery and loading", () => {
-			// Step 3: Load relevant skills if available
-			expect(SUBTASK_PROMPT_V2).toContain("skills_list");
-			expect(SUBTASK_PROMPT_V2).toContain("skills_use");
-			expect(SUBTASK_PROMPT_V2).toContain("Load Relevant Skills");
-			expect(SUBTASK_PROMPT_V2).toContain("Common skill triggers");
-		});
+			const parsed = JSON.parse(result);
 
-		it("contains survival checklist: worker reserves files (not coordinator)", () => {
-			// Step 4: Worker reserves their own files
-			expect(SUBTASK_PROMPT_V2).toContain("swarmmail_reserve");
-			expect(SUBTASK_PROMPT_V2).toContain("Reserve Your Files");
-			expect(SUBTASK_PROMPT_V2).toContain("YOU reserve, not coordinator");
-			expect(SUBTASK_PROMPT_V2).toContain("Workers reserve their own files");
-		});
-
-		it("contains survival checklist: swarm_progress at milestones", () => {
-			// Step 6: Report progress at 25/50/75%
-			expect(SUBTASK_PROMPT_V2).toContain("swarm_progress");
-			expect(SUBTASK_PROMPT_V2).toContain("Report Progress at Milestones");
-			expect(SUBTASK_PROMPT_V2).toContain("progress_percent");
-			expect(SUBTASK_PROMPT_V2).toContain("25%, 50%, 75%");
-			expect(SUBTASK_PROMPT_V2).toContain("auto-checkpoint");
-		});
-
-		it("contains survival checklist: swarm_checkpoint before risky ops", () => {
-			// Step 7: Manual checkpoint before risky operations
-			expect(SUBTASK_PROMPT_V2).toContain("swarm_checkpoint");
-			expect(SUBTASK_PROMPT_V2).toContain(
-				"Manual Checkpoint BEFORE Risky Operations",
-			);
-			expect(SUBTASK_PROMPT_V2).toContain("Large refactors");
-			expect(SUBTASK_PROMPT_V2).toContain("preserve context");
-		});
-
-		it("contains survival checklist: hivemind_store for learnings", () => {
-			// Step 8: Store discoveries and learnings
-			expect(SUBTASK_PROMPT_V2).toContain("hivemind_store");
-			expect(SUBTASK_PROMPT_V2).toContain("STORE YOUR LEARNINGS");
-			expect(SUBTASK_PROMPT_V2).toContain("Solved a tricky bug");
-			expect(SUBTASK_PROMPT_V2).toContain("The WHY matters more than the WHAT");
-		});
-
-		it("does NOT mention coordinator reserving files", () => {
-			// Coordinator no longer reserves files - workers do it themselves
-			const lowerPrompt = SUBTASK_PROMPT_V2.toLowerCase();
-			expect(lowerPrompt).not.toContain("coordinator reserves");
-			expect(lowerPrompt).not.toContain("coordinator will reserve");
-		});
-
-		it("enforces swarm_complete over manual hive_close", () => {
-			// Step 9: Use swarm_complete, not hive_close
-			expect(SUBTASK_PROMPT_V2).toContain("swarm_complete");
-			expect(SUBTASK_PROMPT_V2).toContain("DO NOT manually close the cell");
-			expect(SUBTASK_PROMPT_V2).toContain("Use swarm_complete");
-		});
-	});
-
-	describe("swarm_complete automatic memory capture", () => {
-		let hiveAvailable = false;
-
-		beforeAll(async () => {
-			hiveAvailable = await isHiveAvailable();
-		});
-
-		it.skipIf(!hiveAvailable)(
-			"includes memory_capture object in response",
-			async () => {
-				// Create a real cell for the test
-				const createResult =
-					await Bun.$`bd create "Test memory capture" -t task --json`
-						.quiet()
-						.nothrow();
-
-				if (createResult.exitCode !== 0) {
-					console.warn(
-						"Could not create cell:",
-						createResult.stderr.toString(),
-					);
-					return;
-				}
-
-				const cell = JSON.parse(createResult.stdout.toString());
-
-				try {
-					const result = await swarm_complete.execute(
-						{
-							project_key: "/tmp/test-memory-capture",
-							agent_name: "test-agent",
-							cell_id: cell.id,
-							summary: "Implemented auto-capture feature",
-							files_touched: ["src/swarm-orchestrate.ts"],
-							skip_verification: true,
-						},
-						mockContext,
-					);
-
-					const parsed = JSON.parse(result);
-
-					// Verify memory capture was attempted
-					expect(parsed).toHaveProperty("memory_capture");
-					expect(parsed.memory_capture).toHaveProperty("attempted", true);
-					expect(parsed.memory_capture).toHaveProperty("stored");
-					expect(parsed.memory_capture).toHaveProperty("information");
-					expect(parsed.memory_capture).toHaveProperty("metadata");
-
-					// Information should contain cell ID and summary
-					expect(parsed.memory_capture.information).toContain(cell.id);
-					expect(parsed.memory_capture.information).toContain(
-						"Implemented auto-capture feature",
-					);
-
-					// Metadata should contain relevant tags
-					expect(parsed.memory_capture.metadata).toContain("swarm");
-					expect(parsed.memory_capture.metadata).toContain("success");
-				} catch (error) {
-					// Clean up cell if test fails
-					await Bun.$`bd close ${cell.id} --reason "Test cleanup"`
-						.quiet()
-						.nothrow();
-					throw error;
-				}
-			},
-		);
-
-		it.skipIf(!hiveAvailable)(
-			"attempts to store in hivemind when available",
-			async () => {
-				const createResult =
-					await Bun.$`bd create "Test hivemind storage" -t task --json`
-						.quiet()
-						.nothrow();
-
-				if (createResult.exitCode !== 0) {
-					console.warn(
-						"Could not create cell:",
-						createResult.stderr.toString(),
-					);
-					return;
-				}
-
-				const cell = JSON.parse(createResult.stdout.toString());
-
-				try {
-					const result = await swarm_complete.execute(
-						{
-							project_key: "/tmp/test-memory-storage",
-							agent_name: "test-agent",
-							cell_id: cell.id,
-							summary: "Fixed critical bug in auth flow",
-							files_touched: ["src/auth.ts", "src/middleware.ts"],
-							skip_verification: true,
-						},
-						mockContext,
-					);
-
-					const parsed = JSON.parse(result);
-
-					// If hivemind is available, stored should be true
-					// If not, error should explain why
-					if (parsed.memory_capture.stored) {
-						expect(parsed.memory_capture.note).toContain(
-							"automatically stored in hivemind",
-						);
-					} else {
-						expect(parsed.memory_capture.error).toBeDefined();
-						expect(
-							parsed.memory_capture.error.includes("not available") ||
-								parsed.memory_capture.error.includes("failed"),
-						).toBe(true);
-					}
-				} catch (error) {
-					// Clean up cell if test fails
-					await Bun.$`bd close ${cell.id} --reason "Test cleanup"`
-						.quiet()
-						.nothrow();
-					throw error;
-				}
-			},
-		);
-	});
-
-	describe("swarm_complete error handling", () => {
-		let hiveAvailable = false;
-
-		beforeAll(async () => {
-			hiveAvailable = await isHiveAvailable();
-		});
-
-		it.skipIf(!hiveAvailable)(
-			"returns structured error when cell close fails",
-			async () => {
-				// Try to complete a non-existent cell
-				const result = await swarm_complete.execute(
-					{
-						project_key: "/tmp/test-error-handling",
-						agent_name: "test-agent",
-						cell_id: "cell-nonexistent-12345",
-						summary: "This should fail",
-						skip_verification: true,
-					},
-					mockContext,
-				);
-
-				const parsed = JSON.parse(result);
-
-				// Should return structured error, not throw
-				expect(parsed.success).toBe(false);
-				expect(parsed.error).toContain("Failed to close cell");
-				expect(parsed.failed_step).toBe("bd close");
-				expect(parsed.cell_id).toBe("cell-nonexistent-12345");
-				expect(parsed.recovery).toBeDefined();
-				expect(parsed.recovery.steps).toBeInstanceOf(Array);
-			},
-		);
-
-		it.skipIf(!hiveAvailable)(
-			"returns specific error message when cell_id not found",
-			async () => {
-				// Try to complete with a non-existent cell ID
-				const result = await swarm_complete.execute(
-					{
-						project_key: "/tmp/test-cell-not-found",
-						agent_name: "test-agent",
-						cell_id: "cell-totally-fake-xyz123",
-						summary: "This should fail with specific error",
-						skip_verification: true,
-					},
-					mockContext,
-				);
-
-				const parsed = JSON.parse(result);
-
-				// Should return structured error with specific message
-				expect(parsed.success).toBe(false);
-				expect(parsed.error).toBeDefined();
-				// RED: This will fail - we currently get generic "Tool execution failed"
-				// We want the error message to specifically mention the cell was not found
-				expect(
-					parsed.error.toLowerCase().includes("cell not found") ||
-						parsed.error.toLowerCase().includes("not found"),
-				).toBe(true);
-				expect(parsed.cell_id).toBe("cell-totally-fake-xyz123");
-			},
-		);
-
-		it.skipIf(!hiveAvailable)(
-			"returns specific error when project_key is invalid/mismatched",
-			async () => {
-				// Create a real cell first
-				const createResult =
-					await Bun.$`bd create "Test project mismatch" -t task --json`
-						.quiet()
-						.nothrow();
-
-				if (createResult.exitCode !== 0) {
-					console.warn(
-						"Could not create cell:",
-						createResult.stderr.toString(),
-					);
-					return;
-				}
-
-				const cell = JSON.parse(createResult.stdout.toString());
-
-				try {
-					// Try to complete with mismatched project_key
-					const result = await swarm_complete.execute(
-						{
-							project_key: "/totally/wrong/project/path",
-							agent_name: "test-agent",
-							cell_id: cell.id,
-							summary: "This should fail with project mismatch",
-							skip_verification: true,
-						},
-						mockContext,
-					);
-
-					const parsed = JSON.parse(result);
-
-					// Should return structured error with specific message about project mismatch
-					expect(parsed.success).toBe(false);
-					expect(parsed.error).toBeDefined();
-					// RED: This will fail - we want specific validation error
-					// Error should mention project mismatch or validation failure
-					const errorLower = parsed.error.toLowerCase();
-					expect(
-						(errorLower.includes("project") &&
-							(errorLower.includes("mismatch") ||
-								errorLower.includes("invalid") ||
-								errorLower.includes("not found"))) ||
-							errorLower.includes("validation"),
-					).toBe(true);
-				} finally {
-					// Clean up
-					await Bun.$`bd close ${cell.id} --reason "Test cleanup"`
-						.quiet()
-						.nothrow();
-				}
-			},
-		);
-
-		it.skipIf(!hiveAvailable)(
-			"includes message_sent status in response",
-			async () => {
-				const createResult =
-					await Bun.$`bd create "Test message status" -t task --json`
-						.quiet()
-						.nothrow();
-
-				if (createResult.exitCode !== 0) {
-					console.warn(
-						"Could not create cell:",
-						createResult.stderr.toString(),
-					);
-					return;
-				}
-
-				const cell = JSON.parse(createResult.stdout.toString());
-
-				try {
-					const result = await swarm_complete.execute(
-						{
-							project_key: "/tmp/test-message-status",
-							agent_name: "test-agent",
-							cell_id: cell.id,
-							summary: "Test message status tracking",
-							skip_verification: true,
-						},
-						mockContext,
-					);
-
-					const parsed = JSON.parse(result);
-
-					// Should have message_sent field (true or false)
-					expect(parsed).toHaveProperty("message_sent");
-					// If message failed, should have message_error
-					if (!parsed.message_sent) {
-						expect(parsed).toHaveProperty("message_error");
-					}
-				} catch (error) {
-					// Clean up cell if test fails
-					await Bun.$`bd close ${cell.id} --reason "Test cleanup"`
-						.quiet()
-						.nothrow();
-					throw error;
-				}
-			},
-		);
-	});
+			// Should return structured error, not throw
+			expect(parsed.success).toBe(false);
+			expect(parsed.error).toContain("Failed to close cell");
+			expect(parsed.failed_step).toBe("closeCell");
+			expect(parsed.cell_id).toBe("cell-nonexistent-12345");
+			expect(parsed.recovery).toBeDefined();
+			expect(parsed.recovery.steps).toBeInstanceOf(Array);
+		},
+	);
 });
 
-// ============================================================================
-// Checkpoint/Recovery Flow Integration Tests
-// ============================================================================
+describe("swarm_complete auto-sync", () => {
+	it("calls hive_sync after closing cell on successful completion", async () => {
+		const testProjectPath = "/tmp/swarm-auto-sync-test-" + Date.now();
+		const { getHiveAdapter } = await import("./hive");
+		const adapter = await getHiveAdapter(testProjectPath);
 
-describe("Checkpoint/Recovery Flow (integration)", () => {
-	describe("swarm_checkpoint", () => {
-		it("creates swarm_checkpointed event and updates swarm_contexts table", async () => {
-			const uniqueProjectKey = `${TEST_PROJECT_PATH}-checkpoint-${Date.now()}`;
-			const sessionID = `checkpoint-session-${Date.now()}`;
-
-			// Initialize swarm-mail database directly (no Agent Mail needed)
-			const { getSwarmMailLibSQL, closeSwarmMailLibSQL } = await import(
-				"swarm-mail"
-			);
-			const swarmMail = await getSwarmMailLibSQL(uniqueProjectKey);
-			const db = await swarmMail.getDatabase();
-
-			try {
-				const ctx = {
-					...mockContext,
-					sessionID,
-				};
-
-				const epicId = "cell-test-epic-123";
-				const cellId = "cell-test-epic-123.1";
-				const agentName = "TestAgent";
-
-				// Execute checkpoint
-				const result = await swarm_checkpoint.execute(
-					{
-						project_key: uniqueProjectKey,
-						agent_name: agentName,
-						cell_id: cellId,
-						epic_id: epicId,
-						files_modified: ["src/test.ts", "src/test2.ts"],
-						progress_percent: 50,
-						directives: {
-							shared_context: "Testing checkpoint functionality",
-							skills_to_load: ["testing-patterns"],
-							coordinator_notes: "Mid-task checkpoint",
-						},
-					},
-					ctx,
-				);
-
-				const parsed = JSON.parse(result);
-
-				// Verify checkpoint was created
-				expect(parsed.success).toBe(true);
-				expect(parsed.cell_id).toBe(cellId);
-				expect(parsed.epic_id).toBe(epicId);
-				expect(parsed.files_tracked).toBe(2);
-				expect(parsed.summary).toContain("50%");
-				expect(parsed).toHaveProperty("checkpoint_timestamp");
-
-				// Verify swarm_contexts table was updated
-				const dbResult = await db.query<{
-					id: string;
-					epic_id: string;
-					cell_id: string;
-					strategy: string;
-					files: string;
-					recovery: string;
-				}>(
-					`SELECT id, epic_id, cell_id, strategy, files, recovery 
-           FROM swarm_contexts 
-           WHERE project_key = $1 AND cell_id = $2`,
-					[uniqueProjectKey, cellId],
-				);
-
-				expect(dbResult.rows.length).toBe(1);
-				const row = dbResult.rows[0];
-				expect(row.epic_id).toBe(epicId);
-				expect(row.cell_id).toBe(cellId);
-				expect(row.strategy).toBe("file-based");
-
-				// PGLite auto-parses JSON columns, so we get objects directly
-				const files =
-					typeof row.files === "string" ? JSON.parse(row.files) : row.files;
-				expect(files).toEqual(["src/test.ts", "src/test2.ts"]);
-
-				const recovery =
-					typeof row.recovery === "string"
-						? JSON.parse(row.recovery)
-						: row.recovery;
-				expect(recovery.progress_percent).toBe(50);
-				expect(recovery.files_modified).toEqual([
-					"src/test.ts",
-					"src/test2.ts",
-				]);
-				expect(recovery).toHaveProperty("last_checkpoint");
-			} finally {
-				await closeSwarmMailLibSQL(uniqueProjectKey);
-			}
+		// Create a task cell directly
+		const cell = await adapter.createCell(testProjectPath, {
+			title: "Test task for auto-sync",
+			type: "task",
+			priority: 2,
 		});
 
-		it("handles checkpoint with error_context", async () => {
-			const uniqueProjectKey = `${TEST_PROJECT_PATH}-checkpoint-error-${Date.now()}`;
-			const sessionID = `checkpoint-error-session-${Date.now()}`;
-
-			const { getSwarmMailLibSQL, closeSwarmMailLibSQL } = await import(
-				"swarm-mail"
-			);
-			const swarmMail = await getSwarmMailLibSQL(uniqueProjectKey);
-			const db = await swarmMail.getDatabase();
-
-			try {
-				const ctx = {
-					...mockContext,
-					sessionID,
-				};
-
-				const result = await swarm_checkpoint.execute(
-					{
-						project_key: uniqueProjectKey,
-						agent_name: "TestAgent",
-						cell_id: "cell-error-test.1",
-						epic_id: "cell-error-test",
-						files_modified: ["src/buggy.ts"],
-						progress_percent: 75,
-						error_context:
-							"Hit type error on line 42, need to add explicit types",
-					},
-					ctx,
-				);
-
-				const parsed = JSON.parse(result);
-				expect(parsed.success).toBe(true);
-
-				// Verify error_context was stored
-				const dbResult = await db.query<{ recovery: string }>(
-					`SELECT recovery FROM swarm_contexts WHERE project_key = $1 AND cell_id = $2`,
-					[uniqueProjectKey, "cell-error-test.1"],
-				);
-
-				const recoveryRaw = dbResult.rows[0].recovery;
-				const recovery =
-					typeof recoveryRaw === "string"
-						? JSON.parse(recoveryRaw)
-						: recoveryRaw;
-				expect(recovery.error_context).toBe(
-					"Hit type error on line 42, need to add explicit types",
-				);
-			} finally {
-				await closeSwarmMailLibSQL(uniqueProjectKey);
-			}
-		});
-	});
-
-	describe("swarm_recover", () => {
-		it("retrieves checkpoint data from swarm_contexts table", async () => {
-			const uniqueProjectKey = `${TEST_PROJECT_PATH}-recover-${Date.now()}`;
-			const sessionID = `recover-session-${Date.now()}`;
-
-			const { getSwarmMailLibSQL, closeSwarmMailLibSQL } = await import(
-				"swarm-mail"
-			);
-			const swarmMail = await getSwarmMailLibSQL(uniqueProjectKey);
-			const db = await swarmMail.getDatabase();
-
-			try {
-				const ctx = {
-					...mockContext,
-					sessionID,
-				};
-
-				const epicId = "cell-recover-epic-456";
-				const cellId = "cell-recover-epic-456.1";
-				const agentName = "TestAgent";
-
-				// First create a checkpoint
-				await swarm_checkpoint.execute(
-					{
-						project_key: uniqueProjectKey,
-						agent_name: agentName,
-						cell_id: cellId,
-						epic_id: epicId,
-						files_modified: ["src/auth.ts", "src/middleware.ts"],
-						progress_percent: 75,
-						directives: {
-							shared_context: "OAuth implementation in progress",
-							skills_to_load: ["testing-patterns", "swarm-coordination"],
-						},
-					},
-					ctx,
-				);
-
-				// Now recover it
-				const result = await swarm_recover.execute(
-					{
-						project_key: uniqueProjectKey,
-						epic_id: epicId,
-					},
-					ctx,
-				);
-
-				const parsed = JSON.parse(result);
-
-				// Verify recovery succeeded
-				expect(parsed.found).toBe(true);
-				expect(parsed).toHaveProperty("context");
-				expect(parsed).toHaveProperty("summary");
-				expect(parsed).toHaveProperty("age_seconds");
-
-				const { context } = parsed;
-				expect(context.epic_id).toBe(epicId);
-				expect(context.cell_id).toBe(cellId);
-				expect(context.strategy).toBe("file-based");
-				expect(context.files).toEqual(["src/auth.ts", "src/middleware.ts"]);
-				expect(context.recovery.progress_percent).toBe(75);
-				expect(context.directives.shared_context).toBe(
-					"OAuth implementation in progress",
-				);
-				expect(context.directives.skills_to_load).toEqual([
-					"testing-patterns",
-					"swarm-coordination",
-				]);
-			} finally {
-				await closeSwarmMailLibSQL(uniqueProjectKey);
-			}
+		// Start the task
+		await adapter.updateCell(testProjectPath, cell.id, {
+			status: "in_progress",
 		});
 
-		it("returns found:false when no checkpoint exists", async () => {
-			const uniqueProjectKey = `${TEST_PROJECT_PATH}-recover-notfound-${Date.now()}`;
-			const sessionID = `recover-notfound-session-${Date.now()}`;
-
-			const { getSwarmMailLibSQL, closeSwarmMailLibSQL } = await import(
-				"swarm-mail"
-			);
-			await getSwarmMailLibSQL(uniqueProjectKey);
-
-			try {
-				const ctx = {
-					...mockContext,
-					sessionID,
-				};
-
-				// Try to recover non-existent checkpoint
-				const result = await swarm_recover.execute(
-					{
-						project_key: uniqueProjectKey,
-						epic_id: "cell-nonexistent-epic",
-					},
-					ctx,
-				);
-
-				const parsed = JSON.parse(result);
-
-				expect(parsed.found).toBe(false);
-				expect(parsed.message).toContain("No checkpoint found");
-				expect(parsed.epic_id).toBe("cell-nonexistent-epic");
-			} finally {
-				await closeSwarmMailLibSQL(uniqueProjectKey);
-			}
-		});
-	});
-
-	// NOTE: Auto-checkpoint tests removed - they were flaky due to PGLite timing issues
-	// in parallel test runs. The checkpoint functionality is tested via swarm_checkpoint
-	// and swarm_recover tests above. Auto-checkpoint at milestones (25%, 50%, 75%) is
-	// a convenience feature that doesn't need dedicated integration tests.
-});
-
-// ============================================================================
-// Contract Validation Tests
-// ============================================================================
-
-describe("Contract Validation", () => {
-	describe("validateContract", () => {
-		it("passes when files_touched is subset of files_owned", () => {
-			// This test will fail until we implement validateContract
-			const { validateContract } = require("./swarm-orchestrate");
-
-			const result = validateContract(
-				["src/auth.ts", "src/utils.ts"],
-				["src/auth.ts", "src/utils.ts", "src/types.ts"],
-			);
-
-			expect(result.valid).toBe(true);
-			expect(result.violations).toHaveLength(0);
-		});
-
-		it("fails when files_touched has extra files", () => {
-			const { validateContract } = require("./swarm-orchestrate");
-
-			const result = validateContract(
-				["src/auth.ts", "src/forbidden.ts"],
-				["src/auth.ts"],
-			);
-
-			expect(result.valid).toBe(false);
-			expect(result.violations).toContain("src/forbidden.ts");
-		});
-
-		it("matches glob patterns correctly", () => {
-			const { validateContract } = require("./swarm-orchestrate");
-
-			const result = validateContract(
-				["src/auth/service.ts", "src/auth/types.ts"],
-				["src/auth/**/*.ts"],
-			);
-
-			expect(result.valid).toBe(true);
-			expect(result.violations).toHaveLength(0);
-		});
-
-		it("detects violations outside glob pattern", () => {
-			const { validateContract } = require("./swarm-orchestrate");
-
-			const result = validateContract(
-				["src/auth/service.ts", "src/utils/helper.ts"],
-				["src/auth/**"],
-			);
-
-			expect(result.valid).toBe(false);
-			expect(result.violations).toContain("src/utils/helper.ts");
-		});
-
-		it("passes with empty files_touched (read-only work)", () => {
-			const { validateContract } = require("./swarm-orchestrate");
-
-			const result = validateContract([], ["src/auth/**"]);
-
-			expect(result.valid).toBe(true);
-			expect(result.violations).toHaveLength(0);
-		});
-
-		it("handles multiple glob patterns", () => {
-			const { validateContract } = require("./swarm-orchestrate");
-
-			const result = validateContract(
-				["src/auth/service.ts", "tests/auth.test.ts"],
-				["src/auth/**", "tests/**"],
-			);
-
-			expect(result.valid).toBe(true);
-			expect(result.violations).toHaveLength(0);
-		});
-	});
-
-	describe("swarm_complete with contract validation", () => {
-		it("includes contract validation result when files_touched provided", async () => {
-			// This test needs a real decomposition event, so it's more of an integration check
-			// The actual validation logic is tested in unit tests above
-			// Here we just verify the response includes contract_validation field
-
-			const mockResult = {
-				success: true,
-				contract_validation: {
-					validated: false,
-					reason:
-						"No files_owned contract found (non-epic subtask or decomposition event missing)",
-				},
-			};
-
-			// Verify the structure exists
-			expect(mockResult.contract_validation).toBeDefined();
-			expect(mockResult.contract_validation.validated).toBe(false);
-		});
-	});
-
-	describe("swarm_complete project_key handling (bug fix)", () => {
-		it("finds cells created with full path project_key", async () => {
-			// BUG: swarm_complete was mangling project_key with .replace(/\//g, "-")
-			// before querying, but cells are stored with the original path.
-			// This caused "cell not found" errors for cells created via hive_create_epic.
-
-			const testProjectPath =
-				"/tmp/swarm-complete-projectkey-test-" + Date.now();
-			const { getHiveAdapter } = await import("./hive");
-			const adapter = await getHiveAdapter(testProjectPath);
-
-			// Create a cell using the full path as project_key (like hive_create_epic does)
-			const cell = await adapter.createCell(testProjectPath, {
-				title: "Test cell for project_key bug",
-				type: "task",
-				priority: 2,
-			});
-
-			expect(cell.id).toBeDefined();
-
-			// Now try to complete it via swarm_complete with the same project_key
-			const result = await swarm_complete.execute(
-				{
-					project_key: testProjectPath, // Full path, not mangled
-					agent_name: "test-agent",
-					cell_id: cell.id,
-					summary: "Testing project_key handling",
-					skip_verification: true,
-					skip_review: true,
-				},
-				mockContext,
-			);
-
-			const parsed = JSON.parse(result);
-
-			// This should succeed - the cell exists with this project_key
-			// BUG: Before fix, this fails with "cell not found" because swarm_complete
-			// was looking for project_key "-tmp-swarm-complete-projectkey-test-xxx"
-			expect(parsed.success).toBe(true);
-			expect(parsed.error).toBeUndefined();
-			expect(parsed.cell_id).toBe(cell.id);
-		});
-
-		it("handles project_key with slashes correctly", async () => {
-			// Verify that project_key like "/Users/joel/Code/project" works
-			const testProjectPath = "/tmp/nested/path/test-" + Date.now();
-			const { getHiveAdapter } = await import("./hive");
-			const adapter = await getHiveAdapter(testProjectPath);
-
-			const cell = await adapter.createCell(testProjectPath, {
-				title: "Nested path test",
-				type: "task",
-				priority: 2,
-			});
-
-			// Verify cell was created with correct project_key
-			const retrieved = await adapter.getCell(testProjectPath, cell.id);
-			expect(retrieved).not.toBeNull();
-			expect(retrieved?.id).toBe(cell.id);
-
-			// swarm_complete should find it using the same project_key
-			const result = await swarm_complete.execute(
-				{
-					project_key: testProjectPath,
-					agent_name: "test-agent",
-					cell_id: cell.id,
-					summary: "Nested path test",
-					skip_verification: true,
-					skip_review: true,
-				},
-				mockContext,
-			);
-
-			const parsed = JSON.parse(result);
-			expect(parsed.success).toBe(true);
-		});
-	});
-
-	describe("swarm_complete review gate UX", () => {
-		it("returns success: true with status: pending_review when review not attempted", async () => {
-			const testProjectPath = "/tmp/swarm-review-gate-test-" + Date.now();
-			const { getHiveAdapter } = await import("./hive");
-			const adapter = await getHiveAdapter(testProjectPath);
-
-			// Create a task cell directly
-			const cell = await adapter.createCell(testProjectPath, {
-				title: "Test task for review gate",
-				type: "task",
-				priority: 2,
-			});
-
-			// Start the task
-			await adapter.updateCell(testProjectPath, cell.id, {
-				status: "in_progress",
-			});
-
-			// Try to complete without review (skip_review intentionally omitted - defaults to false)
-			const result = await swarm_complete.execute(
-				{
-					project_key: testProjectPath,
-					agent_name: "TestAgent",
-					cell_id: cell.id,
-					summary: "Done",
-					files_touched: ["test.ts"],
-					skip_verification: true,
-					// skip_review intentionally omitted - defaults to false
-				},
-				mockContext,
-			);
-
-			const parsed = JSON.parse(result);
-
-			// Should be success: true with workflow status
-			expect(parsed.success).toBe(true);
-			expect(parsed.status).toBe("pending_review");
-			expect(parsed.message).toContain("awaiting coordinator review");
-			expect(parsed.next_steps).toBeInstanceOf(Array);
-			expect(parsed.next_steps.length).toBeGreaterThan(0);
-			expect(parsed.review_status).toBeDefined();
-			expect(parsed.review_status.reviewed).toBe(false);
-			expect(parsed.review_status.approved).toBe(false);
-
-			// Should NOT have error field
-			expect(parsed.error).toBeUndefined();
-		});
-
-		it("returns success: true, not error, when review not approved", async () => {
-			const testProjectPath =
-				"/tmp/swarm-review-not-approved-test-" + Date.now();
-			const { getHiveAdapter } = await import("./hive");
-			const { markReviewRejected } = await import("./swarm-review");
-			const adapter = await getHiveAdapter(testProjectPath);
-
-			// Create a task cell directly
-			const cell = await adapter.createCell(testProjectPath, {
-				title: "Test task for review not approved",
-				type: "task",
-				priority: 2,
-			});
-
-			// Start the task
-			await adapter.updateCell(testProjectPath, cell.id, {
-				status: "in_progress",
-			});
-
-			// Manually set review status to rejected (approved: false, but reviewed: true)
-			// This simulates the review gate detecting a review was done but not approved
-			markReviewRejected(cell.id);
-
-			// Try to complete with review not approved
-			const result = await swarm_complete.execute(
-				{
-					project_key: testProjectPath,
-					agent_name: "TestAgent",
-					cell_id: cell.id,
-					summary: "Done",
-					files_touched: ["test.ts"],
-					skip_verification: true,
-				},
-				mockContext,
-			);
-
-			const parsed = JSON.parse(result);
-
-			// Should be success: true with workflow status (not error)
-			expect(parsed.success).toBe(true);
-			expect(parsed.status).toBe("needs_changes");
-			expect(parsed.message).toContain("changes requested");
-			expect(parsed.next_steps).toBeInstanceOf(Array);
-			expect(parsed.next_steps.length).toBeGreaterThan(0);
-			expect(parsed.review_status).toBeDefined();
-			expect(parsed.review_status.reviewed).toBe(true);
-			expect(parsed.review_status.approved).toBe(false);
-
-			// Should NOT have error field
-			expect(parsed.error).toBeUndefined();
-		});
-
-		it("completes successfully when skip_review=true", async () => {
-			const testProjectPath = "/tmp/swarm-skip-review-test-" + Date.now();
-			const { getHiveAdapter } = await import("./hive");
-			const adapter = await getHiveAdapter(testProjectPath);
-
-			// Create a task cell directly
-			const cell = await adapter.createCell(testProjectPath, {
-				title: "Test task for skip review",
-				type: "task",
-				priority: 2,
-			});
-
-			// Start the task
-			await adapter.updateCell(testProjectPath, cell.id, {
-				status: "in_progress",
-			});
-
-			// Complete with skip_review
-			const result = await swarm_complete.execute(
-				{
-					project_key: testProjectPath,
-					agent_name: "TestAgent",
-					cell_id: cell.id,
-					summary: "Done",
-					files_touched: ["test.ts"],
-					skip_verification: true,
-					skip_review: true,
-				},
-				mockContext,
-			);
-
-			const parsed = JSON.parse(result);
-
-			// Should complete without review gate
-			expect(parsed.success).toBe(true);
-			expect(parsed.status).toBeUndefined(); // No workflow status when skipping
-			expect(parsed.error).toBeUndefined();
-		});
-	});
-
-	describe("swarm_complete auto-sync", () => {
-		it("calls hive_sync after closing cell on successful completion", async () => {
-			const testProjectPath = "/tmp/swarm-auto-sync-test-" + Date.now();
-			const { getHiveAdapter } = await import("./hive");
-			const adapter = await getHiveAdapter(testProjectPath);
-
-			// Create a task cell directly
-			const cell = await adapter.createCell(testProjectPath, {
-				title: "Test task for auto-sync",
-				type: "task",
-				priority: 2,
-			});
-
-			// Start the task
-			await adapter.updateCell(testProjectPath, cell.id, {
-				status: "in_progress",
-			});
-
-			// Complete with skip_review and skip_verification
-			const result = await swarm_complete.execute(
-				{
-					project_key: testProjectPath,
-					agent_name: "TestAgent",
-					cell_id: cell.id,
-					summary: "Done - testing auto-sync",
-					files_touched: [],
-					skip_verification: true,
-					skip_review: true,
-				},
-				mockContext,
-			);
-
-			const parsed = JSON.parse(result);
-
-			// Should complete successfully
-			expect(parsed.success).toBe(true);
-			expect(parsed.closed).toBe(true);
-
-			// Check that cell is actually closed in database
-			const closedCell = await adapter.getCell(testProjectPath, cell.id);
-			expect(closedCell?.status).toBe("closed");
-
-			// The sync should have flushed the cell to .hive/issues.jsonl
-			// We can verify the cell appears in the JSONL
-			const hivePath = `${testProjectPath}/.hive/issues.jsonl`;
-			const hiveFile = Bun.file(hivePath);
-			const exists = await hiveFile.exists();
-
-			// The file should exist after sync
-			expect(exists).toBe(true);
-
-			if (exists) {
-				const content = await hiveFile.text();
-				const lines = content.trim().split("\n");
-
-				// Should have at least one cell exported
-				expect(lines.length).toBeGreaterThan(0);
-
-				// Parse the exported cells to find our closed cell
-				const cells = lines.map((line) => JSON.parse(line));
-				const exportedCell = cells.find((c) => c.id === cell.id);
-
-				// Our cell should be in the export
-				expect(exportedCell).toBeDefined();
-				expect(exportedCell.status).toBe("closed");
-				expect(exportedCell.title).toBe("Test task for auto-sync");
-			}
-		});
+		// Complete with skip_review and skip_verification
+		const result = await swarm_complete.execute(
+			{
+				project_key: testProjectPath,
+				agent_name: "TestAgent",
+				cell_id: cell.id,
+				summary: "Done - testing auto-sync",
+				files_touched: [],
+				skip_verification: true,
+				skip_review: true,
+				start_time: Date.now(),
+			},
+			mockContext,
+		);
+
+		console.log("RESULT:", result);
+		const parsed = JSON.parse(result);
+
+		// Should complete successfully
+		expect(parsed.success).toBe(true);
+		expect(parsed.closed).toBe(true);
+
+		// Check that cell is actually closed in database
+		const closedCell = await adapter.getCell(testProjectPath, cell.id);
+		expect(closedCell?.status).toBe("closed");
+
+		// The sync should have flushed the cell to .hive/issues.jsonl
+		const hivePath = `${testProjectPath}/.hive/issues.jsonl`;
+		const hiveFile = Bun.file(hivePath);
+		const exists = await hiveFile.exists();
+
+		expect(exists).toBe(true);
+
+		if (exists) {
+			const content = await hiveFile.text();
+			const lines = content.trim().split("\n");
+			expect(lines.length).toBeGreaterThan(0);
+			const cells = lines.map((line) => JSON.parse(line));
+			const exportedCell = cells.find((c) => c.id === cell.id);
+			expect(exportedCell).toBeDefined();
+			expect(exportedCell.status).toBe("closed");
+		}
 	});
 });

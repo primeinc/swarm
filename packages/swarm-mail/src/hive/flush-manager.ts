@@ -6,7 +6,7 @@
  *
  * Based on steveyegge/cells flush_manager.go
  *
- * @module cells/flush-manager
+ * @module hive/flush-manager
  */
 
 import { existsSync } from "node:fs";
@@ -14,11 +14,11 @@ import { readFile, writeFile } from "node:fs/promises";
 import type { HiveAdapter } from "../types/hive-adapter.js";
 import {
 	type CellExport,
-	exportDirtycells,
+	exportDirtyCells,
 	parseJSONL,
 	serializeToJSONL,
 } from "./jsonl.js";
-import { clearDirtycell } from "./projections.js";
+import { clearDirtyCell } from "./projections.js";
 
 export interface FlushManagerOptions {
 	adapter: HiveAdapter;
@@ -117,7 +117,7 @@ export class FlushManager {
 			}
 
 			// Export dirty cells
-			const { jsonl: dirtyJsonl, cellIds } = await exportDirtycells(
+			const { jsonl: dirtyJsonl, cellIds } = await exportDirtyCells(
 				this.adapter,
 				this.projectKey,
 			);
@@ -162,7 +162,7 @@ export class FlushManager {
 			// Clear dirty flags
 			const db = await this.adapter.getDatabase();
 			for (const cellId of cellIds) {
-				await clearDirtycell(db, this.projectKey, cellId);
+				await clearDirtyCell(db, this.projectKey, cellId);
 			}
 
 			const result: FlushResult = {

@@ -57,7 +57,7 @@ const EMBEDDING_DIM = 1024;
  * ```typescript
  * const adapter = createTestDatabaseAdapter(client);
  * // Works with PostgreSQL syntax
- * await adapter.query("SELECT * FROM cells WHERE id = $1", ["bd-123"]);
+ * await adapter.query("SELECT * FROM cells WHERE id = $1", ["cell-123"]);
  * ```
  */
 class TestDatabaseAdapter implements DatabaseAdapter {
@@ -125,7 +125,7 @@ export function createTestDatabaseAdapter(client: Client): DatabaseAdapter {
  * ```typescript
  * const { client, db, adapter } = await createTestLibSQLDb();
  * // Use adapter for PostgreSQL-style queries
- * await adapter.query("SELECT * FROM cells WHERE id = $1", ["bd-123"]);
+ * await adapter.query("SELECT * FROM cells WHERE id = $1", ["cell-123"]);
  * // Use db for Drizzle queries
  * await db.query.agents.findMany();
  * ```
@@ -463,20 +463,20 @@ export async function createTestLibSQLDb(): Promise<{
   `);
 
 	// ========================================================================
-	// Cells View (cells → cells compatibility layer)
+	// Hive View (alias for cells table) - compatibility layer
 	// ========================================================================
 
 	await client.execute(`
-    CREATE VIEW IF NOT EXISTS cells AS SELECT * FROM cells
+    CREATE VIEW IF NOT EXISTS hive AS SELECT * FROM cells
   `);
 
 	await client.execute(`
-    DROP TRIGGER IF EXISTS cells_insert
+    DROP TRIGGER IF EXISTS hive_insert
   `);
 
 	await client.execute(`
-    CREATE TRIGGER cells_insert
-      INSTEAD OF INSERT ON cells
+    CREATE TRIGGER hive_insert
+      INSTEAD OF INSERT ON hive
       FOR EACH ROW
     BEGIN
       INSERT INTO cells VALUES (
@@ -489,12 +489,12 @@ export async function createTestLibSQLDb(): Promise<{
   `);
 
 	await client.execute(`
-    DROP TRIGGER IF EXISTS cells_update
+    DROP TRIGGER IF EXISTS hive_update
   `);
 
 	await client.execute(`
-    CREATE TRIGGER cells_update
-      INSTEAD OF UPDATE ON cells
+    CREATE TRIGGER hive_update
+      INSTEAD OF UPDATE ON hive
       FOR EACH ROW
     BEGIN
       UPDATE cells
@@ -517,12 +517,12 @@ export async function createTestLibSQLDb(): Promise<{
   `);
 
 	await client.execute(`
-    DROP TRIGGER IF EXISTS cells_delete
+    DROP TRIGGER IF EXISTS hive_delete
   `);
 
 	await client.execute(`
-    CREATE TRIGGER cells_delete
-      INSTEAD OF DELETE ON cells
+    CREATE TRIGGER hive_delete
+      INSTEAD OF DELETE ON hive
       FOR EACH ROW
     BEGIN
       DELETE FROM cells WHERE id = OLD.id AND project_key = OLD.project_key;

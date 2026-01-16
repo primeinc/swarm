@@ -20,7 +20,7 @@ import {
 	cellDependencies,
 	cellLabels,
 	cells,
-	dirtycells,
+	dirtyCells,
 } from "../db/schema/hive.js";
 
 // ============================================================================
@@ -51,22 +51,22 @@ export async function updateProjectionsDrizzle(
 ): Promise<void> {
 	switch (event.type) {
 		case "cell_created":
-			await handlecellCreatedDrizzle(db, event);
+			await handleCellCreatedDrizzle(db, event);
 			break;
 		case "cell_updated":
-			await handlecellUpdatedDrizzle(db, event);
+			await handleCellUpdatedDrizzle(db, event);
 			break;
 		case "cell_status_changed":
 			await handleCellStatusChangedDrizzle(db, event);
 			break;
 		case "cell_closed":
-			await handlecellClosedDrizzle(db, event);
+			await handleCellClosedDrizzle(db, event);
 			break;
 		case "cell_reopened":
-			await handlecellReopenedDrizzle(db, event);
+			await handleCellReopenedDrizzle(db, event);
 			break;
 		case "cell_deleted":
-			await handlecellDeletedDrizzle(db, event);
+			await handleCellDeletedDrizzle(db, event);
 			break;
 		case "cell_dependency_added":
 			await handleDependencyAddedDrizzle(db, event);
@@ -96,7 +96,7 @@ export async function updateProjectionsDrizzle(
 			await handleEpicChildRemovedDrizzle(db, event);
 			break;
 		case "cell_assigned":
-			await handlecellAssignedDrizzle(db, event);
+			await handleCellAssignedDrizzle(db, event);
 			break;
 		case "cell_work_started":
 			await handleWorkStartedDrizzle(db, event);
@@ -106,14 +106,14 @@ export async function updateProjectionsDrizzle(
 	}
 
 	// Mark cell as dirty for JSONL export
-	await markcellDirtyDrizzle(db, event.project_key, event.cell_id);
+	await markCellDirtyDrizzle(db, event.project_key, event.cell_id);
 }
 
 // ============================================================================
 // Event Handlers - Individual handlers for each event type
 // ============================================================================
 
-async function handlecellCreatedDrizzle(
+async function handleCellCreatedDrizzle(
 	db: SwarmDb,
 	event: CellEvent,
 ): Promise<void> {
@@ -121,9 +121,9 @@ async function handlecellCreatedDrizzle(
 	// This prevents the root cause of NULL ID records from migration failures
 	if (!event.cell_id || event.cell_id.trim() === "") {
 		throw new Error(
-			`[Hive] cell ID cannot be null or empty. ` +
+			`[Hive] Cell ID cannot be null or empty. ` +
 				`Attempted to create cell with title="${event.title}" in project="${event.project_key}". ` +
-				`This indicates a bug in ID generation (generatecellId).`,
+				`This indicates a bug in ID generation (generateCellId).`,
 		);
 	}
 
@@ -148,7 +148,7 @@ async function handlecellCreatedDrizzle(
 	});
 }
 
-async function handlecellUpdatedDrizzle(
+async function handleCellUpdatedDrizzle(
 	db: SwarmDb,
 	event: CellEvent,
 ): Promise<void> {
@@ -202,7 +202,7 @@ async function handleCellStatusChangedDrizzle(
 	await db.update(cells).set(updates).where(eq(cells.id, event.cell_id));
 }
 
-async function handlecellClosedDrizzle(
+async function handleCellClosedDrizzle(
 	db: SwarmDb,
 	event: CellEvent,
 ): Promise<void> {
@@ -223,7 +223,7 @@ async function handlecellClosedDrizzle(
 	await invalidateBlockedCacheDrizzle(db, event.project_key, event.cell_id);
 }
 
-async function handlecellReopenedDrizzle(
+async function handleCellReopenedDrizzle(
 	db: SwarmDb,
 	event: CellEvent,
 ): Promise<void> {
@@ -238,7 +238,7 @@ async function handlecellReopenedDrizzle(
 		.where(eq(cells.id, event.cell_id));
 }
 
-async function handlecellDeletedDrizzle(
+async function handleCellDeletedDrizzle(
 	db: SwarmDb,
 	event: CellEvent,
 ): Promise<void> {
@@ -392,7 +392,7 @@ async function handleEpicChildRemovedDrizzle(
 		.where(eq(cells.id, event.child_id as string));
 }
 
-async function handlecellAssignedDrizzle(
+async function handleCellAssignedDrizzle(
 	db: SwarmDb,
 	event: CellEvent,
 ): Promise<void> {
@@ -425,19 +425,19 @@ async function handleWorkStartedDrizzle(
 /**
  * Mark cell as dirty for JSONL export using Drizzle
  */
-export async function markcellDirtyDrizzle(
+export async function markCellDirtyDrizzle(
 	db: SwarmDb,
 	projectKey: string,
 	cellId: string,
 ): Promise<void> {
 	await db
-		.insert(dirtycells)
+		.insert(dirtyCells)
 		.values({
 			cell_id: cellId,
 			marked_at: Date.now(),
 		})
 		.onConflictDoUpdate({
-			target: dirtycells.cell_id,
+			target: dirtyCells.cell_id,
 			set: {
 				marked_at: Date.now(),
 			},
@@ -447,18 +447,18 @@ export async function markcellDirtyDrizzle(
 /**
  * Clear dirty flag after export using Drizzle
  */
-export async function clearDirtycellDrizzle(
+export async function clearDirtyCellDrizzle(
 	db: SwarmDb,
 	projectKey: string,
 	cellId: string,
 ): Promise<void> {
-	await db.delete(dirtycells).where(eq(dirtycells.cell_id, cellId));
+	await db.delete(dirtyCells).where(eq(dirtyCells.cell_id, cellId));
 }
 
 /**
  * Clear all dirty flags using Drizzle
  */
-export async function clearAllDirtycellsDrizzle(
+export async function clearAllDirtyCellsDrizzle(
 	db: SwarmDb,
 	projectKey: string,
 ): Promise<void> {
@@ -474,5 +474,5 @@ export async function clearAllDirtycellsDrizzle(
 		return;
 	}
 
-	await db.delete(dirtycells).where(inArray(dirtycells.cell_id, cellIds));
+	await db.delete(dirtyCells).where(inArray(dirtyCells.cell_id, cellIds));
 }

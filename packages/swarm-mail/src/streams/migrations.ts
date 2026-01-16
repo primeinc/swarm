@@ -264,7 +264,7 @@ export const migrations: Migration[] = [
       CREATE TABLE IF NOT EXISTS swarm_contexts (
         id TEXT PRIMARY KEY,
         epic_id TEXT NOT NULL,
-        cell_id TEXT NOT NULL,
+        bead_id TEXT NOT NULL,
         strategy TEXT NOT NULL,
         files JSONB NOT NULL,
         dependencies JSONB NOT NULL,
@@ -274,7 +274,7 @@ export const migrations: Migration[] = [
         updated_at BIGINT NOT NULL
       );
       CREATE INDEX IF NOT EXISTS idx_swarm_contexts_epic ON swarm_contexts(epic_id);
-      CREATE INDEX IF NOT EXISTS idx_swarm_contexts_cell ON swarm_contexts(cell_id);
+      CREATE INDEX IF NOT EXISTS idx_swarm_contexts_bead ON swarm_contexts(bead_id);
     `,
 		down: `DROP TABLE IF EXISTS swarm_contexts;`,
 	},
@@ -298,8 +298,8 @@ export const migrations: Migration[] = [
       -- Create new indexes
       CREATE INDEX IF NOT EXISTS idx_swarm_contexts_project ON swarm_contexts(project_key);
       DROP INDEX IF EXISTS idx_swarm_contexts_epic;
-      DROP INDEX IF EXISTS idx_swarm_contexts_cell;
-      CREATE UNIQUE INDEX IF NOT EXISTS idx_swarm_contexts_unique ON swarm_contexts(project_key, epic_id, cell_id);
+      DROP INDEX IF EXISTS idx_swarm_contexts_bead;
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_swarm_contexts_unique ON swarm_contexts(project_key, epic_id, bead_id);
     `,
 		down: `
       DROP INDEX IF EXISTS idx_swarm_contexts_unique;
@@ -311,7 +311,7 @@ export const migrations: Migration[] = [
       ALTER TABLE swarm_contexts ALTER COLUMN id SET NOT NULL;
       ALTER TABLE swarm_contexts ADD CONSTRAINT swarm_contexts_pkey PRIMARY KEY (id);
       CREATE INDEX IF NOT EXISTS idx_swarm_contexts_epic ON swarm_contexts(epic_id);
-      CREATE INDEX IF NOT EXISTS idx_swarm_contexts_cell ON swarm_contexts(cell_id);
+      CREATE INDEX IF NOT EXISTS idx_swarm_contexts_bead ON swarm_contexts(bead_id);
     `,
 	},
 	{
@@ -403,6 +403,79 @@ export const migrations: Migration[] = [
 	...hiveMigrations,
 	// Memory migrations (v9+)
 	...memoryMigrations,
+	{
+		version: 10,
+		description: "Global terminology migration: bead -> cell",
+		up: `
+      -- 1. Rename tables (if they exist with old names)
+      -- Using a sub-block to handle potential missing tables gracefully
+      -- Note: SQLite doesn't have IF EXISTS for RENAME TABLE, so we use a safe approach
+      
+      -- bead_comments -> cell_comments
+      CREATE TABLE IF NOT EXISTS cell_comments (id INTEGER PRIMARY KEY);
+      DROP TABLE cell_comments; -- Ensure it's gone so RENAME works
+      ALTER TABLE bead_comments RENAME TO cell_comments;
+
+      -- bead_dependencies -> cell_dependencies
+      CREATE TABLE IF NOT EXISTS cell_dependencies (cell_id TEXT);
+      DROP TABLE cell_dependencies;
+      ALTER TABLE bead_dependencies RENAME TO cell_dependencies;
+
+      -- bead_labels -> cell_labels
+      CREATE TABLE IF NOT EXISTS cell_labels (cell_id TEXT);
+      DROP TABLE cell_labels;
+      ALTER TABLE bead_labels RENAME TO cell_labels;
+
+      -- blocked_beads_cache -> blocked_cells_cache
+      CREATE TABLE IF NOT EXISTS blocked_cells_cache (cell_id TEXT);
+      DROP TABLE blocked_cells_cache;
+      ALTER TABLE blocked_beads_cache RENAME TO blocked_cells_cache;
+
+      -- dirty_beads -> dirty_cells
+      CREATE TABLE IF NOT EXISTS dirty_cells (cell_id TEXT);
+      DROP TABLE dirty_cells;
+      ALTER TABLE dirty_beads RENAME TO dirty_cells;
+
+      -- 2. Rename columns
+      -- decision_traces.bead_id -> decision_traces.cell_id
+      -- Check if column exists first (workaround for SQLite missing IF EXISTS)
+      -- Actually, since we control the migrations, we know it's there
+      ALTER TABLE decision_traces RENAME COLUMN bead_id TO cell_id;
+      
+      -- swarm_contexts.bead_id -> swarm_contexts.cell_id
+      ALTER TABLE swarm_contexts RENAME COLUMN bead_id TO cell_id;
+
+      -- 3. Update indexes
+      DROP INDEX IF EXISTS idx_bead_comments_bead;
+      CREATE INDEX IF NOT EXISTS idx_cell_comments_cell ON cell_comments(cell_id);
+
+      DROP INDEX IF EXISTS idx_bead_deps_bead;
+      CREATE INDEX IF NOT EXISTS idx_cell_deps_cell ON cell_dependencies(cell_id);
+
+      DROP INDEX IF EXISTS idx_bead_labels_label;
+      CREATE INDEX IF NOT EXISTS idx_cell_labels_label ON cell_labels(label);
+
+      DROP INDEX IF EXISTS idx_blocked_beads_updated;
+      CREATE INDEX IF NOT EXISTS idx_blocked_cells_updated ON blocked_cells_cache(updated_at);
+
+      DROP INDEX IF EXISTS idx_dirty_beads_marked;
+      CREATE INDEX IF NOT EXISTS idx_dirty_cells_marked ON dirty_cells(marked_at);
+
+      DROP INDEX IF EXISTS idx_swarm_contexts_unique;
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_swarm_contexts_unique ON swarm_contexts(project_key, epic_id, cell_id);
+    `,
+		down: `
+      -- Rollback
+      ALTER TABLE cell_comments RENAME TO bead_comments;
+      ALTER TABLE cell_dependencies RENAME TO bead_dependencies;
+      ALTER TABLE cell_labels RENAME TO bead_labels;
+      ALTER TABLE blocked_cells_cache RENAME TO blocked_beads_cache;
+      ALTER TABLE dirty_cells RENAME TO dirty_beads;
+      
+      ALTER TABLE decision_traces RENAME COLUMN cell_id TO bead_id;
+      ALTER TABLE swarm_contexts RENAME COLUMN cell_id TO bead_id;
+    `,
+	},
 ];
 
 // ============================================================================

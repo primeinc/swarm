@@ -88,17 +88,17 @@ describe("Hive Schema", () => {
 		expect(schema.cellDependencies).toBe(schema.cellDependencies);
 	});
 
-	test("blockedcellsCache table has correct columns", () => {
-		expect(schema.blockedcellsCache).toBeDefined();
-		expect(schema.blockedcellsCache.cell_id).toBeDefined();
-		expect(schema.blockedcellsCache.blocker_ids).toBeDefined();
-		expect(schema.blockedcellsCache.updated_at).toBeDefined();
+	test("blockedCellsCache table has correct columns", () => {
+		expect(schema.blockedCellsCache).toBeDefined();
+		expect(schema.blockedCellsCache.cell_id).toBeDefined();
+		expect(schema.blockedCellsCache.blocker_ids).toBeDefined();
+		expect(schema.blockedCellsCache.updated_at).toBeDefined();
 	});
 
-	test("dirtycells table has correct columns", () => {
-		expect(schema.dirtycells).toBeDefined();
-		expect(schema.dirtycells.cell_id).toBeDefined();
-		expect(schema.dirtycells.marked_at).toBeDefined();
+	test("dirtyCells table has correct columns", () => {
+		expect(schema.dirtyCells).toBeDefined();
+		expect(schema.dirtyCells.cell_id).toBeDefined();
+		expect(schema.dirtyCells.marked_at).toBeDefined();
 	});
 
 	test("schemaVersion table has correct columns", () => {

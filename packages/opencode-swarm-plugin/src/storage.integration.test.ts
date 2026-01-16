@@ -98,7 +98,7 @@ describe("SemanticMemoryStorage Integration", () => {
 				criterion: "test-criterion-storage",
 				type: "helpful",
 				timestamp: new Date().toISOString(),
-				cell_id: "bd-storage-test",
+				cell_id: "cell-storage-test",
 				context: "Integration test feedback",
 				raw_value: 1,
 			};
@@ -253,7 +253,7 @@ describe("InMemoryStorage Parity", () => {
 			criterion: "memory-test-criterion",
 			type: "helpful",
 			timestamp: new Date().toISOString(),
-			cell_id: "bd-memory-test",
+			cell_id: "cell-memory-test",
 			raw_value: 1,
 		};
 

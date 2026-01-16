@@ -15,7 +15,7 @@
  * 2. updateProjections() -> UPDATE materialized views (cells, dependencies, labels, etc.)
  * 3. Query operations read from projections (fast)
  *
- * @module cells/store
+ * @module hive/store
  */
 
 import { and, eq, gt, gte, inArray, lte, sql } from "drizzle-orm";
@@ -314,8 +314,8 @@ export async function replayCellEvents(
 				cellComments,
 				cellLabels,
 				cellDependencies,
-				blockedcellsCache,
-				dirtycells,
+				blockedCellsCache,
+				dirtyCells,
 			} = await import("../db/schema/hive.js");
 
 			if (options.projectKey) {
@@ -340,11 +340,11 @@ export async function replayCellEvents(
 						.delete(cellDependencies)
 						.where(inArray(cellDependencies.cell_id, cellIdList));
 					await swarmDb
-						.delete(blockedcellsCache)
-						.where(inArray(blockedcellsCache.cell_id, cellIdList));
+						.delete(blockedCellsCache)
+						.where(inArray(blockedCellsCache.cell_id, cellIdList));
 					await swarmDb
-						.delete(dirtycells)
-						.where(inArray(dirtycells.cell_id, cellIdList));
+						.delete(dirtyCells)
+						.where(inArray(dirtyCells.cell_id, cellIdList));
 					await swarmDb
 						.delete(cells)
 						.where(eq(cells.project_key, options.projectKey));
@@ -354,8 +354,8 @@ export async function replayCellEvents(
 				await swarmDb.delete(cellComments);
 				await swarmDb.delete(cellLabels);
 				await swarmDb.delete(cellDependencies);
-				await swarmDb.delete(blockedcellsCache);
-				await swarmDb.delete(dirtycells);
+				await swarmDb.delete(blockedCellsCache);
+				await swarmDb.delete(dirtyCells);
 				await swarmDb.delete(cells);
 			}
 		}

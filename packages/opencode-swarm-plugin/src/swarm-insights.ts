@@ -154,7 +154,10 @@ export async function getStrategyInsights(
  * // Returns: "AVOID feature-based - high failure rate (35%)"
  * ```
  */
-function getStrategyRecommendation(strategy: string, successRate: number): string {
+function getStrategyRecommendation(
+	strategy: string,
+	successRate: number,
+): string {
 	if (successRate >= 80) {
 		return `${strategy} is performing well (${successRate.toFixed(0)}% success)`;
 	}
@@ -274,24 +277,24 @@ export async function getFileGotchas(
 ): Promise<string[]> {
 	try {
 		const memoryAdapter = await getMemoryAdapter();
-		
+
 		// Query hivemind with file path as context
 		const result = await memoryAdapter.find({
 			query: `${file} gotcha pitfall warning`,
 			limit: 10, // Get more results to filter by file match
 		});
-		
+
 		if (result.count === 0) {
 			return [];
 		}
-		
+
 		// Filter for results that actually mention the specific file, take top 3
 		const fileSpecific = result.results
-			.filter(memory => memory.content.includes(file))
+			.filter((memory) => memory.content.includes(file))
 			.slice(0, 3);
-		
+
 		// Truncate each gotcha to ~100 chars for context efficiency
-		return fileSpecific.map(memory => truncateText(memory.content, 100));
+		return fileSpecific.map((memory) => truncateText(memory.content, 100));
 	} catch (error) {
 		// Gracefully handle errors - return empty array on failure
 		console.warn(`Failed to query file gotchas for ${file}:`, error);
@@ -338,7 +341,7 @@ export async function getFileFailureHistory(
 		`;
 
 		const result = await db.query(query, [`%${file}%`]);
-		
+
 		if (!result.rows || result.rows.length === 0) {
 			continue;
 		}
@@ -350,17 +353,14 @@ export async function getFileFailureHistory(
 				const data = JSON.parse(row.data);
 				const issuesStr = data.issues;
 				if (!issuesStr) continue;
-				
+
 				const issues = JSON.parse(issuesStr);
 				for (const issue of issues) {
 					if (issue.file === file) {
 						issueTexts.push(issue.issue);
 					}
 				}
-			} catch (e) {
-				// Skip malformed data
-				continue;
-			}
+			} catch (e) {}
 		}
 
 		if (issueTexts.length === 0) {
@@ -428,7 +428,7 @@ export async function getRejectionAnalytics(
 	`;
 
 	const result = await db.query(query, []);
-	
+
 	if (!result.rows || result.rows.length === 0) {
 		return {
 			totalReviews: 0,
@@ -446,7 +446,7 @@ export async function getRejectionAnalytics(
 	for (const row of result.rows as Array<{ data: string }>) {
 		try {
 			const data = JSON.parse(row.data);
-			
+
 			if (data.status === "approved") {
 				approved++;
 			} else if (data.status === "needs_changes") {
@@ -461,10 +461,7 @@ export async function getRejectionAnalytics(
 					}
 				}
 			}
-		} catch (e) {
-			// Skip malformed data
-			continue;
-		}
+		} catch (e) {}
 	}
 
 	const totalReviews = approved + rejected;
@@ -711,8 +708,7 @@ export function formatInsightsForPrompt(
 	// Format file insights
 	if (bundle.files && bundle.files.length > 0) {
 		const fileLines = bundle.files.slice(0, 5).map((f) => {
-			const gotchaStr =
-				f.gotchas.length > 0 ? ` - ${f.gotchas[0]}` : "";
+			const gotchaStr = f.gotchas.length > 0 ? ` - ${f.gotchas[0]}` : "";
 			return `- ${f.file}: ${f.failureCount} past failures${gotchaStr}`;
 		});
 		sections.push(`**File-Specific Gotchas:**\n${fileLines.join("\n")}`);
@@ -828,7 +824,7 @@ export function clearInsightsCache(): void {
  * @example
  * ```typescript
  * import { CoordinatorGuardError } from "./coordinator-guard";
- * 
+ *
  * try {
  *   // Coordinator attempts to edit file
  * } catch (error) {
@@ -957,10 +953,7 @@ export async function getViolationAnalytics(
 				);
 				totalViolations++;
 			}
-		} catch (e) {
-			// Skip malformed data
-			continue;
-		}
+		} catch (e) {}
 	}
 
 	// Convert to sorted array
@@ -988,7 +981,8 @@ export async function getViolationAnalytics(
 	`;
 
 	const coordResult = await db.query(coordinationQuery, params);
-	const coordinationCount = (coordResult.rows[0] as { count: number })?.count || 0;
+	const coordinationCount =
+		(coordResult.rows[0] as { count: number })?.count || 0;
 
 	const violationRate =
 		coordinationCount > 0 ? (totalViolations / coordinationCount) * 100 : 0;
@@ -1053,7 +1047,7 @@ export interface CompactionAnalytics {
  * //   avgPromptSize: 4800,
  * //   successRate: 86.7,
  * //   recentPrompts: [
- * //     { timestamp: "2025-12-25T10:00:00Z", length: 5200, preview: "Epic bd-123...", confidence: "high" }
+ * //     { timestamp: "2025-12-25T10:00:00Z", length: 5200, preview: "Epic cell-123...", confidence: "high" }
  * //   ],
  * //   byConfidence: { high: 60, medium: 12, low: 11 }
  * // }
@@ -1077,8 +1071,8 @@ export async function getCompactionAnalytics(
 	if (!result.rows || result.rows.length === 0) {
 		return {
 			totalEvents: 0,
-			byType: { 
-				prompt_generated: 0, 
+			byType: {
+				prompt_generated: 0,
 				detection_complete: 0,
 				context_injected: 0,
 				resumption_started: 0,
@@ -1102,11 +1096,11 @@ export async function getCompactionAnalytics(
 	for (const row of result.rows as Array<{ data: string; timestamp: number }>) {
 		try {
 			const data = JSON.parse(row.data);
-			
+
 			// Check for event_type COMPACTION (from coordinator events)
 			if (data.event_type === "COMPACTION") {
 				totalEvents++;
-				
+
 				// compaction_type is the sub-type (prompt_generated, detection_complete, etc.)
 				const compactionType = data.compaction_type || "unknown";
 				byType[compactionType] = (byType[compactionType] || 0) + 1;
@@ -1145,10 +1139,7 @@ export async function getCompactionAnalytics(
 					}
 				}
 			}
-		} catch (e) {
-			// Skip malformed data
-			continue;
-		}
+		} catch (e) {}
 	}
 
 	// Calculate average prompt size
@@ -1215,10 +1206,11 @@ export function formatFileHistoryWarnings(
 
 	for (const history of histories) {
 		// Format: "- file: N previous workers rejected for issue1, issue2"
-		const workerText = history.rejectionCount === 1
-			? "1 previous worker rejected"
-			: `${history.rejectionCount} previous workers rejected`;
-		
+		const workerText =
+			history.rejectionCount === 1
+				? "1 previous worker rejected"
+				: `${history.rejectionCount} previous workers rejected`;
+
 		const issuesText = history.topIssues.join(", ");
 
 		lines.push(`- ${history.file}: ${workerText} for ${issuesText}`);

@@ -22,7 +22,7 @@
  * - notes: concatenate on conflict
  * - dependencies: union (deduplicated)
  *
- * @module cells/merge
+ * @module hive/merge
  */
 
 import type { CellExport } from "./jsonl.js";
@@ -529,121 +529,121 @@ export function merge3Way(
 	const conflicts: string[] = [];
 
 	for (const key of allKeys) {
-		const basecell = baseMap.get(key);
-		const leftcell = leftMap.get(key);
-		const rightcell = rightMap.get(key);
+		const baseCell = baseMap.get(key);
+		const leftCell = leftMap.get(key);
+		const rightCell = rightMap.get(key);
 
 		// Determine tombstone status (safe because we check existence)
-		const leftTombstone = leftcell !== undefined && isTombstone(leftcell);
-		const rightTombstone = rightcell !== undefined && isTombstone(rightcell);
+		const leftTombstone = leftCell !== undefined && isTombstone(leftCell);
+		const rightTombstone = rightCell !== undefined && isTombstone(rightCell);
 
 		// Handle different scenarios based on presence in each version
-		if (basecell && leftcell && rightcell) {
+		if (baseCell && leftCell && rightCell) {
 			// All three present
 
 			// CASE: Both are tombstones - merge tombstones
 			if (leftTombstone && rightTombstone) {
-				result.push(mergeTombstones(leftcell, rightcell));
+				result.push(mergeTombstones(leftCell, rightCell));
 				continue;
 			}
 
 			// CASE: Left is tombstone, right is live
 			if (leftTombstone && !rightTombstone) {
-				if (isExpiredTombstone(leftcell, ttl)) {
+				if (isExpiredTombstone(leftCell, ttl)) {
 					// Tombstone expired - resurrection allowed
-					result.push(rightcell);
+					result.push(rightCell);
 				} else {
 					// Tombstone wins
-					result.push(leftcell);
+					result.push(leftCell);
 				}
 				continue;
 			}
 
 			// CASE: Right is tombstone, left is live
 			if (rightTombstone && !leftTombstone) {
-				if (isExpiredTombstone(rightcell, ttl)) {
+				if (isExpiredTombstone(rightCell, ttl)) {
 					// Tombstone expired - resurrection allowed
-					result.push(leftcell);
+					result.push(leftCell);
 				} else {
 					// Tombstone wins
-					result.push(rightcell);
+					result.push(rightCell);
 				}
 				continue;
 			}
 
 			// CASE: Both are live - standard merge
-			const { merged, conflict } = mergeIssue(basecell, leftcell, rightcell);
+			const { merged, conflict } = mergeIssue(baseCell, leftCell, rightCell);
 			if (conflict) {
 				conflicts.push(conflict);
 			} else {
 				result.push(merged);
 			}
-		} else if (!basecell && leftcell && rightcell) {
+		} else if (!baseCell && leftCell && rightCell) {
 			// Added in both
 
 			// CASE: Both are tombstones
 			if (leftTombstone && rightTombstone) {
-				result.push(mergeTombstones(leftcell, rightcell));
+				result.push(mergeTombstones(leftCell, rightCell));
 				continue;
 			}
 
 			// CASE: Left is tombstone, right is live
 			if (leftTombstone && !rightTombstone) {
-				if (isExpiredTombstone(leftcell, ttl)) {
-					result.push(rightcell);
+				if (isExpiredTombstone(leftCell, ttl)) {
+					result.push(rightCell);
 				} else {
-					result.push(leftcell);
+					result.push(leftCell);
 				}
 				continue;
 			}
 
 			// CASE: Right is tombstone, left is live
 			if (rightTombstone && !leftTombstone) {
-				if (isExpiredTombstone(rightcell, ttl)) {
-					result.push(leftcell);
+				if (isExpiredTombstone(rightCell, ttl)) {
+					result.push(leftCell);
 				} else {
-					result.push(rightcell);
+					result.push(rightCell);
 				}
 				continue;
 			}
 
 			// CASE: Both are live - merge with empty base
 			const emptyBase: CellExport = {
-				id: leftcell.id,
+				id: leftCell.id,
 				title: "",
 				status: "open",
 				priority: 0,
-				issue_type: leftcell.issue_type,
-				created_at: leftcell.created_at,
-				updated_at: leftcell.created_at,
+				issue_type: leftCell.issue_type,
+				created_at: leftCell.created_at,
+				updated_at: leftCell.created_at,
 				dependencies: [],
 				labels: [],
 				comments: [],
 			};
-			const { merged } = mergeIssue(emptyBase, leftcell, rightcell);
+			const { merged } = mergeIssue(emptyBase, leftCell, rightCell);
 			result.push(merged);
-		} else if (basecell && leftcell && !rightcell) {
+		} else if (baseCell && leftCell && !rightCell) {
 			// Deleted in right, maybe modified in left
 
 			// Tombstones must be preserved
 			if (leftTombstone) {
-				result.push(leftcell);
+				result.push(leftCell);
 			}
 			// Otherwise deletion wins over modification (issue not included)
-		} else if (basecell && !leftcell && rightcell) {
+		} else if (baseCell && !leftCell && rightCell) {
 			// Deleted in left, maybe modified in right
 
 			// Tombstones must be preserved
 			if (rightTombstone) {
-				result.push(rightcell);
+				result.push(rightCell);
 			}
 			// Otherwise deletion wins over modification (issue not included)
-		} else if (!basecell && leftcell && !rightcell) {
+		} else if (!baseCell && leftCell && !rightCell) {
 			// Added only in left
-			result.push(leftcell);
-		} else if (!basecell && !leftcell && rightcell) {
+			result.push(leftCell);
+		} else if (!baseCell && !leftCell && rightCell) {
 			// Added only in right
-			result.push(rightcell);
+			result.push(rightCell);
 		}
 	}
 

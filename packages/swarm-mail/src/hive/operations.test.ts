@@ -3,6 +3,8 @@
  *
  * Tests the operations layer that provides convenience functions
  * wrapping the HiveAdapter interface.
+ *
+ * @module hive/operations.test
  */
 
 import { beforeEach, describe, expect, it } from "bun:test";
@@ -15,7 +17,7 @@ import {
 	deleteCell,
 	getCell,
 	reopenCell,
-	searchcells,
+	searchCells,
 	updateCell,
 } from "./operations.js";
 
@@ -321,7 +323,7 @@ describe("operations", () => {
 		});
 	});
 
-	describe("searchcells", () => {
+	describe("searchCells", () => {
 		it("searches by title", async () => {
 			await createCell(adapter, projectKey, {
 				title: "Fix authentication bug",
@@ -335,7 +337,7 @@ describe("operations", () => {
 				priority: 2,
 			});
 
-			const results = await searchcells(adapter, projectKey, "authentication");
+			const results = await searchCells(adapter, projectKey, "authentication");
 
 			expect(results.length).toBe(1);
 			expect(results[0].title).toBe("Fix authentication bug");
@@ -348,7 +350,7 @@ describe("operations", () => {
 				priority: 2,
 			});
 
-			const results = await searchcells(adapter, projectKey, "nonexistent");
+			const results = await searchCells(adapter, projectKey, "nonexistent");
 			expect(results).toEqual([]);
 		});
 
@@ -367,7 +369,7 @@ describe("operations", () => {
 
 			await closeCell(adapter, projectKey, cell2.id, "Done");
 
-			const results = await searchcells(adapter, projectKey, "task", {
+			const results = await searchCells(adapter, projectKey, "task", {
 				status: "open",
 			});
 
@@ -388,7 +390,7 @@ describe("operations", () => {
 				priority: 2,
 			});
 
-			const results = await searchcells(adapter, projectKey, "", {
+			const results = await searchCells(adapter, projectKey, "", {
 				type: "bug",
 			});
 
@@ -411,7 +413,7 @@ describe("operations", () => {
 			expect(dirtyCells).toContain(cell.id);
 		});
 
-		it("syncs created cell to JSONL via exportDirtycells", async () => {
+		it("syncs created cell to JSONL via exportDirtyCells", async () => {
 			// Create a cell
 			const cell = await createCell(adapter, projectKey, {
 				title: "Test sync",
@@ -420,11 +422,11 @@ describe("operations", () => {
 				description: "Should appear in JSONL",
 			});
 
-			// Import exportDirtycells
-			const { exportDirtycells } = await import("./jsonl.js");
+			// Import exportDirtyCells
+			const { exportDirtyCells } = await import("./jsonl.js");
 
 			// Export dirty cells to JSONL
-			const { jsonl, cellIds } = await exportDirtycells(adapter, projectKey);
+			const { jsonl, cellIds } = await exportDirtyCells(adapter, projectKey);
 
 			// Should have exported the cell
 			expect(cellIds).toContain(cell.id);
@@ -449,8 +451,8 @@ describe("operations", () => {
 			});
 
 			// Import and export first time
-			const { exportDirtycells } = await import("./jsonl.js");
-			await exportDirtycells(adapter, projectKey);
+			const { exportDirtyCells } = await import("./jsonl.js");
+			await exportDirtyCells(adapter, projectKey);
 
 			// Clear dirty flag
 			await adapter.clearDirty(projectKey, cell.id);
@@ -465,7 +467,7 @@ describe("operations", () => {
 			expect(dirtyCells).toContain(cell.id);
 
 			// Export should include the updated cell
-			const { jsonl } = await exportDirtycells(adapter, projectKey);
+			const { jsonl } = await exportDirtyCells(adapter, projectKey);
 			expect(jsonl).toContain("Updated");
 			expect(jsonl).not.toContain("Original");
 		});
@@ -481,8 +483,8 @@ describe("operations", () => {
 			await closeCell(adapter, projectKey, cell.id, "Done");
 
 			// Export
-			const { exportDirtycells } = await import("./jsonl.js");
-			const { jsonl } = await exportDirtycells(adapter, projectKey);
+			const { exportDirtyCells } = await import("./jsonl.js");
+			const { jsonl } = await exportDirtyCells(adapter, projectKey);
 
 			// Parse and verify status
 			const { parseJSONL } = await import("./jsonl.js");

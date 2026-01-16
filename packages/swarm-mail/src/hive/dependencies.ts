@@ -18,7 +18,7 @@
  *
  * Reference: steveyegge/cells/internal/storage/sqlite/dependencies.go
  *
- * @module cells/dependencies
+ * @module hive/dependencies
  */
 
 import type { DatabaseAdapter } from "../types/database.js";
@@ -51,11 +51,11 @@ export async function wouldCreateCycle(
        
        -- Follow dependencies transitively
        SELECT
-         bd.cell_id,
-         bd.depends_on_id,
+         cd.cell_id,
+         cd.depends_on_id,
          p.depth + 1
-       FROM cell_dependencies bd
-       JOIN paths p ON bd.cell_id = p.depends_on_id
+       FROM cell_dependencies cd
+       JOIN paths p ON cd.cell_id = p.depends_on_id
        WHERE p.depth < $3
      )
      SELECT COUNT(*) as cycle_exists FROM paths WHERE depends_on_id = $1 LIMIT 1`,
@@ -86,10 +86,10 @@ export async function getOpenBlockers(
        UNION
        
        -- Transitive blockers
-       SELECT bd.depends_on_id, b.depth + 1
-       FROM cell_dependencies bd
-       JOIN blockers b ON bd.cell_id = b.blocker_id
-       WHERE bd.relationship = 'blocks' AND b.depth < $3
+       SELECT cd.depends_on_id, b.depth + 1
+       FROM cell_dependencies cd
+       JOIN blockers b ON cd.cell_id = b.blocker_id
+       WHERE cd.relationship = 'blocks' AND b.depth < $3
      )
      SELECT DISTINCT b.blocker_id
      FROM blockers b
@@ -107,7 +107,7 @@ export async function getOpenBlockers(
  * Finds all open blockers and updates the cache.
  * If no open blockers, removes from cache (cell is unblocked).
  */
-export async function rebuildcellBlockedCache(
+export async function rebuildCellBlockedCache(
 	db: DatabaseAdapter,
 	projectKey: string,
 	cellId: string,
@@ -144,15 +144,15 @@ export async function rebuildAllBlockedCaches(
 ): Promise<void> {
 	// Get all cells with blocking dependencies
 	const result = await db.query<{ id: string }>(
-		`SELECT DISTINCT b.id FROM cells b
-     JOIN cell_dependencies bd ON b.id = bd.cell_id
-     WHERE b.project_key = $1 AND bd.relationship = 'blocks' AND b.deleted_at IS NULL`,
+		`SELECT DISTINCT c.id FROM cells c
+     JOIN cell_dependencies cd ON c.id = cd.cell_id
+     WHERE c.project_key = $1 AND cd.relationship = 'blocks' AND c.deleted_at IS NULL`,
 		[projectKey],
 	);
 
 	// Rebuild cache for each cell
 	for (const row of result.rows) {
-		await rebuildcellBlockedCache(db, projectKey, row.id);
+		await rebuildCellBlockedCache(db, projectKey, row.id);
 	}
 }
 
@@ -167,7 +167,7 @@ export async function invalidateBlockedCache(
 	projectKey: string,
 	cellId: string,
 ): Promise<void> {
-	await rebuildcellBlockedCache(db, projectKey, cellId);
+	await rebuildCellBlockedCache(db, projectKey, cellId);
 
 	// Also invalidate dependents (cells that depend on this one)
 	const dependents = await db.query<{ cell_id: string }>(
@@ -176,6 +176,6 @@ export async function invalidateBlockedCache(
 	);
 
 	for (const row of dependents.rows) {
-		await rebuildcellBlockedCache(db, projectKey, row.cell_id);
+		await rebuildCellBlockedCache(db, projectKey, row.cell_id);
 	}
 }

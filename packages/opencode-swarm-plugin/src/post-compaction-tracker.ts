@@ -26,7 +26,7 @@
  * ```typescript
  * const tracker = createPostCompactionTracker({
  *   sessionId: "session-123",
- *   epicId: "bd-epic-456",
+ *   epicId: "cell-epic-456",
  *   onEvent: captureCompactionEvent,
  * });
  *
@@ -45,51 +45,51 @@
  * Tool call event structure
  */
 export interface ToolCallEvent {
-  tool: string;
-  args: Record<string, unknown>;
-  timestamp: number;
+	tool: string;
+	args: Record<string, unknown>;
+	timestamp: number;
 }
 
 /**
  * Compaction event payload (matches eval-capture.ts structure)
  */
 export interface CompactionEvent {
-  session_id: string;
-  epic_id: string;
-  compaction_type:
-    | "detection_complete"
-    | "prompt_generated"
-    | "context_injected"
-    | "resumption_started"
-    | "tool_call_tracked";
-  payload: {
-    session_id?: string;
-    epic_id?: string;
-    tool?: string;
-    args?: Record<string, unknown>;
-    call_number?: number;
-    is_coordinator_violation?: boolean;
-    violation_reason?: string;
-    timestamp?: number;
-  };
+	session_id: string;
+	epic_id: string;
+	compaction_type:
+		| "detection_complete"
+		| "prompt_generated"
+		| "context_injected"
+		| "resumption_started"
+		| "tool_call_tracked";
+	payload: {
+		session_id?: string;
+		epic_id?: string;
+		tool?: string;
+		args?: Record<string, unknown>;
+		call_number?: number;
+		is_coordinator_violation?: boolean;
+		violation_reason?: string;
+		timestamp?: number;
+	};
 }
 
 /**
  * Tracker configuration
  */
 export interface PostCompactionTrackerConfig {
-  sessionId: string;
-  epicId: string;
-  onEvent: (event: CompactionEvent) => void;
-  maxCalls?: number;
+	sessionId: string;
+	epicId: string;
+	onEvent: (event: CompactionEvent) => void;
+	maxCalls?: number;
 }
 
 /**
  * Post-compaction tracker instance
  */
 export interface PostCompactionTracker {
-  trackToolCall(event: ToolCallEvent): void;
-  isTracking(): boolean;
+	trackToolCall(event: ToolCallEvent): void;
+	isTracking(): boolean;
 }
 
 // ============================================================================
@@ -117,10 +117,10 @@ export const DEFAULT_MAX_TRACKED_CALLS = 20;
  * that the coordinator mandate wasn't preserved in continuation prompt.
  */
 const FORBIDDEN_COORDINATOR_TOOLS: Record<string, string> = {
-  edit: "Coordinators NEVER edit files - spawn worker instead",
-  write: "Coordinators NEVER write files - spawn worker instead",
-  swarmmail_reserve: "Coordinators NEVER reserve files - workers reserve files",
-  agentmail_reserve: "Coordinators NEVER reserve files - workers reserve files",
+	edit: "Coordinators NEVER edit files - spawn worker instead",
+	write: "Coordinators NEVER write files - spawn worker instead",
+	swarmmail_reserve: "Coordinators NEVER reserve files - workers reserve files",
+	agentmail_reserve: "Coordinators NEVER reserve files - workers reserve files",
 };
 
 /**
@@ -139,14 +139,14 @@ const FORBIDDEN_COORDINATOR_TOOLS: Record<string, string> = {
  * ```
  */
 export function isCoordinatorViolation(tool: string): {
-  isViolation: boolean;
-  reason?: string;
+	isViolation: boolean;
+	reason?: string;
 } {
-  const reason = FORBIDDEN_COORDINATOR_TOOLS[tool];
-  return {
-    isViolation: !!reason,
-    reason,
-  };
+	const reason = FORBIDDEN_COORDINATOR_TOOLS[tool];
+	return {
+		isViolation: !!reason,
+		reason,
+	};
 }
 
 // ============================================================================
@@ -160,7 +160,7 @@ export function isCoordinatorViolation(tool: string): {
  * ```typescript
  * const tracker = createPostCompactionTracker({
  *   sessionId: "session-123",
- *   epicId: "bd-epic-456",
+ *   epicId: "cell-epic-456",
  *   onEvent: (event) => captureCompactionEvent(event),
  *   maxCalls: 20
  * });
@@ -174,64 +174,64 @@ export function isCoordinatorViolation(tool: string): {
  * ```
  */
 export function createPostCompactionTracker(
-  config: PostCompactionTrackerConfig,
+	config: PostCompactionTrackerConfig,
 ): PostCompactionTracker {
-  const {
-    sessionId,
-    epicId,
-    onEvent,
-    maxCalls = DEFAULT_MAX_TRACKED_CALLS,
-  } = config;
+	const {
+		sessionId,
+		epicId,
+		onEvent,
+		maxCalls = DEFAULT_MAX_TRACKED_CALLS,
+	} = config;
 
-  let callCount = 0;
-  let resumptionEmitted = false;
+	let callCount = 0;
+	let resumptionEmitted = false;
 
-  return {
-    trackToolCall(event: ToolCallEvent): void {
-      // Stop tracking after max calls reached
-      if (callCount >= maxCalls) {
-        return;
-      }
+	return {
+		trackToolCall(event: ToolCallEvent): void {
+			// Stop tracking after max calls reached
+			if (callCount >= maxCalls) {
+				return;
+			}
 
-      // Emit resumption_started on first call
-      if (!resumptionEmitted) {
-        onEvent({
-          session_id: sessionId,
-          epic_id: epicId,
-          compaction_type: "resumption_started",
-          payload: {
-            session_id: sessionId,
-            epic_id: epicId,
-            timestamp: event.timestamp,
-          },
-        });
-        resumptionEmitted = true;
-      }
+			// Emit resumption_started on first call
+			if (!resumptionEmitted) {
+				onEvent({
+					session_id: sessionId,
+					epic_id: epicId,
+					compaction_type: "resumption_started",
+					payload: {
+						session_id: sessionId,
+						epic_id: epicId,
+						timestamp: event.timestamp,
+					},
+				});
+				resumptionEmitted = true;
+			}
 
-      // Increment before emitting so call_number is 1-based
-      callCount++;
+			// Increment before emitting so call_number is 1-based
+			callCount++;
 
-      // Check for coordinator violations
-      const violation = isCoordinatorViolation(event.tool);
+			// Check for coordinator violations
+			const violation = isCoordinatorViolation(event.tool);
 
-      // Emit tool_call_tracked event
-      onEvent({
-        session_id: sessionId,
-        epic_id: epicId,
-        compaction_type: "tool_call_tracked",
-        payload: {
-          tool: event.tool,
-          args: event.args,
-          call_number: callCount,
-          is_coordinator_violation: violation.isViolation,
-          violation_reason: violation.reason,
-          timestamp: event.timestamp,
-        },
-      });
-    },
+			// Emit tool_call_tracked event
+			onEvent({
+				session_id: sessionId,
+				epic_id: epicId,
+				compaction_type: "tool_call_tracked",
+				payload: {
+					tool: event.tool,
+					args: event.args,
+					call_number: callCount,
+					is_coordinator_violation: violation.isViolation,
+					violation_reason: violation.reason,
+					timestamp: event.timestamp,
+				},
+			});
+		},
 
-    isTracking(): boolean {
-      return callCount < maxCalls;
-    },
-  };
+		isTracking(): boolean {
+			return callCount < maxCalls;
+		},
+	};
 }

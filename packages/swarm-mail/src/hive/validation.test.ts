@@ -136,7 +136,7 @@ describe("validateCreatecell", () => {
 			title: "Subtask",
 			type: "task",
 			priority: 2,
-			parent_id: "bd-abc-123",
+			parent_id: "cell-abc-123",
 		});
 
 		expect(result.valid).toBe(true);

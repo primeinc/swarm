@@ -8,6 +8,8 @@
  * - HiveAdapter: Low-level event sourcing operations
  * - operations.ts: High-level validated CRUD (THIS FILE)
  * - Plugin tools: Type-safe Zod-validated wrappers
+ *
+ * @module hive/operations
  */
 
 import type {
@@ -18,8 +20,8 @@ import type {
 import {
 	type CreateCellOptions,
 	type UpdateCellOptions,
-	validateCreatecell,
-	validateUpdatecell,
+	validateCreateCell,
+	validateUpdateCell,
 } from "./validation.js";
 
 /**
@@ -33,7 +35,7 @@ export async function createCell(
 	options: CreateCellOptions,
 ): Promise<Cell> {
 	// Validate options
-	const validation = validateCreatecell(options);
+	const validation = validateCreateCell(options);
 	if (!validation.valid) {
 		throw new Error(validation.errors.join(", "));
 	}
@@ -75,7 +77,7 @@ export async function updateCell(
 	updates: UpdateCellOptions,
 ): Promise<Cell> {
 	// Validate updates
-	const validation = validateUpdatecell(updates);
+	const validation = validateUpdateCell(updates);
 	if (!validation.valid) {
 		throw new Error(validation.errors.join(", "));
 	}
@@ -140,22 +142,22 @@ export async function deleteCell(
  *
  * Simple text search across cell titles with optional filters.
  */
-export async function searchcells(
+export async function searchCells(
 	adapter: HiveAdapter,
 	projectKey: string,
 	query: string,
 	filter?: QueryCellsOptions,
 ): Promise<Cell[]> {
 	// Get all cells matching filter
-	const allcells = await adapter.queryCells(projectKey, filter);
+	const allCells = await adapter.queryCells(projectKey, filter);
 
 	// Filter by query string if provided
 	if (!query || query.trim().length === 0) {
-		return allcells;
+		return allCells;
 	}
 
 	const lowerQuery = query.toLowerCase();
-	return allcells.filter(
+	return allCells.filter(
 		(cell) =>
 			cell.title.toLowerCase().includes(lowerQuery) ||
 			cell.description?.toLowerCase().includes(lowerQuery),

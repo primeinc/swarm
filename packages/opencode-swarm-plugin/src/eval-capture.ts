@@ -710,12 +710,12 @@ export async function captureCoordinatorEvent(
  * // Capture detection complete
  * captureCompactionEvent({
  *   session_id: "session-123",
- *   epic_id: "bd-456",
+ *   epic_id: "cell-456",
  *   compaction_type: "detection_complete",
  *   payload: {
  *     confidence: "high",
  *     context_type: "full",
- *     epic_id: "bd-456",
+ *     epic_id: "cell-456",
  *   },
  * });
  *
@@ -723,7 +723,7 @@ export async function captureCoordinatorEvent(
  * // Capture prompt generated (with full content for eval)
  * captureCompactionEvent({
  *   session_id: "session-123",
- *   epic_id: "bd-456",
+ *   epic_id: "cell-456",
  *   compaction_type: "prompt_generated",
  *   payload: {
  *     prompt_length: 5000,

@@ -391,6 +391,33 @@ export async function createLibSQLStreamsSchema(
   `);
 
 	// ========================================================================
+	// Deferred Table (DurableDeferred)
+	// ========================================================================
+	await db.exec(`
+    CREATE TABLE IF NOT EXISTS deferred (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      url TEXT NOT NULL UNIQUE,
+      resolved INTEGER NOT NULL DEFAULT 0,
+      value TEXT, -- JSON string
+      error TEXT,
+      expires_at INTEGER NOT NULL,
+      created_at INTEGER NOT NULL
+    )
+  `);
+
+	await db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_deferred_url ON deferred(url)
+  `);
+
+	await db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_deferred_expires ON deferred(expires_at)
+  `);
+
+	await db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_deferred_resolved ON deferred(resolved)
+  `);
+
+	// ========================================================================
 	// Entity Links Table (decision-entity relationships)
 	// ========================================================================
 	// IMPORTANT: This table structure MUST match db/schema/streams.ts (entityLinksTable)

@@ -1,10 +1,11 @@
 /**
- * Tests for cells query functions
+ * Tests for Hive query functions
  *
- * @module cells/queries.test
+ * @module hive/queries.test
  */
 
 import { beforeEach, describe, expect, test } from "bun:test";
+
 import { createTestLibSQLDb } from "../test-libsql.js";
 import type { DatabaseAdapter } from "../types/database.js";
 import type { HiveAdapter } from "../types/hive-adapter.js";
@@ -71,7 +72,7 @@ describe("cells/queries", () => {
 		});
 
 		test("includes in_progress cells by default", async () => {
-			const opencell = await cells.createCell(projectKey, {
+			const openCell = await cells.createCell(projectKey, {
 				title: "Open task",
 				type: "task",
 				priority: 2,
@@ -87,7 +88,7 @@ describe("cells/queries", () => {
 			const ready = await getReadyWork(cells, projectKey);
 			expect(ready).toHaveLength(2);
 			expect(ready.map((b) => b.id).sort()).toEqual(
-				[opencell.id, inProgress.id].sort(),
+				[openCell.id, inProgress.id].sort(),
 			);
 		});
 

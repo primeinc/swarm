@@ -5,7 +5,7 @@
  *
  * ## Context
  * The .hive/swarm-mail.db contains 519 historical issues from Dec 7-17 2025 that are NOT
- * in the global database. These have bd-lf2p4u-* IDs and need to be migrated to preserve
+ * in the global database. These have cell-lf2p4u-* IDs and need to be migrated to preserve
  * project history.
  *
  * ## Schema Differences
@@ -30,7 +30,7 @@
  *
  * // Transform a single issue
  * const legacyIssue = {
- *   id: "bd-lf2p4u-abc123",
+ *   id: "cell-lf2p4u-abc123",
  *   title: "Fix auth bug",
  *   type: "bug",
  *   status: "closed",
@@ -46,14 +46,14 @@
  * // Transform an event
  * const legacyEvent = {
  *   id: 1,
- *   issue_id: "bd-lf2p4u-abc123",
+ *   issue_id: "cell-lf2p4u-abc123",
  *   event_type: "status_changed",
  *   payload: JSON.stringify({ old: "open", new: "closed" }),
  *   created_at: "2025-12-15T11:00:00.000Z",
  * };
  *
  * const newEvent = transformEvent(legacyEvent);
- * // newEvent.cell_id is "bd-lf2p4u-abc123" (note: cell_id, not cell_id)
+ * // newEvent.cell_id is "cell-lf2p4u-abc123" (note: cell_id, not cell_id)
  * // newEvent.created_at is epoch milliseconds
  * ```
  *
@@ -80,8 +80,8 @@
  */
 
 import type {
-	Newcell,
-	NewcellDependency,
+	NewCell,
+	NewCellDependency,
 	NewCellEvent,
 } from "../db/schema/hive.js";
 
@@ -89,7 +89,7 @@ import type {
  * Legacy issue schema (from .hive/swarm-mail.db)
  */
 export interface LegacyIssue {
-	id: string; // bd-lf2p4u-* format
+	id: string; // cell-lf2p4u-* format
 	title: string;
 	description: string | null;
 	type: "task" | "bug" | "feature" | "epic" | "chore";
@@ -140,7 +140,7 @@ function iso8601ToEpochMs(iso8601: string): number {
  * - Converts ISO8601 timestamps to epoch milliseconds
  * - Adds project_key (from project path)
  * - Adds created_by = "HistoricalImport"
- * - Preserves original ID (bd-lf2p4u-* format)
+ * - Preserves original ID (cell-lf2p4u-* format)
  *
  * @param issue - Legacy issue record
  * @param projectPath - Project path to use as project_key
@@ -149,7 +149,7 @@ function iso8601ToEpochMs(iso8601: string): number {
 export function transformIssue(
 	issue: LegacyIssue,
 	projectPath: string,
-): Newcell {
+): NewCell {
 	return {
 		id: issue.id,
 		project_key: projectPath,
@@ -205,7 +205,7 @@ export function transformEvent(
  * @param dep - Legacy dependency record
  * @returns Transformed cell dependency ready for insertion
  */
-export function transformDependency(dep: LegacyDependency): NewcellDependency {
+export function transformDependency(dep: LegacyDependency): NewCellDependency {
 	return {
 		cell_id: dep.issue_id, // Map issue_id → cell_id
 		depends_on_id: dep.depends_on_id,

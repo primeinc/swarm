@@ -1,5 +1,5 @@
 /**
- * cell Validation - Port of steveyegge/cells internal/validation/cell.go
+ * Cell Validation - Port of steveyegge/cells internal/validation/cell.go
  *
  * Implements validation rules from steveyegge/cells internal/types/types.go Validate() method.
  *
@@ -52,7 +52,7 @@ export interface UpdateCellOptions {
  * @param options - cell creation options
  * @returns Validation result with errors if invalid
  */
-export function validateCreatecell(
+export function validateCreateCell(
 	options: CreateCellOptions,
 ): ValidationResult {
 	const errors: string[] = [];
@@ -97,7 +97,7 @@ export function validateCreatecell(
  * @param options - cell update options
  * @returns Validation result with errors if invalid
  */
-export function validateUpdatecell(
+export function validateUpdateCell(
 	options: UpdateCellOptions,
 ): ValidationResult {
 	const errors: string[] = [];

@@ -79,7 +79,7 @@ describe("Compaction Threshold Detection", () => {
 				getHiveAdapter: async () => ({
 					queryCells: async () => [
 						{
-							id: "bd-epic-123",
+							id: "cell-epic-123",
 							title: "Epic",
 							type: "epic",
 							status: "in_progress",
@@ -87,11 +87,11 @@ describe("Compaction Threshold Detection", () => {
 							updated_at: Date.now(),
 						},
 						{
-							id: "bd-epic-123.1",
+							id: "cell-epic-123.1",
 							title: "Single subtask",
 							type: "task",
 							status: "open",
-							parent_id: "bd-epic-123",
+							parent_id: "cell-epic-123",
 							updated_at: Date.now(),
 						},
 					],
@@ -109,7 +109,7 @@ describe("Compaction Threshold Detection", () => {
 
 			// Should inject context with just 1 subtask
 			expect(output.context.length).toBeGreaterThan(0);
-			expect(output.context[0]).toContain("bd-epic-123");
+			expect(output.context[0]).toContain("cell-epic-123");
 		});
 
 		it("detects swarm from SINGLE agent registration (was: required activity)", async () => {
@@ -152,7 +152,7 @@ describe("Compaction Threshold Detection", () => {
 				getHiveAdapter: async () => ({
 					queryCells: async () => [
 						{
-							id: "bd-task-1",
+							id: "cell-task-1",
 							title: "Recent task",
 							type: "task",
 							status: "open",
@@ -196,7 +196,7 @@ describe("Compaction Threshold Detection", () => {
 										state: {
 											status: "completed",
 											input: {
-												cell_id: "bd-123.1",
+												cell_id: "cell-123.1",
 												epic_id: "epic-123",
 												subtask_title: "Work",
 											},
@@ -295,7 +295,7 @@ describe("Compaction Threshold Detection", () => {
 				getHiveAdapter: async () => ({
 					queryCells: async () => [
 						{
-							id: "bd-epic-1",
+							id: "cell-epic-1",
 							type: "epic",
 							status: "in_progress",
 							parent_id: null,
@@ -303,11 +303,11 @@ describe("Compaction Threshold Detection", () => {
 						},
 						// 5 open subtasks
 						...Array.from({ length: 5 }, (_, i) => ({
-							id: `bd-epic-1.${i + 1}`,
+							id: `cell-epic-1.${i + 1}`,
 							title: `Subtask ${i + 1}`,
 							type: "task" as const,
 							status: "open" as const,
-							parent_id: "bd-epic-1",
+							parent_id: "cell-epic-1",
 							updated_at: Date.now(),
 						})),
 					],
@@ -356,7 +356,7 @@ describe("Compaction Threshold Detection", () => {
 				getHiveAdapter: async () => ({
 					queryCells: async () => [
 						{
-							id: "bd-epic-1",
+							id: "cell-epic-1",
 							type: "epic",
 							status: "in_progress",
 							parent_id: null,
@@ -408,7 +408,7 @@ describe("Compaction Threshold Detection", () => {
 										state: {
 											status: "completed",
 											input: { epic_title: "New Feature" },
-											output: JSON.stringify({ epic: { id: "bd-epic-new" } }),
+											output: JSON.stringify({ epic: { id: "cell-epic-new" } }),
 											time: { start: 1000, end: 2000 },
 										},
 									},
@@ -436,7 +436,7 @@ describe("Compaction Threshold Detection", () => {
 
 			// Should inject context (epic created = swarm starting)
 			expect(output.context.length).toBeGreaterThan(0);
-			expect(output.context[0]).toContain("bd-epic-new");
+			expect(output.context[0]).toContain("cell-epic-new");
 		});
 	});
 });

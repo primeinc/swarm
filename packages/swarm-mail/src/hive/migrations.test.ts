@@ -103,7 +103,7 @@ describe("Hive Migrations", () => {
 	});
 
 	describe("cellsViewMigration (v7)", () => {
-		test("creates cells view pointing to cells table", async () => {
+		test("creates hive view pointing to cells table", async () => {
 			// First apply v6
 			await db.exec(cellsMigration.up);
 
@@ -112,13 +112,13 @@ describe("Hive Migrations", () => {
 
 			// Verify view exists (SQLite uses sqlite_master for views too)
 			const result = await db.query<{ name: string }>(`
-        SELECT name FROM sqlite_master WHERE type='view' AND name='cells'
+        SELECT name FROM sqlite_master WHERE type='view' AND name='hive'
       `);
 			expect(result.rows.length).toBe(1);
-			expect(result.rows[0].name).toBe("cells");
+			expect(result.rows[0].name).toBe("hive");
 		});
 
-		test("cells view allows SELECT queries", async () => {
+		test("hive view allows SELECT queries", async () => {
 			await db.exec(cellsMigration.up);
 			await db.exec(cellsViewMigrationLibSQL.up);
 
@@ -129,7 +129,7 @@ describe("Hive Migrations", () => {
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       `,
 				[
-					"bd-test",
+					"cell-test",
 					"/test",
 					"task",
 					"open",
@@ -140,31 +140,31 @@ describe("Hive Migrations", () => {
 				],
 			);
 
-			// Query via cells view
+			// Query via hive view
 			const result = await db.query<{ id: string; title: string }>(
 				`
-        SELECT id, title FROM cells WHERE project_key = $1
+        SELECT id, title FROM hive WHERE project_key = $1
       `,
 				["/test"],
 			);
 
 			expect(result.rows).toHaveLength(1);
-			expect(result.rows[0].id).toBe("bd-test");
+			expect(result.rows[0].id).toBe("cell-test");
 			expect(result.rows[0].title).toBe("Test task");
 		});
 
-		test("cells view allows INSERT via INSTEAD OF trigger", async () => {
+		test("hive view allows INSERT via INSTEAD OF trigger", async () => {
 			await db.exec(cellsMigration.up);
 			await db.exec(cellsViewMigrationLibSQL.up);
 
-			// Insert via cells view
+			// Insert via hive view
 			await db.query(
 				`
-        INSERT INTO cells (id, project_key, type, status, title, priority, created_at, updated_at)
+        INSERT INTO hive (id, project_key, type, status, title, priority, created_at, updated_at)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       `,
 				[
-					"bd-via-view",
+					"cell-via-view",
 					"/test",
 					"bug",
 					"open",
@@ -180,7 +180,7 @@ describe("Hive Migrations", () => {
 				`
         SELECT id FROM cells WHERE id = $1
       `,
-				["bd-via-view"],
+				["cell-via-view"],
 			);
 
 			expect(result.rows).toHaveLength(1);
@@ -205,7 +205,7 @@ describe("Hive Migrations", () => {
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       `,
 				[
-					"bd-existing",
+					"cell-existing",
 					"/test",
 					"task",
 					"open",
@@ -231,7 +231,7 @@ describe("Hive Migrations", () => {
 				`
         SELECT id FROM cells WHERE id = $1
       `,
-				["bd-existing"],
+				["cell-existing"],
 			);
 
 			expect(result.rows).toHaveLength(1);
@@ -250,31 +250,35 @@ describe("Hive Migrations", () => {
 				);
 			}
 
-			// Verify both cells table and cells view exist
+			// Verify both cells table and hive view exist
 			const cellsExists = await db.query<{ name: string }>(`
         SELECT name FROM sqlite_master WHERE type='table' AND name='cells'
       `);
-			const cellsExists = await db.query<{ name: string }>(`
-        SELECT name FROM sqlite_master WHERE type='view' AND name='cells'
+			const hiveExists = await db.query<{ name: string }>(`
+        SELECT name FROM sqlite_master WHERE type='view' AND name='hive'
       `);
 
 			expect(cellsExists.rows.length).toBe(1);
-			expect(cellsExists.rows.length).toBe(1);
+			expect(hiveExists.rows.length).toBe(1);
 		});
 	});
 
 	describe("recovery scenarios", () => {
-		test("handles missing cells view gracefully", async () => {
+		test("handles missing hive view gracefully", async () => {
 			// Database has v6 but somehow missing v7
 			await db.exec(cellsMigration.up);
 
-			// Query cells should fail
-			await expect(db.query(`SELECT * FROM cells LIMIT 1`)).rejects.toThrow();
+			// Query cells should work (it's a table)
+			const resultTable = await db.query(`SELECT * FROM cells LIMIT 1`);
+			expect(resultTable.rows).toHaveLength(0);
+
+			// Query hive should fail (view doesn't exist yet)
+			await expect(db.query(`SELECT * FROM hive LIMIT 1`)).rejects.toThrow();
 
 			// After applying v7, it should work
 			await db.exec(cellsViewMigrationLibSQL.up);
 
-			const result = await db.query(`SELECT * FROM cells LIMIT 1`);
+			const result = await db.query(`SELECT * FROM hive LIMIT 1`);
 			expect(result.rows).toHaveLength(0); // Empty but works
 		});
 	});

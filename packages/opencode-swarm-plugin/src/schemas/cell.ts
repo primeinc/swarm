@@ -1,7 +1,7 @@
 /**
  * Cell schemas for type-safe cell operations
  *
- * These schemas validate all data from the `bd` CLI to ensure
+ * These schemas validate all data from the `swarm` CLI to ensure
  * type safety and catch malformed responses early.
  *
  * Cells are work items in the Hive (honeycomb metaphor).

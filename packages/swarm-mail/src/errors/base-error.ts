@@ -4,9 +4,9 @@
 export interface ErrorContext {
 	/** Agent name (e.g., "WiseStone") */
 	agent?: string;
-	/** Cell/cell ID (e.g., "bd-123") */
+	/** Cell/cell ID (e.g., "cell-123") */
 	cell_id?: string;
-	/** Epic ID (e.g., "bd-100") */
+	/** Epic ID (e.g., "cell-100") */
 	epic_id?: string;
 	/** Unix timestamp in milliseconds */
 	timestamp: number;

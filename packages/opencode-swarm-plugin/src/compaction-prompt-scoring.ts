@@ -7,7 +7,7 @@
  *
  * **Solution**: Score prompts on 5 dimensions that predict coordinator success:
  *
- * 1. **Epic ID Specificity (0.20)**: Real IDs (`mjkw...`) not placeholders (`<epic-id>`, `bd-xxx`)
+ * 1. **Epic ID Specificity (0.20)**: Real IDs (`mjkw...`) not placeholders (`<epic-id>`, `cell-xxx`)
  *    - Placeholders = coordinator can't check actual swarm status
  *
  * 2. **Actionability (0.20)**: Tool calls with real values (e.g., `swarm_status(epic_id='mjkw81rkq4c')`)
@@ -55,18 +55,17 @@ export interface ScorerResult {
 export const REAL_EPIC_ID = /mjkw[a-z0-9]{7,}/;
 
 /** Matches common placeholder patterns */
-export const PLACEHOLDERS = [
-	/<epic-id>/i,
-	/bd-xxx/,
-	/<path>/i,
-	/<project>/i,
-];
+export const PLACEHOLDERS = [/<epic-id>/i, /cell-xxx/, /<path>/i, /<project>/i];
 
 /** Matches ASCII box-drawing characters (for headers) */
 export const ASCII_BOX = /[┌┐└┘─│]{3,}/;
 
 /** Matches strong mandate language */
-export const STRONG_LANGUAGE = [/\bNEVER\b/, /\bALWAYS\b/, /\bNON-NEGOTIABLE\b/];
+export const STRONG_LANGUAGE = [
+	/\bNEVER\b/,
+	/\bALWAYS\b/,
+	/\bNON-NEGOTIABLE\b/,
+];
 
 // ====== Pure Scoring Functions ======
 
@@ -74,7 +73,7 @@ export const STRONG_LANGUAGE = [/\bNEVER\b/, /\bALWAYS\b/, /\bNON-NEGOTIABLE\b/]
  * Score epic ID specificity
  *
  * Validates that epic IDs are REAL, not placeholders.
- * Placeholders like <epic-id>, bd-xxx, <path> indicate
+ * Placeholders like <epic-id>, cell-xxx, <path> indicate
  * the prompt generator failed to inject actual values.
  *
  * @returns 1.0 if real IDs, 0.0 if placeholders found
@@ -266,8 +265,7 @@ export function scorePostCompactionDiscipline(
 	prompt: CompactionPrompt,
 ): ScorerResult {
 	// Extract first tool call (look for function-like patterns)
-	const toolCallPattern =
-		/\b(swarm_status|swarmmail_inbox|Edit|Write|Read)\b/i;
+	const toolCallPattern = /\b(swarm_status|swarmmail_inbox|Edit|Write|Read)\b/i;
 	const match = prompt.content.match(toolCallPattern);
 
 	if (!match) {

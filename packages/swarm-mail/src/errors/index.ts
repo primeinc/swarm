@@ -14,11 +14,11 @@
  *
  * throw new ReservationError("File already reserved", {
  *   agent: "WiseStone",
- *   cell_id: "bd-123",
+ *   cell_id: "cell-123",
  *   current_holder: {
  *     agent: "OtherAgent",
  *     expires_at: Date.now() + 3600000,
- *     reason: "Working on bd-456"
+ *     reason: "Working on cell-456"
  *   },
  *   suggestions: ["Wait for expiry", "Request access via swarm mail"]
  * });

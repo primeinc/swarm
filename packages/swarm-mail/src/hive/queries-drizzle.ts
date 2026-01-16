@@ -1,5 +1,5 @@
 /**
- * Drizzle ORM implementations for hive query functions
+ * Drizzle ORM implementations for Hive query functions
  *
  * This file contains Drizzle-based implementations of simple queries from queries.ts.
  * Complex queries with CTEs, cache table joins, and JSON operators remain as raw SQL.

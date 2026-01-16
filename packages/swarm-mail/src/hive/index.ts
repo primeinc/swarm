@@ -1,5 +1,5 @@
 /**
- * cells Module - Event-sourced issue tracking
+ * Hive Module - Event-sourced issue tracking
  *
  * Exports:
  * - HiveAdapter interface and types
@@ -8,11 +8,21 @@
  * - Store operations (append, read, replay)
  * - Event type definitions
  *
- * @module cells
+ * @module hive
  */
 
 // Types
 export type {
+	Cell,
+	CellAdapter,
+	CellComment,
+	CellDependency,
+	CellLabel,
+	CellStatus,
+	CellType,
+	CommentAdapter,
+	CreateCellOptions,
+	CreatecellOptions,
 	// Backward compatibility aliases
 	cell,
 	cellAdapter,
@@ -24,16 +34,6 @@ export type {
 	cellsAdapterFactory,
 	cellsSchemaAdapter,
 	cellType,
-	Cell,
-	CellAdapter,
-	CellComment,
-	CellDependency,
-	CellLabel,
-	CellStatus,
-	CellType,
-	CommentAdapter,
-	CreatecellOptions,
-	CreateCellOptions,
 	DependencyAdapter,
 	DependencyRelationship,
 	EpicAdapter,
@@ -42,10 +42,10 @@ export type {
 	HiveSchemaAdapter,
 	LabelAdapter,
 	QueryAdapter,
-	QuerycellsOptions,
 	QueryCellsOptions,
-	UpdatecellOptions,
+	QuerycellsOptions,
 	UpdateCellOptions,
+	UpdatecellOptions,
 } from "../types/hive-adapter.js";
 // Adapter factory
 // Backward compatibility alias
@@ -63,7 +63,7 @@ export {
 	getOpenBlockers,
 	invalidateBlockedCache,
 	rebuildAllBlockedCaches,
-	rebuildcellBlockedCache,
+	rebuildCellBlockedCache,
 	wouldCreateCycle,
 } from "./dependencies.js";
 // Event types
@@ -101,7 +101,7 @@ export {
 	type CellExport,
 	computeContentHash,
 	type ExportOptions,
-	exportDirtycells,
+	exportDirtyCells,
 	exportToJSONL,
 	type ImportOptions,
 	type ImportResult,
@@ -138,8 +138,8 @@ export {
 } from "./migrations.js";
 // Projections
 export {
-	clearAllDirtycells,
-	clearDirtycell,
+	clearAllDirtyCells,
+	clearDirtyCell,
 	getBlockedCells,
 	getBlockers,
 	getCell,
@@ -151,7 +151,7 @@ export {
 	getLabels,
 	getNextReadyCell,
 	isBlocked,
-	markcellDirty,
+	markCellDirty,
 	queryCells,
 	updateProjections,
 } from "./projections.js";

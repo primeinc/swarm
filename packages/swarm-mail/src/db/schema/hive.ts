@@ -181,7 +181,7 @@ export const cellDependencies = sqliteTable(
  * Caches which cells are blocked and what blocks them.
  * Updated by projections when dependencies change.
  */
-export const blockedcellsCache = sqliteTable(
+export const blockedCellsCache = sqliteTable(
 	"blocked_cells_cache",
 	{
 		cell_id: text("cell_id")
@@ -202,7 +202,7 @@ export const blockedcellsCache = sqliteTable(
  * Marks cells that have changed and need to be exported to .hive/issues.jsonl.
  * Cleared after successful export.
  */
-export const dirtycells = sqliteTable(
+export const dirtyCells = sqliteTable(
 	"dirty_cells",
 	{
 		cell_id: text("cell_id")
@@ -229,25 +229,17 @@ export const schemaVersion = sqliteTable("schema_version", {
 /**
  * Type exports for type-safe inserts/selects
  */
-export type cell = typeof cells.$inferSelect;
-export type Newcell = typeof cells.$inferInsert;
-export type Cell = typeof cells.$inferSelect; // Alias for backward compatibility
-export type NewCell = typeof cells.$inferInsert; // Alias for backward compatibility
+export type Cell = typeof cells.$inferSelect;
+export type NewCell = typeof cells.$inferInsert;
 export type CellEvent = typeof cellEvents.$inferSelect;
 export type NewCellEvent = typeof cellEvents.$inferInsert;
-export type cellLabel = typeof cellLabels.$inferSelect;
-export type NewcellLabel = typeof cellLabels.$inferInsert;
-export type CellLabel = typeof cellLabels.$inferSelect; // Alias
-export type NewCellLabel = typeof cellLabels.$inferInsert; // Alias
-export type cellComment = typeof cellComments.$inferSelect;
-export type NewcellComment = typeof cellComments.$inferInsert;
-export type CellComment = typeof cellComments.$inferSelect; // Alias
-export type NewCellComment = typeof cellComments.$inferInsert; // Alias
-export type cellDependency = typeof cellDependencies.$inferSelect;
-export type NewcellDependency = typeof cellDependencies.$inferInsert;
-export type CellDependency = typeof cellDependencies.$inferSelect; // Alias
-export type NewCellDependency = typeof cellDependencies.$inferInsert; // Alias
-export type BlockedcellCache = typeof blockedcellsCache.$inferSelect;
-export type NewBlockedcellCache = typeof blockedcellsCache.$inferInsert;
-export type Dirtycell = typeof dirtycells.$inferSelect;
-export type NewDirtycell = typeof dirtycells.$inferInsert;
+export type CellLabel = typeof cellLabels.$inferSelect;
+export type NewCellLabel = typeof cellLabels.$inferInsert;
+export type CellComment = typeof cellComments.$inferSelect;
+export type NewCellComment = typeof cellComments.$inferInsert;
+export type CellDependency = typeof cellDependencies.$inferSelect;
+export type NewCellDependency = typeof cellDependencies.$inferInsert;
+export type BlockedCellCache = typeof blockedCellsCache.$inferSelect;
+export type NewBlockedCellCache = typeof blockedCellsCache.$inferInsert;
+export type DirtyCell = typeof dirtyCells.$inferSelect;
+export type NewDirtyCell = typeof dirtyCells.$inferInsert;

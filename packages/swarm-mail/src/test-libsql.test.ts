@@ -78,11 +78,11 @@ describe("convertPlaceholders", () => {
 	test("converts PostgreSQL $N to SQLite ?", () => {
 		const result = convertPlaceholders(
 			"SELECT * FROM cells WHERE id = $1 AND status = $2",
-			["bd-123", "open"],
+			["cell-123", "open"],
 		);
 
 		expect(result.sql).toBe("SELECT * FROM cells WHERE id = ? AND status = ?");
-		expect(result.params).toEqual(["bd-123", "open"]);
+		expect(result.params).toEqual(["cell-123", "open"]);
 	});
 
 	test("expands params for reused placeholders", () => {
@@ -171,17 +171,17 @@ describe("createTestDatabaseAdapter", () => {
 	test("auto-converts $N params in queries", async () => {
 		const client = createClient({ url: ":memory:" });
 		await client.execute("CREATE TABLE test (id TEXT, status TEXT)");
-		await client.execute("INSERT INTO test VALUES ('bd-123', 'open')");
+		await client.execute("INSERT INTO test VALUES ('cell-123', 'open')");
 
 		const adapter = createTestDatabaseAdapter(client);
 
 		// PostgreSQL syntax - should convert automatically
 		const result = await adapter.query("SELECT * FROM test WHERE id = $1", [
-			"bd-123",
+			"cell-123",
 		]);
 
 		expect(result.rows).toHaveLength(1);
-		expect(result.rows[0].id).toBe("bd-123");
+		expect(result.rows[0].id).toBe("cell-123");
 		expect(result.rows[0].status).toBe("open");
 
 		await adapter.close();

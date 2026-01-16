@@ -9,7 +9,7 @@
 
 import { eq, sql } from "drizzle-orm";
 import type { SwarmDb } from "../db/client.js";
-import { cellDependencies, blockedcellsCache } from "../db/schema/hive.js";
+import { blockedCellsCache, cellDependencies } from "../db/schema/hive.js";
 
 const MAX_DEPENDENCY_DEPTH = 100;
 
@@ -34,11 +34,12 @@ export async function getOpenBlockersDrizzle(
        
        UNION
        
-       -- Transitive blockers
-       SELECT bd.depends_on_id, b.depth + 1
-       FROM cell_dependencies bd
-       JOIN blockers b ON bd.cell_id = b.blocker_id
-       WHERE bd.relationship = 'blocks' AND b.depth < ${MAX_DEPENDENCY_DEPTH}
+        -- Transitive blockers
+        SELECT cd.depends_on_id, b.depth + 1
+        FROM cell_dependencies cd
+        JOIN blockers b ON cd.cell_id = b.blocker_id
+        WHERE cd.relationship = 'blocks' AND b.depth < ${MAX_DEPENDENCY_DEPTH}
+
      )
      SELECT DISTINCT b.blocker_id
      FROM blockers b
@@ -55,7 +56,7 @@ export async function getOpenBlockersDrizzle(
  * Finds all open blockers and updates the cache.
  * If no open blockers, removes from cache (cell is unblocked).
  */
-export async function rebuildcellBlockedCacheDrizzle(
+export async function rebuildCellBlockedCacheDrizzle(
 	db: SwarmDb,
 	projectKey: string,
 	cellId: string,
@@ -67,14 +68,14 @@ export async function rebuildcellBlockedCacheDrizzle(
 		// SQLite: serialize array as JSON string
 		const blockerIdsJson = JSON.stringify(blockerIds);
 		await db
-			.insert(blockedcellsCache)
+			.insert(blockedCellsCache)
 			.values({
 				cell_id: cellId,
 				blocker_ids: blockerIdsJson,
 				updated_at: Date.now(),
 			})
 			.onConflictDoUpdate({
-				target: blockedcellsCache.cell_id,
+				target: blockedCellsCache.cell_id,
 				set: {
 					blocker_ids: blockerIdsJson,
 					updated_at: Date.now(),
@@ -83,8 +84,8 @@ export async function rebuildcellBlockedCacheDrizzle(
 	} else {
 		// No open blockers - remove from cache
 		await db
-			.delete(blockedcellsCache)
-			.where(eq(blockedcellsCache.cell_id, cellId));
+			.delete(blockedCellsCache)
+			.where(eq(blockedCellsCache.cell_id, cellId));
 	}
 }
 
@@ -98,7 +99,7 @@ export async function invalidateBlockedCacheDrizzle(
 	projectKey: string,
 	cellId: string,
 ): Promise<void> {
-	await rebuildcellBlockedCacheDrizzle(db, projectKey, cellId);
+	await rebuildCellBlockedCacheDrizzle(db, projectKey, cellId);
 
 	// Also invalidate dependents (cells that depend on this one)
 	const dependents = await db
@@ -107,6 +108,6 @@ export async function invalidateBlockedCacheDrizzle(
 		.where(eq(cellDependencies.depends_on_id, cellId));
 
 	for (const row of dependents) {
-		await rebuildcellBlockedCacheDrizzle(db, projectKey, row.cell_id);
+		await rebuildCellBlockedCacheDrizzle(db, projectKey, row.cell_id);
 	}
 }

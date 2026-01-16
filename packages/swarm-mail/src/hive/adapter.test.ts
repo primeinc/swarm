@@ -1,5 +1,5 @@
 /**
- * cells Adapter Tests
+ * Hive Adapter Tests
  *
  * Tests the HiveAdapter factory and its interface implementation.
  *
@@ -11,6 +11,8 @@
  * 5. Comment operations - add, update, delete comments
  * 6. Epic operations - add/remove children, closure eligibility
  * 7. Query helpers - ready cells, in-progress, blocked
+ *
+ * @module hive/adapter.test
  */
 
 import { beforeEach, describe, expect, test } from "bun:test";
@@ -19,7 +21,7 @@ import type { DatabaseAdapter } from "../types/database.js";
 import type { HiveAdapter } from "../types/hive-adapter.js";
 import { createHiveAdapter } from "./adapter.js";
 
-describe("cells Adapter", () => {
+describe("Hive Adapter", () => {
 	let db: DatabaseAdapter;
 	let adapter: HiveAdapter;
 	const projectKey = "/test/project";
@@ -487,7 +489,9 @@ describe("cells Adapter", () => {
 
 			// Use import.meta.dir to get the directory of this test file
 			// Then navigate up to the package root (src/hive -> src -> package root)
-			const testProjectPath = import.meta.dir.split("/").slice(0, -2).join("/");
+			// Normalize separators for cross-platform compatibility
+			const normalizedDir = import.meta.dir.replace(/\\/g, "/");
+			const testProjectPath = normalizedDir.split("/").slice(0, -2).join("/");
 			const testAdapter = createHiveAdapter(db, testProjectPath);
 
 			const cell = await testAdapter.createCell(testProjectPath, {
@@ -607,7 +611,7 @@ describe("cells Adapter", () => {
 			expect(testProjectPath).toContain("swarm-mail");
 		});
 
-		test("backward compatible - existing bd-* IDs still work", async () => {
+		test("backward compatible - existing cell-* IDs still work", async () => {
 			// Create a cell (will have new format with project-name prefix)
 			const cell1 = await adapter.createCell(projectKey, {
 				title: "New format cell",

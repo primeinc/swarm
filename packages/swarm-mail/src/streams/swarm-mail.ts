@@ -343,7 +343,7 @@ export async function sendSwarmMessage(
 		isNewThread = (threadCount[0]?.count ?? 0) === 0;
 	}
 
-	// Extract epic_id from thread_id if it matches pattern (e.g., "bd-123" or "mjn...")
+	// Extract epic_id from thread_id if it matches pattern (e.g., "cell-123" or "mjn...")
 	const epicId = threadId; // Assume thread_id IS the epic_id for swarm work
 
 	// Classify message type from subject

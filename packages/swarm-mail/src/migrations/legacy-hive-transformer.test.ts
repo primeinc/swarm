@@ -5,7 +5,7 @@
  *
  * ## Context
  * The .hive/swarm-mail.db contains 519 historical issues from Dec 7-17 2025 that are NOT
- * in the global database. These have bd-lf2p4u-* IDs and need to be migrated.
+ * in the global database. These have cell-lf2p4u-* IDs and need to be migrated.
  *
  * ## Key Schema Differences
  *
@@ -40,7 +40,7 @@ import {
 describe("transformIssue", () => {
 	it("should convert ISO8601 timestamps to epoch milliseconds", () => {
 		const legacyIssue: LegacyIssue = {
-			id: "bd-lf2p4u-abc123",
+			id: "cell-lf2p4u-abc123",
 			title: "Test Issue",
 			description: "Test description",
 			type: "task",
@@ -70,7 +70,7 @@ describe("transformIssue", () => {
 
 	it("should add project_key from project path", () => {
 		const legacyIssue: LegacyIssue = {
-			id: "bd-lf2p4u-abc123",
+			id: "cell-lf2p4u-abc123",
 			title: "Test Issue",
 			description: null,
 			type: "task",
@@ -93,9 +93,9 @@ describe("transformIssue", () => {
 		);
 	});
 
-	it("should preserve original ID with bd-lf2p4u-* format", () => {
+	it("should preserve original ID with cell-lf2p4u-* format", () => {
 		const legacyIssue: LegacyIssue = {
-			id: "bd-lf2p4u-xyz789",
+			id: "cell-lf2p4u-xyz789",
 			title: "Test Issue",
 			description: null,
 			type: "bug",
@@ -113,12 +113,12 @@ describe("transformIssue", () => {
 			"/Users/joel/Code/joelhooks/opencode-swarm-plugin",
 		);
 
-		expect(result.id).toBe("bd-lf2p4u-xyz789");
+		expect(result.id).toBe("cell-lf2p4u-xyz789");
 	});
 
 	it("should convert closed_at timestamp when present", () => {
 		const legacyIssue: LegacyIssue = {
-			id: "bd-lf2p4u-closed1",
+			id: "cell-lf2p4u-closed1",
 			title: "Closed Issue",
 			description: null,
 			type: "task",
@@ -144,7 +144,7 @@ describe("transformIssue", () => {
 
 	it("should preserve parent_id for epic subtasks", () => {
 		const legacyIssue: LegacyIssue = {
-			id: "bd-lf2p4u-subtask1",
+			id: "cell-lf2p4u-subtask1",
 			title: "Subtask",
 			description: null,
 			type: "task",
@@ -152,7 +152,7 @@ describe("transformIssue", () => {
 			priority: 2,
 			created_at: "2025-12-15T10:30:00.000Z",
 			updated_at: "2025-12-15T10:30:00.000Z",
-			parent_id: "bd-lf2p4u-epic1",
+			parent_id: "cell-lf2p4u-epic1",
 			closed_at: null,
 			close_reason: null,
 		};
@@ -162,7 +162,7 @@ describe("transformIssue", () => {
 			"/Users/joel/Code/joelhooks/opencode-swarm-plugin",
 		);
 
-		expect(result.parent_id).toBe("bd-lf2p4u-epic1");
+		expect(result.parent_id).toBe("cell-lf2p4u-epic1");
 	});
 
 	it("should handle all valid issue types", () => {
@@ -176,7 +176,7 @@ describe("transformIssue", () => {
 
 		for (const type of types) {
 			const legacyIssue: LegacyIssue = {
-				id: `bd-lf2p4u-${type}1`,
+				id: `cell-lf2p4u-${type}1`,
 				title: `${type} Issue`,
 				description: null,
 				type,
@@ -207,7 +207,7 @@ describe("transformIssue", () => {
 
 		for (const status of statuses) {
 			const legacyIssue: LegacyIssue = {
-				id: `bd-lf2p4u-${status}1`,
+				id: `cell-lf2p4u-${status}1`,
 				title: `${status} Issue`,
 				description: null,
 				type: "task",
@@ -230,7 +230,7 @@ describe("transformIssue", () => {
 
 	it("should set created_by to 'HistoricalImport' for legacy data", () => {
 		const legacyIssue: LegacyIssue = {
-			id: "bd-lf2p4u-abc123",
+			id: "cell-lf2p4u-abc123",
 			title: "Test Issue",
 			description: null,
 			type: "task",
@@ -256,7 +256,7 @@ describe("transformEvent", () => {
 	it("should convert ISO8601 timestamp to epoch milliseconds", () => {
 		const legacyEvent: LegacyEvent = {
 			id: 1,
-			issue_id: "bd-lf2p4u-abc123",
+			issue_id: "cell-lf2p4u-abc123",
 			event_type: "created",
 			payload: JSON.stringify({ status: "open" }),
 			created_at: "2025-12-15T10:30:00.000Z",
@@ -272,7 +272,7 @@ describe("transformEvent", () => {
 	it("should map issue_id to cell_id", () => {
 		const legacyEvent: LegacyEvent = {
 			id: 1,
-			issue_id: "bd-lf2p4u-xyz789",
+			issue_id: "cell-lf2p4u-xyz789",
 			event_type: "status_changed",
 			payload: JSON.stringify({ old: "open", new: "in_progress" }),
 			created_at: "2025-12-15T10:30:00.000Z",
@@ -280,13 +280,13 @@ describe("transformEvent", () => {
 
 		const result = transformEvent(legacyEvent);
 
-		expect(result.cell_id).toBe("bd-lf2p4u-xyz789");
+		expect(result.cell_id).toBe("cell-lf2p4u-xyz789");
 	});
 
 	it("should preserve event_type", () => {
 		const legacyEvent: LegacyEvent = {
 			id: 1,
-			issue_id: "bd-lf2p4u-abc123",
+			issue_id: "cell-lf2p4u-abc123",
 			event_type: "priority_changed",
 			payload: JSON.stringify({ old: 2, new: 0 }),
 			created_at: "2025-12-15T10:30:00.000Z",
@@ -301,7 +301,7 @@ describe("transformEvent", () => {
 		const payload = { old: "open", new: "closed", reason: "Done" };
 		const legacyEvent: LegacyEvent = {
 			id: 1,
-			issue_id: "bd-lf2p4u-abc123",
+			issue_id: "cell-lf2p4u-abc123",
 			event_type: "status_changed",
 			payload: JSON.stringify(payload),
 			created_at: "2025-12-15T10:30:00.000Z",
@@ -316,7 +316,7 @@ describe("transformEvent", () => {
 	it("should preserve autoincrement ID", () => {
 		const legacyEvent: LegacyEvent = {
 			id: 42,
-			issue_id: "bd-lf2p4u-abc123",
+			issue_id: "cell-lf2p4u-abc123",
 			event_type: "created",
 			payload: "{}",
 			created_at: "2025-12-15T10:30:00.000Z",
@@ -331,22 +331,22 @@ describe("transformEvent", () => {
 describe("transformDependency", () => {
 	it("should map issue_id to cell_id", () => {
 		const legacyDep: LegacyDependency = {
-			issue_id: "bd-lf2p4u-blocked1",
-			depends_on_id: "bd-lf2p4u-blocker1",
+			issue_id: "cell-lf2p4u-blocked1",
+			depends_on_id: "cell-lf2p4u-blocker1",
 			relationship: "blocks",
 			created_at: "2025-12-15T10:30:00.000Z",
 		};
 
 		const result = transformDependency(legacyDep);
 
-		expect(result.cell_id).toBe("bd-lf2p4u-blocked1");
-		expect(result.depends_on_id).toBe("bd-lf2p4u-blocker1");
+		expect(result.cell_id).toBe("cell-lf2p4u-blocked1");
+		expect(result.depends_on_id).toBe("cell-lf2p4u-blocker1");
 	});
 
 	it("should convert created_at to epoch milliseconds", () => {
 		const legacyDep: LegacyDependency = {
-			issue_id: "bd-lf2p4u-blocked1",
-			depends_on_id: "bd-lf2p4u-blocker1",
+			issue_id: "cell-lf2p4u-blocked1",
+			depends_on_id: "cell-lf2p4u-blocker1",
 			relationship: "blocks",
 			created_at: "2025-12-15T10:30:00.000Z",
 		};
@@ -360,8 +360,8 @@ describe("transformDependency", () => {
 
 	it("should preserve relationship type", () => {
 		const legacyDep: LegacyDependency = {
-			issue_id: "bd-lf2p4u-task1",
-			depends_on_id: "bd-lf2p4u-task2",
+			issue_id: "cell-lf2p4u-task1",
+			depends_on_id: "cell-lf2p4u-task2",
 			relationship: "related",
 			created_at: "2025-12-15T10:30:00.000Z",
 		};
@@ -373,8 +373,8 @@ describe("transformDependency", () => {
 
 	it("should set created_by to 'HistoricalImport'", () => {
 		const legacyDep: LegacyDependency = {
-			issue_id: "bd-lf2p4u-blocked1",
-			depends_on_id: "bd-lf2p4u-blocker1",
+			issue_id: "cell-lf2p4u-blocked1",
+			depends_on_id: "cell-lf2p4u-blocker1",
 			relationship: "blocks",
 			created_at: "2025-12-15T10:30:00.000Z",
 		};

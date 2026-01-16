@@ -25,7 +25,7 @@
  * - Indexes for common query patterns
  * - CHECK constraints for data integrity
  *
- * @module cells/migrations
+ * @module hive/migrations
  */
 
 import type { Migration } from "../streams/migrations.js";
@@ -120,7 +120,7 @@ export const cellsMigration: Migration = {
     CREATE INDEX IF NOT EXISTS idx_cell_comments_created ON cell_comments(created_at);
 
     -- ========================================================================
-    -- Blocked cells Cache
+    -- Blocked Cells Cache
     -- ========================================================================
     -- Materialized view for fast blocked queries
     -- Updated by projections when dependencies change
@@ -133,7 +133,7 @@ export const cellsMigration: Migration = {
     CREATE INDEX IF NOT EXISTS idx_blocked_cells_updated ON blocked_cells_cache(updated_at);
 
     -- ========================================================================
-    -- Dirty cells Table
+    -- Dirty Cells Table
     -- ========================================================================
     -- Tracks cells that need JSONL export (incremental sync)
     CREATE TABLE IF NOT EXISTS dirty_cells (
@@ -167,13 +167,13 @@ export const cellsViewMigration: Migration = {
 	description: "Add cells view for cells→hive rename compatibility",
 	up: `
     -- ========================================================================
-    -- Cells View (alias for cells table)
+    -- Hive View (alias for cells table)
     -- ========================================================================
-    -- This view allows code to reference "cells" while data lives in "cells"
-    CREATE OR REPLACE VIEW cells AS SELECT * FROM cells;
+    -- This view allows code to reference "hive" while data lives in "cells"
+    CREATE OR REPLACE VIEW hive AS SELECT * FROM cells;
 
     -- INSTEAD OF INSERT trigger
-    CREATE OR REPLACE FUNCTION cells_insert_trigger()
+    CREATE OR REPLACE FUNCTION hive_insert_trigger()
     RETURNS TRIGGER AS $$
     BEGIN
       INSERT INTO cells VALUES (NEW.*);
@@ -181,14 +181,14 @@ export const cellsViewMigration: Migration = {
     END;
     $$ LANGUAGE plpgsql;
 
-    DROP TRIGGER IF EXISTS cells_insert ON cells;
-    CREATE TRIGGER cells_insert
-      INSTEAD OF INSERT ON cells
+    DROP TRIGGER IF EXISTS hive_insert ON cells;
+    CREATE TRIGGER hive_insert
+      INSTEAD OF INSERT ON hive
       FOR EACH ROW
-      EXECUTE FUNCTION cells_insert_trigger();
+      EXECUTE FUNCTION hive_insert_trigger();
 
     -- INSTEAD OF UPDATE trigger
-    CREATE OR REPLACE FUNCTION cells_update_trigger()
+    CREATE OR REPLACE FUNCTION hive_update_trigger()
     RETURNS TRIGGER AS $$
     BEGIN
       UPDATE cells SET
@@ -213,14 +213,14 @@ export const cellsViewMigration: Migration = {
     END;
     $$ LANGUAGE plpgsql;
 
-    DROP TRIGGER IF EXISTS cells_update ON cells;
-    CREATE TRIGGER cells_update
-      INSTEAD OF UPDATE ON cells
+    DROP TRIGGER IF EXISTS hive_update ON cells;
+    CREATE TRIGGER hive_update
+      INSTEAD OF UPDATE ON hive
       FOR EACH ROW
-      EXECUTE FUNCTION cells_update_trigger();
+      EXECUTE FUNCTION hive_update_trigger();
 
     -- INSTEAD OF DELETE trigger
-    CREATE OR REPLACE FUNCTION cells_delete_trigger()
+    CREATE OR REPLACE FUNCTION hive_delete_trigger()
     RETURNS TRIGGER AS $$
     BEGIN
       DELETE FROM cells WHERE id = OLD.id;
@@ -228,11 +228,11 @@ export const cellsViewMigration: Migration = {
     END;
     $$ LANGUAGE plpgsql;
 
-    DROP TRIGGER IF EXISTS cells_delete ON cells;
-    CREATE TRIGGER cells_delete
-      INSTEAD OF DELETE ON cells
+    DROP TRIGGER IF EXISTS hive_delete ON cells;
+    CREATE TRIGGER hive_delete
+      INSTEAD OF DELETE ON hive
       FOR EACH ROW
-      EXECUTE FUNCTION cells_delete_trigger();
+      EXECUTE FUNCTION hive_delete_trigger();
   `,
 	down: `
     DROP TRIGGER IF EXISTS cells_delete ON cells;
@@ -256,15 +256,15 @@ export const cellsViewMigrationLibSQL: Migration = {
 	description: "Add cells view for cells→hive rename compatibility (LibSQL)",
 	up: `
     -- ========================================================================
-    -- Cells View (alias for cells table) - LibSQL version
+    -- Hive View (alias for cells table) - LibSQL version
     -- ========================================================================
-    DROP VIEW IF EXISTS cells;
-    CREATE VIEW cells AS SELECT * FROM cells;
+    DROP VIEW IF EXISTS hive;
+    CREATE VIEW hive AS SELECT * FROM cells;
 
     -- INSTEAD OF INSERT trigger (inline, no stored procedure)
-    DROP TRIGGER IF EXISTS cells_insert;
-    CREATE TRIGGER cells_insert
-      INSTEAD OF INSERT ON cells
+    DROP TRIGGER IF EXISTS hive_insert;
+    CREATE TRIGGER hive_insert
+      INSTEAD OF INSERT ON hive
       FOR EACH ROW
     BEGIN
       INSERT INTO cells VALUES (
@@ -276,9 +276,9 @@ export const cellsViewMigrationLibSQL: Migration = {
     END;
 
     -- INSTEAD OF UPDATE trigger
-    DROP TRIGGER IF EXISTS cells_update;
-    CREATE TRIGGER cells_update
-      INSTEAD OF UPDATE ON cells
+    DROP TRIGGER IF EXISTS hive_update;
+    CREATE TRIGGER hive_update
+      INSTEAD OF UPDATE ON hive
       FOR EACH ROW
     BEGIN
       UPDATE cells SET
@@ -302,9 +302,44 @@ export const cellsViewMigrationLibSQL: Migration = {
     END;
 
     -- INSTEAD OF DELETE trigger
-    DROP TRIGGER IF EXISTS cells_delete;
-    CREATE TRIGGER cells_delete
-      INSTEAD OF DELETE ON cells
+    DROP TRIGGER IF EXISTS hive_delete;
+    CREATE TRIGGER hive_delete
+      INSTEAD OF DELETE ON hive
+      FOR EACH ROW
+    BEGIN
+      DELETE FROM cells WHERE id = OLD.id;
+    END;
+
+    -- INSTEAD OF UPDATE trigger
+    DROP TRIGGER IF EXISTS hive_update;
+    CREATE TRIGGER hive_update
+      INSTEAD OF UPDATE ON hive
+      FOR EACH ROW
+    BEGIN
+      UPDATE cells SET
+        project_key = NEW.project_key,
+        type = NEW.type,
+        status = NEW.status,
+        title = NEW.title,
+        description = NEW.description,
+        priority = NEW.priority,
+        parent_id = NEW.parent_id,
+        assignee = NEW.assignee,
+        created_at = NEW.created_at,
+        updated_at = NEW.updated_at,
+        closed_at = NEW.closed_at,
+        closed_reason = NEW.closed_reason,
+        deleted_at = NEW.deleted_at,
+        deleted_by = NEW.deleted_by,
+        delete_reason = NEW.delete_reason,
+        created_by = NEW.created_by
+      WHERE id = OLD.id;
+    END;
+
+    -- INSTEAD OF DELETE trigger
+    DROP TRIGGER IF EXISTS hive_delete;
+    CREATE TRIGGER hive_delete
+      INSTEAD OF DELETE ON hive
       FOR EACH ROW
     BEGIN
       DELETE FROM cells WHERE id = OLD.id;
@@ -410,7 +445,7 @@ export const cellsMigrationLibSQL: Migration = {
     CREATE INDEX IF NOT EXISTS idx_cell_comments_created ON cell_comments(created_at);
 
     -- ========================================================================
-    -- Blocked cells Cache
+    -- Blocked Cells Cache
     -- ========================================================================
     -- Materialized view for fast blocked queries
     -- Updated by projections when dependencies change
@@ -424,7 +459,7 @@ export const cellsMigrationLibSQL: Migration = {
     CREATE INDEX IF NOT EXISTS idx_blocked_cells_updated ON blocked_cells_cache(updated_at);
 
     -- ========================================================================
-    -- Dirty cells Table
+    -- Dirty Cells Table
     -- ========================================================================
     -- Tracks cells that need JSONL export (incremental sync)
     CREATE TABLE IF NOT EXISTS dirty_cells (

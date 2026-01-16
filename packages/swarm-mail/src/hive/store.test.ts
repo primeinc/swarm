@@ -57,7 +57,7 @@ describe("cell Event Store", () => {
 	test("appendCellEvent - appends cell_created event", async () => {
 		const event = createCellEvent("cell_created", {
 			project_key: projectKey,
-			cell_id: "bd-test-001",
+			cell_id: "cell-test-001",
 			title: "Test cell",
 			issue_type: "task",
 			priority: 2,
@@ -68,18 +68,18 @@ describe("cell Event Store", () => {
 		expect(result.id).toBeGreaterThan(0);
 		expect(result.sequence).toBeGreaterThan(0);
 		expect(result.type).toBe("cell_created");
-		expect(result.cell_id).toBe("bd-test-001");
+		expect(result.cell_id).toBe("cell-test-001");
 
 		// Verify event was persisted
 		const events = await readCellEvents({}, undefined, db);
 		expect(events).toHaveLength(1);
-		expect(events[0]?.cell_id).toBe("bd-test-001");
+		expect(events[0]?.cell_id).toBe("cell-test-001");
 	});
 
 	test("appendCellEvent - updates projection for cell_created", async () => {
 		const event = createCellEvent("cell_created", {
 			project_key: projectKey,
-			cell_id: "bd-test-002",
+			cell_id: "cell-test-002",
 			title: "Test Projection",
 			issue_type: "feature",
 			priority: 3,
@@ -88,7 +88,7 @@ describe("cell Event Store", () => {
 		await appendCellEvent(event, undefined, db);
 
 		// Check projection was updated
-		const cell = await getCell(db, projectKey, "bd-test-002");
+		const cell = await getCell(db, projectKey, "cell-test-002");
 		expect(cell).not.toBeNull();
 		expect(cell?.title).toBe("Test Projection");
 		expect(cell?.type).toBe("feature");
@@ -99,7 +99,7 @@ describe("cell Event Store", () => {
 		// Create cell first
 		const createEvent = createCellEvent("cell_created", {
 			project_key: projectKey,
-			cell_id: "bd-test-003",
+			cell_id: "cell-test-003",
 			title: "Original Title",
 			issue_type: "bug",
 			priority: 1,
@@ -109,7 +109,7 @@ describe("cell Event Store", () => {
 		// Update it
 		const updateEvent = createCellEvent("cell_updated", {
 			project_key: projectKey,
-			cell_id: "bd-test-003",
+			cell_id: "cell-test-003",
 			changes: {
 				title: { old: "Original Title", new: "Updated Title" },
 			},
@@ -117,14 +117,14 @@ describe("cell Event Store", () => {
 		await appendCellEvent(updateEvent, undefined, db);
 
 		// Check projection
-		const cell = await getCell(db, projectKey, "bd-test-003");
+		const cell = await getCell(db, projectKey, "cell-test-003");
 		expect(cell?.title).toBe("Updated Title");
 	});
 
 	test("appendCellEvent - handles cell_status_changed event", async () => {
 		const createEvent = createCellEvent("cell_created", {
 			project_key: projectKey,
-			cell_id: "bd-test-004",
+			cell_id: "cell-test-004",
 			title: "Status Test",
 			issue_type: "task",
 			priority: 2,
@@ -133,20 +133,20 @@ describe("cell Event Store", () => {
 
 		const statusEvent = createCellEvent("cell_status_changed", {
 			project_key: projectKey,
-			cell_id: "bd-test-004",
+			cell_id: "cell-test-004",
 			from_status: "open",
 			to_status: "in_progress",
 		});
 		await appendCellEvent(statusEvent, undefined, db);
 
-		const cell = await getCell(db, projectKey, "bd-test-004");
+		const cell = await getCell(db, projectKey, "cell-test-004");
 		expect(cell?.status).toBe("in_progress");
 	});
 
 	test("appendCellEvent - handles cell_closed event", async () => {
 		const createEvent = createCellEvent("cell_created", {
 			project_key: projectKey,
-			cell_id: "bd-test-005",
+			cell_id: "cell-test-005",
 			title: "Close Test",
 			issue_type: "task",
 			priority: 2,
@@ -155,12 +155,12 @@ describe("cell Event Store", () => {
 
 		const closeEvent = createCellEvent("cell_closed", {
 			project_key: projectKey,
-			cell_id: "bd-test-005",
+			cell_id: "cell-test-005",
 			reason: "Completed successfully",
 		});
 		await appendCellEvent(closeEvent, undefined, db);
 
-		const cell = await getCell(db, projectKey, "bd-test-005");
+		const cell = await getCell(db, projectKey, "cell-test-005");
 		expect(cell?.status).toBe("closed");
 		expect(cell?.closed_reason).toBe("Completed successfully");
 		expect(cell?.closed_at).toBeGreaterThan(0);
@@ -171,7 +171,7 @@ describe("cell Event Store", () => {
 		await appendCellEvent(
 			createCellEvent("cell_created", {
 				project_key: projectKey,
-				cell_id: "bd-test-006",
+				cell_id: "cell-test-006",
 				title: "Blocker",
 				issue_type: "task",
 				priority: 2,
@@ -183,7 +183,7 @@ describe("cell Event Store", () => {
 		await appendCellEvent(
 			createCellEvent("cell_created", {
 				project_key: projectKey,
-				cell_id: "bd-test-007",
+				cell_id: "cell-test-007",
 				title: "Blocked",
 				issue_type: "task",
 				priority: 2,
@@ -195,25 +195,25 @@ describe("cell Event Store", () => {
 		// Add dependency
 		const depEvent = createCellEvent("cell_dependency_added", {
 			project_key: projectKey,
-			cell_id: "bd-test-007",
+			cell_id: "cell-test-007",
 			dependency: {
-				target: "bd-test-006",
+				target: "cell-test-006",
 				type: "blocks",
 			},
 		});
 		await appendCellEvent(depEvent, undefined, db);
 
 		// Check dependency
-		const deps = await getDependencies(db, projectKey, "bd-test-007");
+		const deps = await getDependencies(db, projectKey, "cell-test-007");
 		expect(deps).toHaveLength(1);
-		expect(deps[0]?.depends_on_id).toBe("bd-test-006");
+		expect(deps[0]?.depends_on_id).toBe("cell-test-006");
 	});
 
 	test("appendCellEvent - handles label events", async () => {
 		await appendCellEvent(
 			createCellEvent("cell_created", {
 				project_key: projectKey,
-				cell_id: "bd-test-008",
+				cell_id: "cell-test-008",
 				title: "Label Test",
 				issue_type: "task",
 				priority: 2,
@@ -224,12 +224,12 @@ describe("cell Event Store", () => {
 
 		const labelEvent = createCellEvent("cell_label_added", {
 			project_key: projectKey,
-			cell_id: "bd-test-008",
+			cell_id: "cell-test-008",
 			label: "p0",
 		});
 		await appendCellEvent(labelEvent, undefined, db);
 
-		const labels = await getLabels(db, projectKey, "bd-test-008");
+		const labels = await getLabels(db, projectKey, "cell-test-008");
 		expect(labels).toContain("p0");
 	});
 
@@ -237,7 +237,7 @@ describe("cell Event Store", () => {
 		await appendCellEvent(
 			createCellEvent("cell_created", {
 				project_key: projectKey,
-				cell_id: "bd-test-009",
+				cell_id: "cell-test-009",
 				title: "Comment Test",
 				issue_type: "task",
 				priority: 2,
@@ -248,13 +248,13 @@ describe("cell Event Store", () => {
 
 		const commentEvent = createCellEvent("cell_comment_added", {
 			project_key: projectKey,
-			cell_id: "bd-test-009",
+			cell_id: "cell-test-009",
 			author: "testuser",
 			body: "Test comment",
 		});
 		await appendCellEvent(commentEvent, undefined, db);
 
-		const comments = await getComments(db, projectKey, "bd-test-009");
+		const comments = await getComments(db, projectKey, "cell-test-009");
 		expect(comments).toHaveLength(1);
 		expect(comments[0]?.body).toBe("Test comment");
 	});
@@ -267,7 +267,7 @@ describe("cell Event Store", () => {
 		await appendCellEvent(
 			createCellEvent("cell_created", {
 				project_key: projectKey,
-				cell_id: "bd-test-010",
+				cell_id: "cell-test-010",
 				title: "Event 1",
 				issue_type: "task",
 				priority: 2,
@@ -279,7 +279,7 @@ describe("cell Event Store", () => {
 		await appendCellEvent(
 			createCellEvent("cell_created", {
 				project_key: projectKey,
-				cell_id: "bd-test-011",
+				cell_id: "cell-test-011",
 				title: "Event 2",
 				issue_type: "task",
 				priority: 2,
@@ -296,7 +296,7 @@ describe("cell Event Store", () => {
 		await appendCellEvent(
 			createCellEvent("cell_created", {
 				project_key: "/project-a",
-				cell_id: "bd-test-012",
+				cell_id: "cell-test-012",
 				title: "Project A",
 				issue_type: "task",
 				priority: 2,
@@ -308,7 +308,7 @@ describe("cell Event Store", () => {
 		await appendCellEvent(
 			createCellEvent("cell_created", {
 				project_key: "/project-b",
-				cell_id: "bd-test-013",
+				cell_id: "cell-test-013",
 				title: "Project B",
 				issue_type: "task",
 				priority: 2,
@@ -331,7 +331,7 @@ describe("cell Event Store", () => {
 		await appendCellEvent(
 			createCellEvent("cell_created", {
 				project_key: projectKey,
-				cell_id: "bd-test-014",
+				cell_id: "cell-test-014",
 				title: "Specific cell",
 				issue_type: "task",
 				priority: 2,
@@ -343,7 +343,7 @@ describe("cell Event Store", () => {
 		await appendCellEvent(
 			createCellEvent("cell_updated", {
 				project_key: projectKey,
-				cell_id: "bd-test-014",
+				cell_id: "cell-test-014",
 				changes: {
 					title: { old: "Specific cell", new: "Updated cell" },
 				},
@@ -353,18 +353,18 @@ describe("cell Event Store", () => {
 		);
 
 		const events = await readCellEvents(
-			{ cellId: "bd-test-014" },
+			{ cellId: "cell-test-014" },
 			undefined,
 			db,
 		);
-		expect(events.every((e: CellEvent) => e.cell_id === "bd-test-014")).toBe(
+		expect(events.every((e: CellEvent) => e.cell_id === "cell-test-014")).toBe(
 			true,
 		);
 		expect(events.length).toBeGreaterThanOrEqual(2);
 	});
 
 	test("readCellEvents - filters by types", async () => {
-		const cellId = "bd-test-015";
+		const cellId = "cell-test-015";
 		await appendCellEvent(
 			createCellEvent("cell_created", {
 				project_key: projectKey,
@@ -406,7 +406,7 @@ describe("cell Event Store", () => {
 			await appendCellEvent(
 				createCellEvent("cell_created", {
 					project_key: projectKey,
-					cell_id: `bd-test-page-${i}`,
+					cell_id: `cell-test-page-${i}`,
 					title: `Page ${i}`,
 					issue_type: "task",
 					priority: 2,
@@ -438,7 +438,7 @@ describe("cell Event Store", () => {
 
 	test("replayCellEvents - rebuilds projections", async () => {
 		// Create events
-		const cellId = "bd-test-016";
+		const cellId = "cell-test-016";
 		await appendCellEvent(
 			createCellEvent("cell_created", {
 				project_key: projectKey,
@@ -490,7 +490,7 @@ describe("cell Event Store", () => {
 		await appendCellEvent(
 			createCellEvent("cell_created", {
 				project_key: projectKey,
-				cell_id: "bd-test-017",
+				cell_id: "cell-test-017",
 				title: "Clear Test",
 				issue_type: "task",
 				priority: 2,
@@ -516,7 +516,7 @@ describe("cell Event Store", () => {
 		const cell1Event = await appendCellEvent(
 			createCellEvent("cell_created", {
 				project_key: projectKey,
-				cell_id: "bd-test-018",
+				cell_id: "cell-test-018",
 				title: "First",
 				issue_type: "task",
 				priority: 2,
@@ -528,7 +528,7 @@ describe("cell Event Store", () => {
 		await appendCellEvent(
 			createCellEvent("cell_created", {
 				project_key: projectKey,
-				cell_id: "bd-test-019",
+				cell_id: "cell-test-019",
 				title: "Second",
 				issue_type: "task",
 				priority: 2,
@@ -551,6 +551,6 @@ describe("cell Event Store", () => {
 
 		const cells = await queryCells(db, projectKey);
 		expect(cells).toHaveLength(1);
-		expect(cells[0]?.id).toBe("bd-test-019");
+		expect(cells[0]?.id).toBe("cell-test-019");
 	});
 });

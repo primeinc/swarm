@@ -8,7 +8,7 @@
  * - Parse/serialize JSONL
  * - Content hash computation
  *
- * @module cells/jsonl.test
+ * @module hive/jsonl.test
  */
 
 import { beforeEach, describe, expect, it } from "bun:test";
@@ -18,7 +18,7 @@ import { createHiveAdapter } from "./adapter.js";
 import {
 	type CellExport,
 	computeContentHash,
-	exportDirtycells,
+	exportDirtyCells,
 	exportToJSONL,
 	importFromJSONL,
 	parseJSONL,
@@ -37,7 +37,7 @@ describe("JSONL Export/Import", () => {
 	describe("serializeToJSONL", () => {
 		it("serializes cell to single JSONL line with trailing newline", () => {
 			const cell: CellExport = {
-				id: "bd-abc123",
+				id: "cell-abc123",
 				title: "Fix bug",
 				description: "Something broke",
 				status: "open",
@@ -58,14 +58,14 @@ describe("JSONL Export/Import", () => {
 
 		it("serializes cell with dependencies, labels, comments", () => {
 			const cell: CellExport = {
-				id: "bd-abc123",
+				id: "cell-abc123",
 				title: "Feature",
 				status: "open",
 				priority: 1,
 				issue_type: "feature",
 				created_at: "2024-01-01T00:00:00Z",
 				updated_at: "2024-01-01T00:00:00Z",
-				dependencies: [{ depends_on_id: "bd-xyz", type: "blocks" }],
+				dependencies: [{ depends_on_id: "cell-xyz", type: "blocks" }],
 				labels: ["urgent", "backend"],
 				comments: [{ author: "alice", text: "Need this ASAP" }],
 			};
@@ -86,7 +86,7 @@ describe("JSONL Export/Import", () => {
 
 		it("parses single line", () => {
 			const line = JSON.stringify({
-				id: "bd-abc123",
+				id: "cell-abc123",
 				title: "Task",
 				status: "open",
 				priority: 2,
@@ -101,13 +101,13 @@ describe("JSONL Export/Import", () => {
 			const cells = parseJSONL(line);
 
 			expect(cells).toHaveLength(1);
-			expect(cells[0].id).toBe("bd-abc123");
+			expect(cells[0].id).toBe("cell-abc123");
 		});
 
 		it("parses multiple lines", () => {
 			const jsonl = [
 				JSON.stringify({
-					id: "bd-1",
+					id: "cell-1",
 					title: "A",
 					status: "open",
 					priority: 2,
@@ -119,7 +119,7 @@ describe("JSONL Export/Import", () => {
 					comments: [],
 				}),
 				JSON.stringify({
-					id: "bd-2",
+					id: "cell-2",
 					title: "B",
 					status: "open",
 					priority: 2,
@@ -135,14 +135,14 @@ describe("JSONL Export/Import", () => {
 			const cells = parseJSONL(jsonl);
 
 			expect(cells).toHaveLength(2);
-			expect(cells[0].id).toBe("bd-1");
-			expect(cells[1].id).toBe("bd-2");
+			expect(cells[0].id).toBe("cell-1");
+			expect(cells[1].id).toBe("cell-2");
 		});
 
 		it("skips empty lines", () => {
 			const jsonl = [
 				JSON.stringify({
-					id: "bd-1",
+					id: "cell-1",
 					title: "A",
 					status: "open",
 					priority: 2,
@@ -155,7 +155,7 @@ describe("JSONL Export/Import", () => {
 				}),
 				"",
 				JSON.stringify({
-					id: "bd-2",
+					id: "cell-2",
 					title: "B",
 					status: "open",
 					priority: 2,
@@ -181,7 +181,7 @@ describe("JSONL Export/Import", () => {
 	describe("computeContentHash", () => {
 		it("computes stable hash for same content", () => {
 			const cell: CellExport = {
-				id: "bd-abc123",
+				id: "cell-abc123",
 				title: "Fix bug",
 				status: "open",
 				priority: 2,
@@ -202,7 +202,7 @@ describe("JSONL Export/Import", () => {
 
 		it("different hash for different content", () => {
 			const cell1: CellExport = {
-				id: "bd-abc123",
+				id: "cell-abc123",
 				title: "Fix bug",
 				status: "open",
 				priority: 2,
@@ -224,7 +224,7 @@ describe("JSONL Export/Import", () => {
 
 		it("different hash for different timestamps", () => {
 			const cell1: CellExport = {
-				id: "bd-abc123",
+				id: "cell-abc123",
 				title: "Fix bug",
 				status: "open",
 				priority: 2,
@@ -377,7 +377,7 @@ describe("JSONL Export/Import", () => {
 		});
 	});
 
-	describe("exportDirtycells", () => {
+	describe("exportDirtyCells", () => {
 		it("exports only dirty cells", async () => {
 			const cell1 = await adapter.createCell(projectKey, {
 				title: "Clean",
@@ -398,7 +398,7 @@ describe("JSONL Export/Import", () => {
 				[cell2.id, Date.now()],
 			);
 
-			const result = await exportDirtycells(adapter, projectKey);
+			const result = await exportDirtyCells(adapter, projectKey);
 
 			const cells = parseJSONL(result.jsonl);
 			expect(cells).toHaveLength(1);
@@ -413,7 +413,7 @@ describe("JSONL Export/Import", () => {
 			const db = await adapter.getDatabase();
 			await db.query("DELETE FROM dirty_cells", []);
 
-			const result = await exportDirtycells(adapter, projectKey);
+			const result = await exportDirtyCells(adapter, projectKey);
 
 			expect(result.jsonl).toBe("");
 			expect(result.cellIds).toEqual([]);
@@ -452,7 +452,7 @@ describe("JSONL Export/Import", () => {
 
 		it("serializeToJSONL adds newline to each record", () => {
 			const cell: CellExport = {
-				id: "bd-test",
+				id: "cell-test",
 				title: "Test",
 				status: "open",
 				priority: 2,
@@ -473,7 +473,7 @@ describe("JSONL Export/Import", () => {
 		it("parseJSONL handles files with trailing newlines", () => {
 			const jsonl = [
 				JSON.stringify({
-					id: "bd-1",
+					id: "cell-1",
 					title: "A",
 					status: "open",
 					priority: 2,
@@ -485,7 +485,7 @@ describe("JSONL Export/Import", () => {
 					comments: [],
 				}),
 				JSON.stringify({
-					id: "bd-2",
+					id: "cell-2",
 					title: "B",
 					status: "open",
 					priority: 2,
@@ -508,7 +508,7 @@ describe("JSONL Export/Import", () => {
 	describe("Date handling (ISO strings)", () => {
 		it("parseJSONL handles ISO date strings correctly", () => {
 			const jsonl = JSON.stringify({
-				id: "bd-date123",
+				id: "cell-date123",
 				title: "Date test",
 				status: "open",
 				priority: 2,
@@ -590,7 +590,7 @@ describe("JSONL Export/Import", () => {
 	describe("importFromJSONL", () => {
 		it("imports new cells", async () => {
 			const jsonl = serializeToJSONL({
-				id: "bd-new123",
+				id: "cell-new123",
 				title: "New task",
 				status: "open",
 				priority: 2,
@@ -608,7 +608,7 @@ describe("JSONL Export/Import", () => {
 			expect(result.updated).toBe(0);
 			expect(result.skipped).toBe(0);
 
-			const cell = await adapter.getCell(projectKey, "bd-new123");
+			const cell = await adapter.getCell(projectKey, "cell-new123");
 			expect(cell).not.toBeNull();
 			expect(cell?.title).toBe("New task");
 		});
@@ -660,7 +660,7 @@ describe("JSONL Export/Import", () => {
 
 		it("dry run does not modify database", async () => {
 			const jsonl = serializeToJSONL({
-				id: "bd-dry123",
+				id: "cell-dry123",
 				title: "Dry run",
 				status: "open",
 				priority: 2,
@@ -678,7 +678,7 @@ describe("JSONL Export/Import", () => {
 
 			expect(result.created).toBe(1);
 
-			const cell = await adapter.getCell(projectKey, "bd-dry123");
+			const cell = await adapter.getCell(projectKey, "cell-dry123");
 			expect(cell).toBeNull();
 		});
 
@@ -714,7 +714,7 @@ describe("JSONL Export/Import", () => {
 		it("imports dependencies", async () => {
 			const jsonl = [
 				serializeToJSONL({
-					id: "bd-blocker",
+					id: "cell-blocker",
 					title: "Blocker",
 					status: "open",
 					priority: 2,
@@ -726,14 +726,14 @@ describe("JSONL Export/Import", () => {
 					comments: [],
 				}),
 				serializeToJSONL({
-					id: "bd-blocked",
+					id: "cell-blocked",
 					title: "Blocked",
 					status: "open",
 					priority: 2,
 					issue_type: "task",
 					created_at: "2024-01-01T00:00:00Z",
 					updated_at: "2024-01-01T00:00:00Z",
-					dependencies: [{ depends_on_id: "bd-blocker", type: "blocks" }],
+					dependencies: [{ depends_on_id: "cell-blocker", type: "blocks" }],
 					labels: [],
 					comments: [],
 				}),
@@ -741,14 +741,14 @@ describe("JSONL Export/Import", () => {
 
 			await importFromJSONL(adapter, projectKey, jsonl);
 
-			const deps = await adapter.getDependencies(projectKey, "bd-blocked");
+			const deps = await adapter.getDependencies(projectKey, "cell-blocked");
 			expect(deps).toHaveLength(1);
-			expect(deps[0].depends_on_id).toBe("bd-blocker");
+			expect(deps[0].depends_on_id).toBe("cell-blocker");
 		});
 
 		it("imports labels", async () => {
 			const jsonl = serializeToJSONL({
-				id: "bd-labeled",
+				id: "cell-labeled",
 				title: "Task",
 				status: "open",
 				priority: 2,
@@ -762,14 +762,14 @@ describe("JSONL Export/Import", () => {
 
 			await importFromJSONL(adapter, projectKey, jsonl);
 
-			const labels = await adapter.getLabels(projectKey, "bd-labeled");
+			const labels = await adapter.getLabels(projectKey, "cell-labeled");
 			expect(labels).toContain("urgent");
 			expect(labels).toContain("backend");
 		});
 
 		it("imports comments", async () => {
 			const jsonl = serializeToJSONL({
-				id: "bd-commented",
+				id: "cell-commented",
 				title: "Task",
 				status: "open",
 				priority: 2,
@@ -786,7 +786,7 @@ describe("JSONL Export/Import", () => {
 
 			await importFromJSONL(adapter, projectKey, jsonl);
 
-			const comments = await adapter.getComments(projectKey, "bd-commented");
+			const comments = await adapter.getComments(projectKey, "cell-commented");
 			expect(comments).toHaveLength(2);
 			expect(comments[0].author).toBe("alice");
 		});

@@ -51,9 +51,9 @@ import type {
 	CellUpdatedEvent,
 } from "./events.js";
 
-// Import projections functions - NOTE: some still use legacy 'cell' naming in exports
+// Import projections functions
 import {
-	clearDirtycell as clearDirtyCell,
+	clearDirtyCell,
 	getBlockedCells,
 	getBlockers,
 	getCell,
@@ -65,7 +65,7 @@ import {
 	getLabels,
 	getNextReadyCell,
 	isBlocked,
-	markcellDirty as markCellDirty,
+	markCellDirty,
 	queryCells,
 } from "./projections.js";
 // Import implementation functions from store.ts and projections.ts

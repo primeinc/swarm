@@ -18,7 +18,7 @@
  * - blocked_cells_cache: Cached blocker lookups
  * - dirty_cells: Tracks changes for export
  *
- * @module cells/projections
+ * @module hive/projections
  */
 
 import type { DatabaseAdapter } from "../types/database.js";
@@ -348,16 +348,16 @@ export async function getBlockedCells(
  *
  * Uses Drizzle for write operations.
  */
-export async function markcellDirty(
+export async function markCellDirty(
 	db: DatabaseAdapter,
 	projectKey: string,
 	cellId: string,
 ): Promise<void> {
 	const { toDrizzleDb } = await import("../libsql.convenience.js");
-	const { markcellDirtyDrizzle } = await import("./projections-drizzle.js");
+	const { markCellDirtyDrizzle } = await import("./projections-drizzle.js");
 
 	const swarmDb = toDrizzleDb(db);
-	await markcellDirtyDrizzle(swarmDb, projectKey, cellId);
+	await markCellDirtyDrizzle(swarmDb, projectKey, cellId);
 }
 
 /**
@@ -382,16 +382,16 @@ export async function getDirtyCells(
  *
  * Uses Drizzle for write operations.
  */
-export async function clearDirtycell(
+export async function clearDirtyCell(
 	db: DatabaseAdapter,
 	projectKey: string,
 	cellId: string,
 ): Promise<void> {
 	const { toDrizzleDb } = await import("../libsql.convenience.js");
-	const { clearDirtycellDrizzle } = await import("./projections-drizzle.js");
+	const { clearDirtyCellDrizzle } = await import("./projections-drizzle.js");
 
 	const swarmDb = toDrizzleDb(db);
-	await clearDirtycellDrizzle(swarmDb, projectKey, cellId);
+	await clearDirtyCellDrizzle(swarmDb, projectKey, cellId);
 }
 
 /**
@@ -399,15 +399,15 @@ export async function clearDirtycell(
  *
  * Uses Drizzle for write operations.
  */
-export async function clearAllDirtycells(
+export async function clearAllDirtyCells(
 	db: DatabaseAdapter,
 	projectKey: string,
 ): Promise<void> {
 	const { toDrizzleDb } = await import("../libsql.convenience.js");
-	const { clearAllDirtycellsDrizzle } = await import(
+	const { clearAllDirtyCellsDrizzle } = await import(
 		"./projections-drizzle.js"
 	);
 
 	const swarmDb = toDrizzleDb(db);
-	await clearAllDirtycellsDrizzle(swarmDb, projectKey);
+	await clearAllDirtyCellsDrizzle(swarmDb, projectKey);
 }

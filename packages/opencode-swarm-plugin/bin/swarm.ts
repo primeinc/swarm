@@ -5640,50 +5640,12 @@ function formatCellsTable(
 /**
  * List or get cells from database
  */
-async function cells() {
-	const args = process.argv.slice(3);
-
-	// Parse arguments
-	let cellId: string | null = null;
-	let statusFilter: string | null = null;
-	let typeFilter: string | null = null;
-	let readyOnly = false;
-	let jsonOutput = false;
-
-	for (let i = 0; i < args.length; i++) {
-		const arg = args[i];
-
-		if (arg === "--status" && i + 1 < args.length) {
-			statusFilter = args[++i];
-			if (
-				!["open", "in_progress", "closed", "blocked"].includes(statusFilter)
-			) {
-				p.log.error(`Invalid status: ${statusFilter}`);
-				p.log.message(
-					dim("  Valid statuses: open, in_progress, closed, blocked"),
-				);
-				process.exit(1);
-			}
-		} else if (arg === "--type" && i + 1 < args.length) {
-			typeFilter = args[++i];
-			if (!["task", "bug", "feature", "epic", "chore"].includes(typeFilter)) {
-				p.log.error(`Invalid type: ${typeFilter}`);
-				p.log.message(dim("  Valid types: task, bug, feature, epic, chore"));
-				process.exit(1);
-			}
-		} else if (arg === "--ready") {
-			readyOnly = true;
-		} else if (arg === "--json") {
-			jsonOutput = true;
-		} else if (!arg.startsWith("--") && !arg.startsWith("-")) {
-			// Positional arg = cell ID (full or partial)
-			cellId = arg;
-		}
-	}
+async function hiveCommand() {
+	const subcommand = process.argv[3];
+	const args = process.argv.slice(4);
 
 	// Get adapter using swarm-mail
 	const projectPath = process.cwd();
-	// Static import at top of file
 
 	try {
 		const swarmMail = await getSwarmMailLibSQL(projectPath);
@@ -5693,8 +5655,107 @@ async function cells() {
 		// Run migrations to ensure schema exists
 		await adapter.runMigrations();
 
+		if (subcommand === "create") {
+			let title = "";
+			let type: any = "task";
+			let priority = 2;
+			let jsonOutput = false;
+
+			for (let i = 0; i < args.length; i++) {
+				const arg = args[i];
+				if (arg === "-t" || arg === "--type") {
+					type = args[++i];
+				} else if (arg === "-p" || arg === "--priority") {
+					priority = parseInt(args[++i], 10);
+				} else if (arg === "--json") {
+					jsonOutput = true;
+				} else if (!arg.startsWith("-")) {
+					title = arg;
+				}
+			}
+
+			if (!title) {
+				console.error("Usage: swarm hive create <title> [options]");
+				process.exit(1);
+			}
+
+			const cell = await adapter.createCell(projectPath, {
+				title,
+				type,
+				priority,
+			});
+
+			await adapter.markDirty(projectPath, cell.id);
+
+			if (jsonOutput) {
+				console.log(JSON.stringify(cell, null, 2));
+			} else {
+				p.log.success(`Created cell: ${cell.id}`);
+			}
+			return;
+		}
+
+		if (subcommand === "close") {
+			let cellId = "";
+			let reason = "Completed";
+			let jsonOutput = false;
+
+			for (let i = 0; i < args.length; i++) {
+				const arg = args[i];
+				if (arg === "--reason" || arg === "-r") {
+					reason = args[++i];
+				} else if (arg === "--json") {
+					jsonOutput = true;
+				} else if (!arg.startsWith("-")) {
+					cellId = arg;
+				}
+			}
+
+			if (!cellId) {
+				console.error("Usage: swarm hive close <id> [options]");
+				process.exit(1);
+			}
+
+			const fullId =
+				(await resolvePartialId(adapter, projectPath, cellId)) || cellId;
+			const cell = await adapter.closeCell(projectPath, fullId, reason);
+			await adapter.markDirty(projectPath, fullId);
+
+			if (jsonOutput) {
+				console.log(JSON.stringify(cell, null, 2));
+			} else {
+				p.log.success(`Closed cell: ${cell.id}`);
+			}
+			return;
+		}
+
+		// Default behavior: list/query (original cells logic)
+		let cellId: string | null = null;
+		let statusFilter: string | null = null;
+		let typeFilter: string | null = null;
+		let readyOnly = false;
+		let jsonOutput = false;
+
+		const queryArgs = [subcommand, ...args].filter(Boolean);
+
+		for (let i = 0; i < queryArgs.length; i++) {
+			const arg = queryArgs[i];
+
+			if (arg === "--status" && i + 1 < queryArgs.length) {
+				statusFilter = queryArgs[++i];
+			} else if (arg === "--type" && i + 1 < queryArgs.length) {
+				typeFilter = queryArgs[++i];
+			} else if (arg === "--ready") {
+				readyOnly = true;
+			} else if (arg === "--json") {
+				jsonOutput = true;
+			} else if (!arg.startsWith("--") && !arg.startsWith("-")) {
+				cellId = arg;
+			}
+		}
+
 		// If cell ID provided, get single cell
-		if (cellId) {
+		if (cellId && cellId !== "list") {
 			// Resolve partial ID to full ID
 			const fullId =
 				(await resolvePartialId(adapter, projectPath, cellId)) || cellId;
@@ -5742,13 +5803,11 @@ async function cells() {
 					]
 				: [];
 		} else {
-			const queriedCells = await adapter.queryCells(projectPath, {
-				status: (statusFilter as any) || undefined,
-				type: (typeFilter as any) || undefined,
-				limit: 20,
+			const results = await adapter.queryCells(projectPath, {
+				status: statusFilter as any,
+				type: typeFilter as any,
 			});
-
-			cells = queriedCells.map((c) => ({
+			cells = results.map((c) => ({
 				id: c.id,
 				title: c.title,
 				status: c.status,
@@ -5759,14 +5818,70 @@ async function cells() {
 		if (jsonOutput) {
 			console.log(JSON.stringify(cells, null, 2));
 		} else {
-			const table = formatCellsTable(cells);
-			console.log(table);
+			if (cells.length === 0) {
+				p.log.message(dim("No cells found"));
+			} else {
+				const table = formatCellsTable(cells);
+				console.log(table);
+			}
 		}
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);
-		p.log.error(`Failed to query cells: ${message}`);
+		p.log.error(`Hive operation failed: ${message}`);
 		process.exit(1);
 	}
+}
+
+async function cells() {
+	return hiveCommand();
+}
+
+/**
+ * Format cells for table display
+ */
+function formatCellsTable(
+	cells: Array<{
+		id: string;
+		title: string;
+		status: string;
+		priority: number;
+	}>,
+): string {
+	if (cells.length === 0) return "No cells found";
+
+	const header = [
+		cyan("ID").padEnd(30),
+		cyan("Status").padEnd(15),
+		cyan("Prio").padEnd(6),
+		cyan("Title"),
+	].join(" ");
+
+	const separator = [
+		dim("─".repeat(29)),
+		dim("─".repeat(14)),
+		dim("─".repeat(5)),
+		dim("─".repeat(40)),
+	].join(" ");
+
+	const rows = cells.map((c) => {
+		const statusColor =
+			c.status === "open"
+				? green
+				: c.status === "in_progress"
+					? yellow
+					: c.status === "blocked"
+						? red
+						: dim;
+		const id = c.id.slice(-12); // Show last 12 chars of ID
+		return [
+			dim(c.id).padEnd(29),
+			statusColor(c.status).padEnd(24), // Add extra space for color codes
+			String(c.priority).padEnd(5),
+			c.title,
+		].join(" ");
+	});
+
+	return [header, separator, ...rows].join("\n");
 }
 
 async function logs() {
@@ -7952,6 +8067,7 @@ switch (command) {
 	case "db":
 		await db();
 		break;
+	case "hive":
 	case "cells":
 		await cells();
 		break;

@@ -1,5 +1,5 @@
 /**
- * cells Projections Tests
+ * Hive Projections Tests
  *
  * Tests projection updates from events and query functions.
  *
@@ -9,14 +9,16 @@
  * 3. Queries return expected results
  * 4. Blocked cache works correctly
  * 5. Dirty tracking works
+ *
+ * @module hive/projections.test
  */
 
 import { beforeEach, describe, expect, test } from "bun:test";
 import { createTestLibSQLDb } from "../test-libsql.js";
 import type { DatabaseAdapter } from "../types/database.js";
-import { rebuildcellBlockedCache } from "./dependencies.js";
+import { rebuildCellBlockedCache } from "./dependencies.js";
 import {
-	clearDirtycell,
+	clearDirtyCell,
 	getBlockedCells,
 	getBlockers,
 	getCell,
@@ -28,7 +30,7 @@ import {
 	getLabels,
 	getNextReadyCell,
 	isBlocked,
-	markcellDirty,
+	markCellDirty,
 	queryCells,
 	updateProjections,
 } from "./projections.js";
@@ -100,7 +102,7 @@ describe("cells Projections", () => {
 			const event = {
 				type: "cell_created",
 				project_key: projectKey,
-				cell_id: "bd-123",
+				cell_id: "cell-123",
 				title: "Test cell",
 				description: "Test description",
 				issue_type: "task",
@@ -110,7 +112,7 @@ describe("cells Projections", () => {
 
 			await updateProjections(db, event);
 
-			const cell = await getCell(db, projectKey, "bd-123");
+			const cell = await getCell(db, projectKey, "cell-123");
 			expect(cell).not.toBeNull();
 			expect(cell?.title).toBe("Test cell");
 			expect(cell?.type).toBe("task");
@@ -122,7 +124,7 @@ describe("cells Projections", () => {
 			const event = {
 				type: "cell_created",
 				project_key: projectKey,
-				cell_id: "bd-123",
+				cell_id: "cell-123",
 				title: "Test cell",
 				issue_type: "task",
 				priority: 2,
@@ -131,8 +133,8 @@ describe("cells Projections", () => {
 
 			await updateProjections(db, event);
 
-			const dirtycells = await getDirtyCells(db, projectKey);
-			expect(dirtycells).toContain("bd-123");
+			const dirtyCells = await getDirtyCells(db, projectKey);
+			expect(dirtyCells).toContain("cell-123");
 		});
 	});
 
@@ -142,7 +144,7 @@ describe("cells Projections", () => {
 			await updateProjections(db, {
 				type: "cell_created",
 				project_key: projectKey,
-				cell_id: "bd-123",
+				cell_id: "cell-123",
 				title: "Original Title",
 				issue_type: "task",
 				priority: 2,
@@ -153,14 +155,14 @@ describe("cells Projections", () => {
 			await updateProjections(db, {
 				type: "cell_updated",
 				project_key: projectKey,
-				cell_id: "bd-123",
+				cell_id: "cell-123",
 				changes: {
 					title: { old: "Original Title", new: "Updated Title" },
 				},
 				timestamp: Date.now(),
 			});
 
-			const cell = await getCell(db, projectKey, "bd-123");
+			const cell = await getCell(db, projectKey, "cell-123");
 			expect(cell?.title).toBe("Updated Title");
 		});
 	});
@@ -170,7 +172,7 @@ describe("cells Projections", () => {
 			await updateProjections(db, {
 				type: "cell_created",
 				project_key: projectKey,
-				cell_id: "bd-123",
+				cell_id: "cell-123",
 				title: "Test cell",
 				issue_type: "task",
 				priority: 2,
@@ -180,13 +182,13 @@ describe("cells Projections", () => {
 			await updateProjections(db, {
 				type: "cell_status_changed",
 				project_key: projectKey,
-				cell_id: "bd-123",
+				cell_id: "cell-123",
 				from_status: "open",
 				to_status: "in_progress",
 				timestamp: Date.now(),
 			});
 
-			const cell = await getCell(db, projectKey, "bd-123");
+			const cell = await getCell(db, projectKey, "cell-123");
 			expect(cell?.status).toBe("in_progress");
 		});
 	});
@@ -196,7 +198,7 @@ describe("cells Projections", () => {
 			await updateProjections(db, {
 				type: "cell_created",
 				project_key: projectKey,
-				cell_id: "bd-123",
+				cell_id: "cell-123",
 				title: "Test cell",
 				issue_type: "task",
 				priority: 2,
@@ -207,12 +209,12 @@ describe("cells Projections", () => {
 			await updateProjections(db, {
 				type: "cell_closed",
 				project_key: projectKey,
-				cell_id: "bd-123",
+				cell_id: "cell-123",
 				reason: "Completed",
 				timestamp: closedAt,
 			});
 
-			const cell = await getCell(db, projectKey, "bd-123");
+			const cell = await getCell(db, projectKey, "cell-123");
 			expect(cell?.status).toBe("closed");
 			expect(cell?.closed_at).toBe(closedAt);
 			expect(cell?.closed_reason).toBe("Completed");
@@ -225,7 +227,7 @@ describe("cells Projections", () => {
 			await updateProjections(db, {
 				type: "cell_created",
 				project_key: projectKey,
-				cell_id: "bd-123",
+				cell_id: "cell-123",
 				title: "cell 1",
 				issue_type: "task",
 				priority: 2,
@@ -235,7 +237,7 @@ describe("cells Projections", () => {
 			await updateProjections(db, {
 				type: "cell_created",
 				project_key: projectKey,
-				cell_id: "bd-124",
+				cell_id: "cell-124",
 				title: "cell 2",
 				issue_type: "task",
 				priority: 2,
@@ -246,14 +248,14 @@ describe("cells Projections", () => {
 			await updateProjections(db, {
 				type: "cell_dependency_added",
 				project_key: projectKey,
-				cell_id: "bd-124",
-				dependency: { target: "bd-123", type: "blocks" },
+				cell_id: "cell-124",
+				dependency: { target: "cell-123", type: "blocks" },
 				timestamp: Date.now(),
 			});
 
-			const deps = await getDependencies(db, projectKey, "bd-124");
+			const deps = await getDependencies(db, projectKey, "cell-124");
 			expect(deps).toHaveLength(1);
-			expect(deps[0]?.depends_on_id).toBe("bd-123");
+			expect(deps[0]?.depends_on_id).toBe("cell-123");
 			expect(deps[0]?.relationship).toBe("blocks");
 		});
 
@@ -262,7 +264,7 @@ describe("cells Projections", () => {
 			await updateProjections(db, {
 				type: "cell_created",
 				project_key: projectKey,
-				cell_id: "bd-123",
+				cell_id: "cell-123",
 				title: "cell 1",
 				issue_type: "task",
 				priority: 2,
@@ -272,7 +274,7 @@ describe("cells Projections", () => {
 			await updateProjections(db, {
 				type: "cell_created",
 				project_key: projectKey,
-				cell_id: "bd-124",
+				cell_id: "cell-124",
 				title: "cell 2",
 				issue_type: "task",
 				priority: 2,
@@ -283,19 +285,19 @@ describe("cells Projections", () => {
 			await updateProjections(db, {
 				type: "cell_dependency_added",
 				project_key: projectKey,
-				cell_id: "bd-124",
-				dependency: { target: "bd-123", type: "blocks" },
+				cell_id: "cell-124",
+				dependency: { target: "cell-123", type: "blocks" },
 				timestamp: Date.now(),
 			});
 
 			// Rebuild cache
-			await rebuildcellBlockedCache(db, projectKey, "bd-124");
+			await rebuildCellBlockedCache(db, projectKey, "cell-124");
 
-			const blocked = await isBlocked(db, projectKey, "bd-124");
+			const blocked = await isBlocked(db, projectKey, "cell-124");
 			expect(blocked).toBe(true);
 
-			const blockers = await getBlockers(db, projectKey, "bd-124");
-			expect(blockers).toContain("bd-123");
+			const blockers = await getBlockers(db, projectKey, "cell-124");
+			expect(blockers).toContain("cell-123");
 		});
 	});
 
@@ -304,7 +306,7 @@ describe("cells Projections", () => {
 			await updateProjections(db, {
 				type: "cell_created",
 				project_key: projectKey,
-				cell_id: "bd-123",
+				cell_id: "cell-123",
 				title: "Test cell",
 				issue_type: "task",
 				priority: 2,
@@ -314,12 +316,12 @@ describe("cells Projections", () => {
 			await updateProjections(db, {
 				type: "cell_label_added",
 				project_key: projectKey,
-				cell_id: "bd-123",
+				cell_id: "cell-123",
 				label: "urgent",
 				timestamp: Date.now(),
 			});
 
-			const labels = await getLabels(db, projectKey, "bd-123");
+			const labels = await getLabels(db, projectKey, "cell-123");
 			expect(labels).toContain("urgent");
 		});
 
@@ -327,7 +329,7 @@ describe("cells Projections", () => {
 			await updateProjections(db, {
 				type: "cell_created",
 				project_key: projectKey,
-				cell_id: "bd-123",
+				cell_id: "cell-123",
 				title: "Test cell",
 				issue_type: "task",
 				priority: 2,
@@ -337,7 +339,7 @@ describe("cells Projections", () => {
 			await updateProjections(db, {
 				type: "cell_label_added",
 				project_key: projectKey,
-				cell_id: "bd-123",
+				cell_id: "cell-123",
 				label: "urgent",
 				timestamp: Date.now(),
 			});
@@ -345,12 +347,12 @@ describe("cells Projections", () => {
 			await updateProjections(db, {
 				type: "cell_label_removed",
 				project_key: projectKey,
-				cell_id: "bd-123",
+				cell_id: "cell-123",
 				label: "urgent",
 				timestamp: Date.now(),
 			});
 
-			const labels = await getLabels(db, projectKey, "bd-123");
+			const labels = await getLabels(db, projectKey, "cell-123");
 			expect(labels).not.toContain("urgent");
 		});
 	});
@@ -360,7 +362,7 @@ describe("cells Projections", () => {
 			await updateProjections(db, {
 				type: "cell_created",
 				project_key: projectKey,
-				cell_id: "bd-123",
+				cell_id: "cell-123",
 				title: "Test cell",
 				issue_type: "task",
 				priority: 2,
@@ -370,13 +372,13 @@ describe("cells Projections", () => {
 			await updateProjections(db, {
 				type: "cell_comment_added",
 				project_key: projectKey,
-				cell_id: "bd-123",
+				cell_id: "cell-123",
 				author: "TestAgent",
 				body: "Test comment",
 				timestamp: Date.now(),
 			});
 
-			const comments = await getComments(db, projectKey, "bd-123");
+			const comments = await getComments(db, projectKey, "cell-123");
 			expect(comments).toHaveLength(1);
 			expect(comments[0]?.body).toBe("Test comment");
 			expect(comments[0]?.author).toBe("TestAgent");
@@ -388,7 +390,7 @@ describe("cells Projections", () => {
 			await updateProjections(db, {
 				type: "cell_created",
 				project_key: projectKey,
-				cell_id: "bd-123",
+				cell_id: "cell-123",
 				title: "Open cell",
 				issue_type: "task",
 				priority: 2,
@@ -398,7 +400,7 @@ describe("cells Projections", () => {
 			await updateProjections(db, {
 				type: "cell_created",
 				project_key: projectKey,
-				cell_id: "bd-124",
+				cell_id: "cell-124",
 				title: "In Progress cell",
 				issue_type: "task",
 				priority: 2,
@@ -408,19 +410,19 @@ describe("cells Projections", () => {
 			await updateProjections(db, {
 				type: "cell_status_changed",
 				project_key: projectKey,
-				cell_id: "bd-124",
+				cell_id: "cell-124",
 				from_status: "open",
 				to_status: "in_progress",
 				timestamp: Date.now(),
 			});
 
-			const opencells = await queryCells(db, projectKey, { status: "open" });
-			expect(opencells).toHaveLength(1);
-			expect(opencells[0]?.id).toBe("bd-123");
+			const openCells = await queryCells(db, projectKey, { status: "open" });
+			expect(openCells).toHaveLength(1);
+			expect(openCells[0]?.id).toBe("cell-123");
 
-			const inProgresscells = await getInProgressCells(db, projectKey);
-			expect(inProgresscells).toHaveLength(1);
-			expect(inProgresscells[0]?.id).toBe("bd-124");
+			const inProgressCells = await getInProgressCells(db, projectKey);
+			expect(inProgressCells).toHaveLength(1);
+			expect(inProgressCells[0]?.id).toBe("cell-124");
 		});
 
 		test("getNextReadyCell returns unblocked high priority cell", async () => {
@@ -428,7 +430,7 @@ describe("cells Projections", () => {
 			await updateProjections(db, {
 				type: "cell_created",
 				project_key: projectKey,
-				cell_id: "bd-123",
+				cell_id: "cell-123",
 				title: "High Priority",
 				issue_type: "task",
 				priority: 3,
@@ -439,7 +441,7 @@ describe("cells Projections", () => {
 			await updateProjections(db, {
 				type: "cell_created",
 				project_key: projectKey,
-				cell_id: "bd-124",
+				cell_id: "cell-124",
 				title: "Low Priority",
 				issue_type: "task",
 				priority: 1,
@@ -447,14 +449,14 @@ describe("cells Projections", () => {
 			});
 
 			const ready = await getNextReadyCell(db, projectKey);
-			expect(ready?.id).toBe("bd-123"); // Higher priority
+			expect(ready?.id).toBe("cell-123"); // Higher priority
 		});
 
 		test("getBlockedCells returns cells with blockers", async () => {
 			await updateProjections(db, {
 				type: "cell_created",
 				project_key: projectKey,
-				cell_id: "bd-123",
+				cell_id: "cell-123",
 				title: "Blocker",
 				issue_type: "task",
 				priority: 2,
@@ -464,7 +466,7 @@ describe("cells Projections", () => {
 			await updateProjections(db, {
 				type: "cell_created",
 				project_key: projectKey,
-				cell_id: "bd-124",
+				cell_id: "cell-124",
 				title: "Blocked",
 				issue_type: "task",
 				priority: 2,
@@ -474,17 +476,17 @@ describe("cells Projections", () => {
 			await updateProjections(db, {
 				type: "cell_dependency_added",
 				project_key: projectKey,
-				cell_id: "bd-124",
-				dependency: { target: "bd-123", type: "blocks" },
+				cell_id: "cell-124",
+				dependency: { target: "cell-123", type: "blocks" },
 				timestamp: Date.now(),
 			});
 
-			await rebuildcellBlockedCache(db, projectKey, "bd-124");
+			await rebuildCellBlockedCache(db, projectKey, "cell-124");
 
 			const blocked = await getBlockedCells(db, projectKey);
 			expect(blocked).toHaveLength(1);
-			expect(blocked[0]?.cell.id).toBe("bd-124");
-			expect(blocked[0]?.blockers).toContain("bd-123");
+			expect(blocked[0]?.cell.id).toBe("cell-124");
+			expect(blocked[0]?.blockers).toContain("cell-123");
 		});
 	});
 
@@ -493,35 +495,35 @@ describe("cells Projections", () => {
 			await updateProjections(db, {
 				type: "cell_created",
 				project_key: projectKey,
-				cell_id: "bd-123",
+				cell_id: "cell-123",
 				title: "Test cell",
 				issue_type: "task",
 				priority: 2,
 				timestamp: Date.now(),
 			});
 
-			await markcellDirty(db, projectKey, "bd-123");
+			await markCellDirty(db, projectKey, "cell-123");
 
 			const dirty = await getDirtyCells(db, projectKey);
-			expect(dirty).toContain("bd-123");
+			expect(dirty).toContain("cell-123");
 		});
 
 		test("clears dirty flag", async () => {
 			await updateProjections(db, {
 				type: "cell_created",
 				project_key: projectKey,
-				cell_id: "bd-123",
+				cell_id: "cell-123",
 				title: "Test cell",
 				issue_type: "task",
 				priority: 2,
 				timestamp: Date.now(),
 			});
 
-			await markcellDirty(db, projectKey, "bd-123");
-			await clearDirtycell(db, projectKey, "bd-123");
+			await markCellDirty(db, projectKey, "cell-123");
+			await clearDirtyCell(db, projectKey, "cell-123");
 
 			const dirty = await getDirtyCells(db, projectKey);
-			expect(dirty).not.toContain("bd-123");
+			expect(dirty).not.toContain("cell-123");
 		});
 	});
 });

@@ -22,14 +22,14 @@ describe("CellEventSchema", () => {
 		test("creates valid cell_created event", () => {
 			const event = createCellEvent("cell_created", {
 				project_key: projectKey,
-				cell_id: "bd-123",
+				cell_id: "cell-123",
 				title: "Add authentication",
 				issue_type: "feature",
 				priority: 2,
 			});
 
 			expect(event.type).toBe("cell_created");
-			expect(event.cell_id).toBe("bd-123");
+			expect(event.cell_id).toBe("cell-123");
 			expect(event.title).toBe("Add authentication");
 			expect(event.timestamp).toBeGreaterThan(0);
 		});
@@ -37,7 +37,7 @@ describe("CellEventSchema", () => {
 		test("creates valid cell_closed event", () => {
 			const event = createCellEvent("cell_closed", {
 				project_key: projectKey,
-				cell_id: "bd-123",
+				cell_id: "cell-123",
 				reason: "Implemented OAuth flow",
 				closed_by: "BlueLake",
 				files_touched: ["src/auth.ts", "src/oauth.ts"],
@@ -53,9 +53,9 @@ describe("CellEventSchema", () => {
 		test("creates valid cell_dependency_added event", () => {
 			const event = createCellEvent("cell_dependency_added", {
 				project_key: projectKey,
-				cell_id: "bd-123",
+				cell_id: "cell-123",
 				dependency: {
-					id: "bd-456",
+					id: "cell-456",
 					type: "blocks",
 				},
 				reason: "Needs database schema before service layer",
@@ -63,26 +63,26 @@ describe("CellEventSchema", () => {
 
 			expect(event.type).toBe("cell_dependency_added");
 			expect(event.dependency.type).toBe("blocks");
-			expect(event.dependency.id).toBe("bd-456");
+			expect(event.dependency.id).toBe("cell-456");
 		});
 
 		test("creates valid cell_epic_child_added event", () => {
 			const event = createCellEvent("cell_epic_child_added", {
 				project_key: projectKey,
-				cell_id: "bd-epic-1",
-				child_id: "bd-epic-1.1",
+				cell_id: "cell-epic-1",
+				child_id: "cell-epic-1.1",
 				child_index: 0,
 			});
 
 			expect(event.type).toBe("cell_epic_child_added");
-			expect(event.child_id).toBe("bd-epic-1.1");
+			expect(event.child_id).toBe("cell-epic-1.1");
 		});
 
 		test("throws on invalid event data", () => {
 			expect(() =>
 				createCellEvent("cell_created", {
 					project_key: projectKey,
-					cell_id: "bd-123",
+					cell_id: "cell-123",
 					title: "Test",
 					// @ts-expect-error - Testing invalid issue_type
 					issue_type: "invalid_type",
@@ -96,7 +96,7 @@ describe("CellEventSchema", () => {
 		test("isCellEventType narrows type correctly", () => {
 			const event: CellCreatedEvent = createCellEvent("cell_created", {
 				project_key: projectKey,
-				cell_id: "bd-123",
+				cell_id: "cell-123",
 				title: "Test",
 				issue_type: "task",
 				priority: 2,
@@ -111,7 +111,7 @@ describe("CellEventSchema", () => {
 		test("isStateTransitionEvent identifies status changes", () => {
 			const closedEvent = createCellEvent("cell_closed", {
 				project_key: projectKey,
-				cell_id: "bd-123",
+				cell_id: "cell-123",
 				reason: "Done",
 			});
 
@@ -119,7 +119,7 @@ describe("CellEventSchema", () => {
 
 			const createdEvent = createCellEvent("cell_created", {
 				project_key: projectKey,
-				cell_id: "bd-123",
+				cell_id: "cell-123",
 				title: "Test",
 				issue_type: "task",
 				priority: 2,
@@ -131,15 +131,15 @@ describe("CellEventSchema", () => {
 		test("isEpicEvent identifies epic operations", () => {
 			const epicEvent = createCellEvent("cell_epic_child_added", {
 				project_key: projectKey,
-				cell_id: "bd-epic",
-				child_id: "bd-epic.1",
+				cell_id: "cell-epic",
+				child_id: "cell-epic.1",
 			});
 
 			expect(isEpicEvent(epicEvent)).toBe(true);
 
 			const regularEvent = createCellEvent("cell_created", {
 				project_key: projectKey,
-				cell_id: "bd-123",
+				cell_id: "cell-123",
 				title: "Test",
 				issue_type: "task",
 				priority: 2,
@@ -151,7 +151,7 @@ describe("CellEventSchema", () => {
 		test("isAgentEvent detects agent-triggered events", () => {
 			const agentEvent = createCellEvent("cell_assigned", {
 				project_key: projectKey,
-				cell_id: "bd-123",
+				cell_id: "cell-123",
 				agent_name: "BlueLake",
 			});
 
@@ -159,7 +159,7 @@ describe("CellEventSchema", () => {
 
 			const closedByAgentEvent = createCellEvent("cell_closed", {
 				project_key: projectKey,
-				cell_id: "bd-123",
+				cell_id: "cell-123",
 				reason: "Done",
 				closed_by: "agent",
 			});
@@ -173,26 +173,26 @@ describe("CellEventSchema", () => {
 			const events = [
 				createCellEvent("cell_created", {
 					project_key: projectKey,
-					cell_id: "bd-123",
+					cell_id: "cell-123",
 					title: "Test",
 					issue_type: "task",
 					priority: 2,
 				}),
 				createCellEvent("cell_closed", {
 					project_key: projectKey,
-					cell_id: "bd-456",
+					cell_id: "cell-456",
 					reason: "Done",
 				}),
 				createCellEvent("cell_epic_child_added", {
 					project_key: projectKey,
-					cell_id: "bd-epic",
-					child_id: "bd-epic.1",
+					cell_id: "cell-epic",
+					child_id: "cell-epic.1",
 				}),
 			];
 
-			expect(getCellIdFromEvent(events[0])).toBe("bd-123");
-			expect(getCellIdFromEvent(events[1])).toBe("bd-456");
-			expect(getCellIdFromEvent(events[2])).toBe("bd-epic");
+			expect(getCellIdFromEvent(events[0])).toBe("cell-123");
+			expect(getCellIdFromEvent(events[1])).toBe("cell-456");
+			expect(getCellIdFromEvent(events[2])).toBe("cell-epic");
 		});
 	});
 
@@ -202,7 +202,7 @@ describe("CellEventSchema", () => {
 				type: "cell_created",
 				project_key: projectKey,
 				timestamp: Date.now(),
-				cell_id: "bd-123",
+				cell_id: "cell-123",
 				title: "Test cell",
 				issue_type: "feature",
 				priority: 1,
@@ -217,7 +217,7 @@ describe("CellEventSchema", () => {
 				type: "invalid_event",
 				project_key: projectKey,
 				timestamp: Date.now(),
-				cell_id: "bd-123",
+				cell_id: "cell-123",
 			};
 
 			const result = CellEventSchema.safeParse(rawEvent);
@@ -235,9 +235,9 @@ describe("CellEventSchema", () => {
 			for (const depType of validTypes) {
 				const event = createCellEvent("cell_dependency_added", {
 					project_key: projectKey,
-					cell_id: "bd-123",
+					cell_id: "cell-123",
 					dependency: {
-						id: "bd-456",
+						id: "cell-456",
 						type: depType,
 					},
 				});
@@ -251,19 +251,19 @@ describe("CellEventSchema", () => {
 		test("supports metadata field", () => {
 			const event = createCellEvent("cell_created", {
 				project_key: projectKey,
-				cell_id: "bd-123",
+				cell_id: "cell-123",
 				title: "Test",
 				issue_type: "task",
 				priority: 2,
 				metadata: {
-					epic_context: "bd-epic-1",
+					epic_context: "cell-epic-1",
 					swarm_strategy: "file-based",
 					estimated_duration: 30,
 				},
 			});
 
 			expect(event.metadata).toBeDefined();
-			expect(event.metadata?.epic_context).toBe("bd-epic-1");
+			expect(event.metadata?.epic_context).toBe("cell-epic-1");
 		});
 	});
 
@@ -271,8 +271,8 @@ describe("CellEventSchema", () => {
 		test("creates valid closure eligible event", () => {
 			const event = createCellEvent("cell_epic_closure_eligible", {
 				project_key: projectKey,
-				cell_id: "bd-epic",
-				child_ids: ["bd-epic.1", "bd-epic.2", "bd-epic.3"],
+				cell_id: "cell-epic",
+				child_ids: ["cell-epic.1", "cell-epic.2", "cell-epic.3"],
 				total_duration_ms: 120000,
 				all_files_touched: ["src/a.ts", "src/b.ts"],
 			});
@@ -287,7 +287,7 @@ describe("CellEventSchema", () => {
 		test("tracks status transitions", () => {
 			const event = createCellEvent("cell_status_changed", {
 				project_key: projectKey,
-				cell_id: "bd-123",
+				cell_id: "cell-123",
 				from_status: "open",
 				to_status: "in_progress",
 				changed_by: "agent",
@@ -300,7 +300,7 @@ describe("CellEventSchema", () => {
 		test("includes optional reason for blocked/closed", () => {
 			const event = createCellEvent("cell_status_changed", {
 				project_key: projectKey,
-				cell_id: "bd-123",
+				cell_id: "cell-123",
 				from_status: "in_progress",
 				to_status: "blocked",
 				reason: "Waiting for API credentials",
@@ -314,7 +314,7 @@ describe("CellEventSchema", () => {
 		test("creates comment with optional parent", () => {
 			const event = createCellEvent("cell_comment_added", {
 				project_key: projectKey,
-				cell_id: "bd-123",
+				cell_id: "cell-123",
 				author: "BlueLake",
 				body: "Progress update: auth service implemented",
 				parent_comment_id: 42,
@@ -329,7 +329,7 @@ describe("CellEventSchema", () => {
 		test("tracks work start with file reservations", () => {
 			const event = createCellEvent("cell_work_started", {
 				project_key: projectKey,
-				cell_id: "bd-123",
+				cell_id: "cell-123",
 				agent_name: "BlueLake",
 				reserved_files: ["src/auth/**"],
 			});

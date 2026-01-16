@@ -8,13 +8,13 @@
  * - Import with hash-based deduplication
  * - Parse/serialize individual lines
  *
- * @module cells/jsonl
+ * @module hive/jsonl
  */
 
 import { createHash } from "node:crypto";
 import type { HiveAdapter } from "../types/hive-adapter.js";
 import {
-	clearDirtycell,
+	clearDirtyCell,
 	getComments,
 	getDependencies,
 	getDirtyCells,
@@ -232,7 +232,7 @@ export async function exportToJSONL(
  *
  * Returns JSONL and list of cell IDs that were exported.
  */
-export async function exportDirtycells(
+export async function exportDirtyCells(
 	adapter: HiveAdapter,
 	projectKey: string,
 ): Promise<{ jsonl: string; cellIds: string[] }> {
@@ -329,7 +329,7 @@ async function importSingleCell(
 
 	// Hash-based deduplication
 	if (existing) {
-		const existingHash = await computecellHash(
+		const existingHash = await computeCellHash(
 			adapter,
 			projectKey,
 			existing.id,
@@ -437,7 +437,7 @@ async function importSingleCell(
 /**
  * Compute hash for existing cell in database
  */
-async function computecellHash(
+async function computeCellHash(
 	adapter: HiveAdapter,
 	projectKey: string,
 	cellId: string,

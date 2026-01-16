@@ -7,11 +7,11 @@
  * - Field-level merge rules
  * - Conflict resolution
  *
- * @module cells/merge.test
+ * @module hive/merge.test
  */
 
 import { describe, expect, it } from "bun:test";
-import type { cellExport } from "./jsonl.js";
+import type { CellExport } from "./jsonl.js";
 import {
 	CLOCK_SKEW_GRACE_MS,
 	DEFAULT_TOMBSTONE_TTL_MS,
@@ -26,9 +26,9 @@ import {
 // Test Helpers
 // ============================================================================
 
-function makecell(overrides: Partial<cellExport> = {}): cellExport {
+function makeCell(overrides: Partial<CellExport> = {}): CellExport {
 	return {
-		id: "bd-test",
+		id: "cell-test",
 		title: "Test cell",
 		status: "open",
 		priority: 2,
@@ -42,8 +42,8 @@ function makecell(overrides: Partial<cellExport> = {}): cellExport {
 	};
 }
 
-function makeTombstone(overrides: Partial<cellExport> = {}): cellExport {
-	return makecell({
+function makeTombstone(overrides: Partial<CellExport> = {}): CellExport {
+	return makeCell({
 		status: "tombstone",
 		closed_at: new Date().toISOString(),
 		...overrides,
@@ -56,29 +56,29 @@ function makeTombstone(overrides: Partial<cellExport> = {}): cellExport {
 
 describe("isTombstone", () => {
 	it("returns true for tombstone status", () => {
-		const cell = makecell({ status: "tombstone" });
+		const cell = makeCell({ status: "tombstone" });
 		expect(isTombstone(cell)).toBe(true);
 	});
 
 	it("returns false for open status", () => {
-		const cell = makecell({ status: "open" });
+		const cell = makeCell({ status: "open" });
 		expect(isTombstone(cell)).toBe(false);
 	});
 
 	it("returns false for closed status", () => {
-		const cell = makecell({ status: "closed" });
+		const cell = makeCell({ status: "closed" });
 		expect(isTombstone(cell)).toBe(false);
 	});
 });
 
 describe("isExpiredTombstone", () => {
 	it("returns false for non-tombstone", () => {
-		const cell = makecell({ status: "open" });
+		const cell = makeCell({ status: "open" });
 		expect(isExpiredTombstone(cell)).toBe(false);
 	});
 
 	it("returns false for tombstone without closed_at", () => {
-		const cell = makecell({ status: "tombstone", closed_at: undefined });
+		const cell = makeCell({ status: "tombstone", closed_at: undefined });
 		expect(isExpiredTombstone(cell)).toBe(false);
 	});
 
@@ -130,43 +130,43 @@ describe("merge3Way - basic scenarios", () => {
 	});
 
 	it("preserves unchanged cell", () => {
-		const cell = makecell({ id: "bd-1" });
+		const cell = makeCell({ id: "cell-1" });
 		const { merged, conflicts } = merge3Way([cell], [cell], [cell]);
 
 		expect(merged).toHaveLength(1);
-		expect(merged[0].id).toBe("bd-1");
+		expect(merged[0].id).toBe("cell-1");
 		expect(conflicts).toEqual([]);
 	});
 
 	it("adds cell from left only", () => {
-		const cell = makecell({ id: "bd-new" });
+		const cell = makeCell({ id: "cell-new" });
 		const { merged, conflicts } = merge3Way([], [cell], []);
 
 		expect(merged).toHaveLength(1);
-		expect(merged[0].id).toBe("bd-new");
+		expect(merged[0].id).toBe("cell-new");
 		expect(conflicts).toEqual([]);
 	});
 
 	it("adds cell from right only", () => {
-		const cell = makecell({ id: "bd-new" });
+		const cell = makeCell({ id: "cell-new" });
 		const { merged, conflicts } = merge3Way([], [], [cell]);
 
 		expect(merged).toHaveLength(1);
-		expect(merged[0].id).toBe("bd-new");
+		expect(merged[0].id).toBe("cell-new");
 		expect(conflicts).toEqual([]);
 	});
 
 	it("merges cells added in both (same content)", () => {
-		const cell = makecell({ id: "bd-new" });
+		const cell = makeCell({ id: "cell-new" });
 		const { merged, conflicts } = merge3Way([], [cell], [cell]);
 
 		expect(merged).toHaveLength(1);
-		expect(merged[0].id).toBe("bd-new");
+		expect(merged[0].id).toBe("cell-new");
 		expect(conflicts).toEqual([]);
 	});
 
 	it("deletes cell removed from right", () => {
-		const cell = makecell({ id: "bd-1" });
+		const cell = makeCell({ id: "cell-1" });
 		const { merged, conflicts } = merge3Way([cell], [cell], []);
 
 		// Deletion wins
@@ -175,7 +175,7 @@ describe("merge3Way - basic scenarios", () => {
 	});
 
 	it("deletes cell removed from left", () => {
-		const cell = makecell({ id: "bd-1" });
+		const cell = makeCell({ id: "cell-1" });
 		const { merged, conflicts } = merge3Way([cell], [], [cell]);
 
 		// Deletion wins
@@ -190,9 +190,9 @@ describe("merge3Way - basic scenarios", () => {
 
 describe("merge3Way - field merge", () => {
 	it("takes left change when only left changed", () => {
-		const base = makecell({ id: "bd-1", title: "Original" });
-		const left = makecell({ id: "bd-1", title: "Left Change" });
-		const right = makecell({ id: "bd-1", title: "Original" });
+		const base = makeCell({ id: "cell-1", title: "Original" });
+		const left = makeCell({ id: "cell-1", title: "Left Change" });
+		const right = makeCell({ id: "cell-1", title: "Original" });
 
 		const { merged } = merge3Way([base], [left], [right]);
 
@@ -200,9 +200,9 @@ describe("merge3Way - field merge", () => {
 	});
 
 	it("takes right change when only right changed", () => {
-		const base = makecell({ id: "bd-1", title: "Original" });
-		const left = makecell({ id: "bd-1", title: "Original" });
-		const right = makecell({ id: "bd-1", title: "Right Change" });
+		const base = makeCell({ id: "cell-1", title: "Original" });
+		const left = makeCell({ id: "cell-1", title: "Original" });
+		const right = makeCell({ id: "cell-1", title: "Right Change" });
 
 		const { merged } = merge3Way([base], [left], [right]);
 
@@ -210,14 +210,14 @@ describe("merge3Way - field merge", () => {
 	});
 
 	it("resolves title conflict by updated_at (left wins)", () => {
-		const base = makecell({ id: "bd-1", title: "Original" });
-		const left = makecell({
-			id: "bd-1",
+		const base = makeCell({ id: "cell-1", title: "Original" });
+		const left = makeCell({
+			id: "cell-1",
 			title: "Left Change",
 			updated_at: "2024-01-02T00:00:00Z",
 		});
-		const right = makecell({
-			id: "bd-1",
+		const right = makeCell({
+			id: "cell-1",
 			title: "Right Change",
 			updated_at: "2024-01-01T12:00:00Z",
 		});
@@ -228,14 +228,14 @@ describe("merge3Way - field merge", () => {
 	});
 
 	it("resolves title conflict by updated_at (right wins)", () => {
-		const base = makecell({ id: "bd-1", title: "Original" });
-		const left = makecell({
-			id: "bd-1",
+		const base = makeCell({ id: "cell-1", title: "Original" });
+		const left = makeCell({
+			id: "cell-1",
 			title: "Left Change",
 			updated_at: "2024-01-01T12:00:00Z",
 		});
-		const right = makecell({
-			id: "bd-1",
+		const right = makeCell({
+			id: "cell-1",
 			title: "Right Change",
 			updated_at: "2024-01-02T00:00:00Z",
 		});
@@ -246,9 +246,9 @@ describe("merge3Way - field merge", () => {
 	});
 
 	it("closed status wins over open", () => {
-		const base = makecell({ id: "bd-1", status: "open" });
-		const left = makecell({ id: "bd-1", status: "open" });
-		const right = makecell({ id: "bd-1", status: "closed" });
+		const base = makeCell({ id: "cell-1", status: "open" });
+		const left = makeCell({ id: "cell-1", status: "open" });
+		const right = makeCell({ id: "cell-1", status: "closed" });
 
 		const { merged } = merge3Way([base], [left], [right]);
 
@@ -256,9 +256,9 @@ describe("merge3Way - field merge", () => {
 	});
 
 	it("higher priority wins (lower number)", () => {
-		const base = makecell({ id: "bd-1", priority: 2 });
-		const left = makecell({ id: "bd-1", priority: 1 }); // Higher priority
-		const right = makecell({ id: "bd-1", priority: 3 });
+		const base = makeCell({ id: "cell-1", priority: 2 });
+		const left = makeCell({ id: "cell-1", priority: 1 }); // Higher priority
+		const right = makeCell({ id: "cell-1", priority: 3 });
 
 		const { merged } = merge3Way([base], [left], [right]);
 
@@ -266,9 +266,9 @@ describe("merge3Way - field merge", () => {
 	});
 
 	it("explicit priority wins over 0 (unset)", () => {
-		const base = makecell({ id: "bd-1", priority: 0 });
-		const left = makecell({ id: "bd-1", priority: 0 });
-		const right = makecell({ id: "bd-1", priority: 2 });
+		const base = makeCell({ id: "cell-1", priority: 0 });
+		const left = makeCell({ id: "cell-1", priority: 0 });
+		const right = makeCell({ id: "cell-1", priority: 2 });
 
 		const { merged } = merge3Way([base], [left], [right]);
 
@@ -276,36 +276,36 @@ describe("merge3Way - field merge", () => {
 	});
 
 	it("merges dependencies (union)", () => {
-		const base = makecell({ id: "bd-1", dependencies: [] });
-		const left = makecell({
-			id: "bd-1",
-			dependencies: [{ depends_on_id: "bd-a", type: "blocks" }],
+		const base = makeCell({ id: "cell-1", dependencies: [] });
+		const left = makeCell({
+			id: "cell-1",
+			dependencies: [{ depends_on_id: "cell-a", type: "blocks" }],
 		});
-		const right = makecell({
-			id: "bd-1",
-			dependencies: [{ depends_on_id: "bd-b", type: "related" }],
+		const right = makeCell({
+			id: "cell-1",
+			dependencies: [{ depends_on_id: "cell-b", type: "related" }],
 		});
 
 		const { merged } = merge3Way([base], [left], [right]);
 
 		expect(merged[0].dependencies).toHaveLength(2);
 		expect(merged[0].dependencies.map((d) => d.depends_on_id)).toContain(
-			"bd-a",
+			"cell-a",
 		);
 		expect(merged[0].dependencies.map((d) => d.depends_on_id)).toContain(
-			"bd-b",
+			"cell-b",
 		);
 	});
 
 	it("deduplicates dependencies", () => {
-		const base = makecell({ id: "bd-1", dependencies: [] });
-		const left = makecell({
-			id: "bd-1",
-			dependencies: [{ depends_on_id: "bd-a", type: "blocks" }],
+		const base = makeCell({ id: "cell-1", dependencies: [] });
+		const left = makeCell({
+			id: "cell-1",
+			dependencies: [{ depends_on_id: "cell-a", type: "blocks" }],
 		});
-		const right = makecell({
-			id: "bd-1",
-			dependencies: [{ depends_on_id: "bd-a", type: "blocks" }],
+		const right = makeCell({
+			id: "cell-1",
+			dependencies: [{ depends_on_id: "cell-a", type: "blocks" }],
 		});
 
 		const { merged } = merge3Way([base], [left], [right]);
@@ -314,9 +314,9 @@ describe("merge3Way - field merge", () => {
 	});
 
 	it("merges labels (union)", () => {
-		const base = makecell({ id: "bd-1", labels: [] });
-		const left = makecell({ id: "bd-1", labels: ["urgent"] });
-		const right = makecell({ id: "bd-1", labels: ["backend"] });
+		const base = makeCell({ id: "cell-1", labels: [] });
+		const left = makeCell({ id: "cell-1", labels: ["urgent"] });
+		const right = makeCell({ id: "cell-1", labels: ["backend"] });
 
 		const { merged } = merge3Way([base], [left], [right]);
 
@@ -326,13 +326,13 @@ describe("merge3Way - field merge", () => {
 	});
 
 	it("merges comments (union)", () => {
-		const base = makecell({ id: "bd-1", comments: [] });
-		const left = makecell({
-			id: "bd-1",
+		const base = makeCell({ id: "cell-1", comments: [] });
+		const left = makeCell({
+			id: "cell-1",
 			comments: [{ author: "alice", text: "Left comment" }],
 		});
-		const right = makecell({
-			id: "bd-1",
+		const right = makeCell({
+			id: "cell-1",
 			comments: [{ author: "bob", text: "Right comment" }],
 		});
 
@@ -342,9 +342,12 @@ describe("merge3Way - field merge", () => {
 	});
 
 	it("takes max updated_at", () => {
-		const base = makecell({ id: "bd-1", updated_at: "2024-01-01T00:00:00Z" });
-		const left = makecell({ id: "bd-1", updated_at: "2024-01-02T00:00:00Z" });
-		const right = makecell({ id: "bd-1", updated_at: "2024-01-03T00:00:00Z" });
+		const base = makeCell({ id: "cell-1", updated_at: "2024-01-01T00:00:00Z" });
+		const left = makeCell({ id: "cell-1", updated_at: "2024-01-02T00:00:00Z" });
+		const right = makeCell({
+			id: "cell-1",
+			updated_at: "2024-01-03T00:00:00Z",
+		});
 
 		const { merged } = merge3Way([base], [left], [right]);
 
@@ -358,9 +361,9 @@ describe("merge3Way - field merge", () => {
 
 describe("merge3Way - tombstone semantics", () => {
 	it("tombstone wins over live (left tombstone)", () => {
-		const base = makecell({ id: "bd-1" });
-		const left = makeTombstone({ id: "bd-1" });
-		const right = makecell({ id: "bd-1", title: "Modified" });
+		const base = makeCell({ id: "cell-1" });
+		const left = makeTombstone({ id: "cell-1" });
+		const right = makeCell({ id: "cell-1", title: "Modified" });
 
 		const { merged } = merge3Way([base], [left], [right]);
 
@@ -369,9 +372,9 @@ describe("merge3Way - tombstone semantics", () => {
 	});
 
 	it("tombstone wins over live (right tombstone)", () => {
-		const base = makecell({ id: "bd-1" });
-		const left = makecell({ id: "bd-1", title: "Modified" });
-		const right = makeTombstone({ id: "bd-1" });
+		const base = makeCell({ id: "cell-1" });
+		const left = makeCell({ id: "cell-1", title: "Modified" });
+		const right = makeTombstone({ id: "cell-1" });
 
 		const { merged } = merge3Way([base], [left], [right]);
 
@@ -383,12 +386,12 @@ describe("merge3Way - tombstone semantics", () => {
 		const expiredDate = new Date(
 			Date.now() - DEFAULT_TOMBSTONE_TTL_MS - CLOCK_SKEW_GRACE_MS - 1000,
 		);
-		const base = makecell({ id: "bd-1" });
+		const base = makeCell({ id: "cell-1" });
 		const left = makeTombstone({
-			id: "bd-1",
+			id: "cell-1",
 			closed_at: expiredDate.toISOString(),
 		});
-		const right = makecell({ id: "bd-1", title: "Resurrected" });
+		const right = makeCell({ id: "cell-1", title: "Resurrected" });
 
 		const { merged } = merge3Way([base], [left], [right]);
 
@@ -401,10 +404,10 @@ describe("merge3Way - tombstone semantics", () => {
 		const expiredDate = new Date(
 			Date.now() - DEFAULT_TOMBSTONE_TTL_MS - CLOCK_SKEW_GRACE_MS - 1000,
 		);
-		const base = makecell({ id: "bd-1" });
-		const left = makecell({ id: "bd-1", title: "Resurrected" });
+		const base = makeCell({ id: "cell-1" });
+		const left = makeCell({ id: "cell-1", title: "Resurrected" });
 		const right = makeTombstone({
-			id: "bd-1",
+			id: "cell-1",
 			closed_at: expiredDate.toISOString(),
 		});
 
@@ -416,13 +419,13 @@ describe("merge3Way - tombstone semantics", () => {
 	});
 
 	it("merges two tombstones (later deleted_at wins)", () => {
-		const base = makecell({ id: "bd-1" });
+		const base = makeCell({ id: "cell-1" });
 		const left = makeTombstone({
-			id: "bd-1",
+			id: "cell-1",
 			closed_at: "2024-01-01T00:00:00Z",
 		});
 		const right = makeTombstone({
-			id: "bd-1",
+			id: "cell-1",
 			closed_at: "2024-01-02T00:00:00Z",
 		});
 
@@ -434,8 +437,8 @@ describe("merge3Way - tombstone semantics", () => {
 	});
 
 	it("preserves tombstone when other side deleted", () => {
-		const base = makecell({ id: "bd-1" });
-		const left = makeTombstone({ id: "bd-1" });
+		const base = makeCell({ id: "cell-1" });
+		const left = makeTombstone({ id: "cell-1" });
 		// Right has no entry (implicit deletion)
 
 		const { merged } = merge3Way([base], [left], []);
@@ -447,11 +450,11 @@ describe("merge3Way - tombstone semantics", () => {
 	it("tombstone added in both (merge tombstones)", () => {
 		// Not in base, both sides added as tombstone
 		const left = makeTombstone({
-			id: "bd-1",
+			id: "cell-1",
 			closed_at: "2024-01-01T00:00:00Z",
 		});
 		const right = makeTombstone({
-			id: "bd-1",
+			id: "cell-1",
 			closed_at: "2024-01-02T00:00:00Z",
 		});
 
@@ -469,9 +472,9 @@ describe("merge3Way - tombstone semantics", () => {
 
 describe("mergeJsonl", () => {
 	it("merges JSONL strings", () => {
-		const base = JSON.stringify(makecell({ id: "bd-1", title: "Original" }));
-		const left = JSON.stringify(makecell({ id: "bd-1", title: "Left" }));
-		const right = JSON.stringify(makecell({ id: "bd-1", title: "Original" }));
+		const base = JSON.stringify(makeCell({ id: "cell-1", title: "Original" }));
+		const left = JSON.stringify(makeCell({ id: "cell-1", title: "Left" }));
+		const right = JSON.stringify(makeCell({ id: "cell-1", title: "Original" }));
 
 		const { jsonl, conflicts } = mergeJsonl(base, left, right);
 
@@ -488,8 +491,8 @@ describe("mergeJsonl", () => {
 	});
 
 	it("handles multi-line JSONL", () => {
-		const cell1 = makecell({ id: "bd-1" });
-		const cell2 = makecell({ id: "bd-2" });
+		const cell1 = makeCell({ id: "cell-1" });
+		const cell2 = makeCell({ id: "cell-2" });
 
 		const base = [JSON.stringify(cell1), JSON.stringify(cell2)].join("\n");
 		const left = base;
@@ -509,15 +512,15 @@ describe("mergeJsonl", () => {
 
 describe("merge3Way - edge cases", () => {
 	it("handles multiple cells", () => {
-		const base = [makecell({ id: "bd-1" }), makecell({ id: "bd-2" })];
+		const base = [makeCell({ id: "cell-1" }), makeCell({ id: "cell-2" })];
 		const left = [
-			makecell({ id: "bd-1", title: "Modified 1" }),
-			makecell({ id: "bd-2" }),
-			makecell({ id: "bd-3" }), // Added
+			makeCell({ id: "cell-1", title: "Modified 1" }),
+			makeCell({ id: "cell-2" }),
+			makeCell({ id: "cell-3" }), // Added
 		];
 		const right = [
-			makecell({ id: "bd-1" }),
-			makecell({ id: "bd-2", title: "Modified 2" }),
+			makeCell({ id: "cell-1" }),
+			makeCell({ id: "cell-2", title: "Modified 2" }),
 		];
 
 		const { merged, conflicts } = merge3Way(base, left, right);
@@ -525,9 +528,9 @@ describe("merge3Way - edge cases", () => {
 		expect(merged).toHaveLength(3);
 		expect(conflicts).toEqual([]);
 
-		const bd1 = merged.find((b) => b.id === "bd-1");
-		const bd2 = merged.find((b) => b.id === "bd-2");
-		const bd3 = merged.find((b) => b.id === "bd-3");
+		const bd1 = merged.find((b) => b.id === "cell-1");
+		const bd2 = merged.find((b) => b.id === "cell-2");
+		const bd3 = merged.find((b) => b.id === "cell-3");
 
 		expect(bd1?.title).toBe("Modified 1");
 		expect(bd2?.title).toBe("Modified 2");
@@ -536,8 +539,14 @@ describe("merge3Way - edge cases", () => {
 
 	it("handles cells with same ID but different created_at", () => {
 		// Different created_at means different keys
-		const cell1 = makecell({ id: "bd-1", created_at: "2024-01-01T00:00:00Z" });
-		const cell2 = makecell({ id: "bd-1", created_at: "2024-01-02T00:00:00Z" });
+		const cell1 = makeCell({
+			id: "cell-1",
+			created_at: "2024-01-01T00:00:00Z",
+		});
+		const cell2 = makeCell({
+			id: "cell-1",
+			created_at: "2024-01-02T00:00:00Z",
+		});
 
 		const { merged } = merge3Way([], [cell1], [cell2]);
 
@@ -546,9 +555,12 @@ describe("merge3Way - edge cases", () => {
 	});
 
 	it("handles invalid timestamps gracefully", () => {
-		const base = makecell({ id: "bd-1", updated_at: "invalid" });
-		const left = makecell({ id: "bd-1", updated_at: "also-invalid" });
-		const right = makecell({ id: "bd-1", updated_at: "2024-01-01T00:00:00Z" });
+		const base = makeCell({ id: "cell-1", updated_at: "invalid" });
+		const left = makeCell({ id: "cell-1", updated_at: "also-invalid" });
+		const right = makeCell({
+			id: "cell-1",
+			updated_at: "2024-01-01T00:00:00Z",
+		});
 
 		// Should not throw
 		const { merged } = merge3Way([base], [left], [right]);
@@ -556,7 +568,7 @@ describe("merge3Way - edge cases", () => {
 	});
 
 	it("debug mode logs without affecting result", () => {
-		const cell = makecell({ id: "bd-1" });
+		const cell = makeCell({ id: "cell-1" });
 
 		const { merged, conflicts } = merge3Way([cell], [cell], [cell], {
 			debug: true,

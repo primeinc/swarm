@@ -150,9 +150,9 @@ describe("epicIdSpecificity scorer", () => {
 		expect(result.message).toContain("placeholder");
 	});
 
-	test("scores 0.0 for bd-xxx placeholders", () => {
+	test("scores 0.0 for cell-xxx placeholders", () => {
 		const prompt: CompactionPrompt = {
-			content: "Check status of bd-xxx",
+			content: "Check status of cell-xxx",
 		};
 
 		const result = scoreEpicIdSpecificity(prompt);

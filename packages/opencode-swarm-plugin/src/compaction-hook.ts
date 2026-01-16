@@ -352,7 +352,7 @@ Look for ANY of these patterns in the conversation:
 - \`hive_create_epic\`, \`hive_start\`, \`hive_close\`
 
 ### IDs and Names
-- Cell IDs: \`bd-xxx\`, \`bd-xxx.N\` (subtask format)
+- Cell IDs: \`cell-xxx\`, \`cell-xxx.N\` (subtask format)
 - Agent names: BlueLake, RedMountain, GreenValley, etc.
 - Epic references: "epic", "subtask", "parent"
 

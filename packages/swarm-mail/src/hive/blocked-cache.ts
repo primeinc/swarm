@@ -1,5 +1,5 @@
 /**
- * Blocked cells Cache Management
+ * Blocked Cells Cache Management
  *
  * Convenience re-exports for blocked cache operations.
  * The actual implementation is in dependencies.ts to avoid circular dependencies.
@@ -15,11 +15,11 @@
  *
  * Reference: steveyegge/cells/internal/storage/sqlite/blocked_cache.go
  *
- * @module cells/blocked-cache
+ * @module hive/blocked-cache
  */
 
 export {
 	invalidateBlockedCache,
 	rebuildAllBlockedCaches,
-	rebuildcellBlockedCache,
+	rebuildCellBlockedCache,
 } from "./dependencies.js";

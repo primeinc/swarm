@@ -1,5 +1,5 @@
 /**
- * cells Query Functions
+ * Hive Query Functions
  *
  * High-level query functions for common cell operations:
  * - Ready work (unblocked cells with sort policies)
@@ -19,7 +19,7 @@
  * - ❌ getBlockedIssues - Raw SQL (cache JOIN + JSON parsing)
  * - ❌ getEpicsEligibleForClosure - Raw SQL (complex JOIN + GROUP BY + HAVING)
  *
- * @module cells/queries
+ * @module hive/queries
  */
 
 import type { DatabaseAdapter } from "../types/database.js";

@@ -1081,7 +1081,7 @@ export const hive_create_epic = tool({
  */
 export const hive_query = tool({
 	description:
-		"Query hive cells with filters (replaces bd list, bd ready, bd wip)",
+		"Query hive cells with filters (replaces hive list, hive ready, hive wip)",
 	args: {
 		status: tool.schema
 			.enum(["open", "in_progress", "blocked", "closed"])

@@ -755,8 +755,5 @@ export const structuredTools = {
 };
 
 // ============================================================================
-// Backward Compatibility Aliases
+// Internal Utilities
 // ============================================================================
-
-/** @deprecated Use structured_parse_cell_tree instead */
-export const structured_parse_bead_tree = structured_parse_cell_tree;
