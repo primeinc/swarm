@@ -50,6 +50,12 @@ export type {
 export type { LibSQLConfig } from "./libsql";
 export { createLibSQLAdapter } from "./libsql";
 
+// ============================================================================
+// Path Normalization Utilities
+// ============================================================================
+
+export { normalizePath, normalizeProjectKey } from "./utils/normalize-path";
+
 // LibSQL Convenience Layer
 export {
 	closeAllSwarmMailLibSQL,

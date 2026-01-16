@@ -47,3 +47,5 @@ npm-debug.log*
 
 # VS Code workspace files (user-specific)
 *.code-workspace
+/undefined/.semantic-memory/memory
+/packages/opencode-swarm-plugin/undefined/.semantic-memory

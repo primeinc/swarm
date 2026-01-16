@@ -966,6 +966,7 @@ describe("beads integration", () => {
       const { mkdirSync, rmSync, writeFileSync } = await import("node:fs");
       const { join } = await import("node:path");
       const { tmpdir } = await import("node:os");
+      const { normalizePath } = await import("./utils/normalize-path");
       
       // Create temp project with .beads directory only
       const tempProject = join(tmpdir(), `hive-migration-test-${Date.now()}`);
@@ -977,7 +978,8 @@ describe("beads integration", () => {
       const result = checkBeadsMigrationNeeded(tempProject);
       
       expect(result.needed).toBe(true);
-      expect(result.beadsPath).toBe(beadsDir);
+      // Normalize both paths since checkBeadsMigrationNeeded returns normalized paths
+      expect(normalizePath(result.beadsPath!)).toBe(normalizePath(beadsDir));
       
       // Cleanup
       rmSync(tempProject, { recursive: true, force: true });
@@ -1107,14 +1109,28 @@ describe("beads integration", () => {
   });
 
   describe("importJsonlToPGLite", () => {
+    beforeEach(async () => {
+      // Clear adapter cache before each test to ensure isolated database per test
+      const { clearHiveAdapterCache } = await import("./hive");
+      const { closeSwarmMailLibSQL } = await import("swarm-mail");
+      clearHiveAdapterCache();
+      // Close any open connections
+      try {
+        await closeSwarmMailLibSQL();
+      } catch {
+        // Ignore if not initialized
+      }
+    });
+
     it("imports empty JSONL - no-op", async () => {
       const { importJsonlToPGLite } = await import("./hive");
       const { mkdirSync, rmSync, writeFileSync } = await import("node:fs");
       const { join } = await import("node:path");
       const { tmpdir } = await import("node:os");
+      const { randomBytes } = await import("node:crypto");
 
       // Create temp project with empty JSONL
-      const tempProject = join(tmpdir(), `hive-import-test-${Date.now()}`);
+      const tempProject = join(tmpdir(), `hive-import-test-${Date.now()}-${randomBytes(4).toString("hex")}`);
       const hiveDir = join(tempProject, ".hive");
       mkdirSync(hiveDir, { recursive: true });
       writeFileSync(join(hiveDir, "issues.jsonl"), "");
@@ -1134,14 +1150,17 @@ describe("beads integration", () => {
       const { mkdirSync, rmSync, writeFileSync, unlinkSync } = await import("node:fs");
       const { join } = await import("node:path");
       const { tmpdir } = await import("node:os");
+      const { randomBytes } = await import("node:crypto");
 
       // Create temp project with new cells
-      const tempProject = join(tmpdir(), `hive-import-test-${Date.now()}`);
+      const testId = randomBytes(4).toString("hex");
+      const tempProject = join(tmpdir(), `hive-import-test-${Date.now()}-${testId}`);
       const hiveDir = join(tempProject, ".hive");
       mkdirSync(hiveDir, { recursive: true });
 
+      // Use unique IDs per test to avoid UNIQUE constraint violations in shared database
       const cell1 = {
-        id: "bd-import-1",
+        id: `bd-import-1-${testId}`,
         title: "Import test 1",
         status: "open" as const,
         priority: 2,
@@ -1154,7 +1173,7 @@ describe("beads integration", () => {
       };
 
       const cell2 = {
-        id: "bd-import-2",
+        id: `bd-import-2-${testId}`,
         title: "Import test 2",
         status: "in_progress" as const,
         priority: 1,
@@ -1184,8 +1203,8 @@ describe("beads integration", () => {
 
       // Verify cells exist in database
       const adapter = await getHiveAdapter(tempProject);
-      const importedCell1 = await adapter.getCell(tempProject, "bd-import-1");
-      const importedCell2 = await adapter.getCell(tempProject, "bd-import-2");
+      const importedCell1 = await adapter.getCell(tempProject, `bd-import-1-${testId}`);
+      const importedCell2 = await adapter.getCell(tempProject, `bd-import-2-${testId}`);
 
       expect(importedCell1).toBeDefined();
       expect(importedCell1!.title).toBe("Import test 1");
@@ -1201,15 +1220,17 @@ describe("beads integration", () => {
       const { mkdirSync, rmSync, writeFileSync, unlinkSync } = await import("node:fs");
       const { join } = await import("node:path");
       const { tmpdir } = await import("node:os");
+      const { randomBytes } = await import("node:crypto");
 
       // Create temp project
-      const tempProject = join(tmpdir(), `hive-import-test-${Date.now()}`);
+      const testId = randomBytes(4).toString("hex");
+      const tempProject = join(tmpdir(), `hive-import-test-${Date.now()}-${testId}`);
       const hiveDir = join(tempProject, ".hive");
       mkdirSync(hiveDir, { recursive: true });
 
       // Write JSONL FIRST (before getHiveAdapter to avoid auto-migration)
       const originalCell = {
-        id: "bd-update-1",
+        id: `bd-update-1-${testId}`,
         title: "Original title",
         status: "open",
         priority: 2,
@@ -1251,7 +1272,7 @@ describe("beads integration", () => {
       expect(result.errors).toBe(0);
 
       // Verify update
-      const cell = await adapter.getCell(tempProject, "bd-update-1");
+      const cell = await adapter.getCell(tempProject, `bd-update-1-${testId}`);
       expect(cell).toBeDefined();
       expect(cell!.title).toBe("Updated title");
       expect(cell!.description).toContain("New description");
@@ -1266,9 +1287,10 @@ describe("beads integration", () => {
       const { mkdirSync, rmSync, writeFileSync } = await import("node:fs");
       const { join } = await import("node:path");
       const { tmpdir } = await import("node:os");
+      const { randomBytes } = await import("node:crypto");
 
       // Create temp project with NO initial JSONL (avoid auto-migration)
-      const tempProject = join(tmpdir(), `hive-import-test-${Date.now()}`);
+      const tempProject = join(tmpdir(), `hive-import-test-${Date.now()}-${randomBytes(4).toString("hex")}`);
       const hiveDir = join(tempProject, ".hive");
       mkdirSync(hiveDir, { recursive: true });
 
@@ -1302,7 +1324,7 @@ describe("beads integration", () => {
       };
 
       const newCell = {
-        id: "bd-new",
+        id: `bd-new-${existingId.split("-").pop()}`,
         title: "Brand new",
         status: "open" as const,
         priority: 1,
@@ -1323,8 +1345,8 @@ describe("beads integration", () => {
 
       // importJsonlToPGLite() finds:
       // - existingId already exists (updated)
-      // - bd-new is new (imported)
-      expect(result.imported).toBe(1); // bd-new
+      // - bd-new-${suffix} is new (imported)
+      expect(result.imported).toBe(1); // bd-new-${suffix}
       expect(result.updated).toBe(1); // existing cell
       expect(result.errors).toBe(0);
 
@@ -1337,14 +1359,17 @@ describe("beads integration", () => {
       const { mkdirSync, rmSync, writeFileSync } = await import("node:fs");
       const { join } = await import("node:path");
       const { tmpdir } = await import("node:os");
+      const { randomBytes } = await import("node:crypto");
+
+      const testId = `${Date.now()}-${randomBytes(4).toString("hex")}`;
 
       // Create temp project
-      const tempProject = join(tmpdir(), `hive-import-test-${Date.now()}`);
+      const tempProject = join(tmpdir(), `hive-import-test-${testId}`);
       const hiveDir = join(tempProject, ".hive");
       mkdirSync(hiveDir, { recursive: true });
 
       const validCell = {
-        id: "bd-valid",
+        id: `bd-valid-${testId}`,
         title: "Valid",
         status: "open",
         priority: 2,
@@ -1378,9 +1403,10 @@ describe("beads integration", () => {
       const { mkdirSync, rmSync } = await import("node:fs");
       const { join } = await import("node:path");
       const { tmpdir } = await import("node:os");
+      const { randomBytes } = await import("node:crypto");
 
       // Create temp project without issues.jsonl
-      const tempProject = join(tmpdir(), `hive-import-test-${Date.now()}`);
+      const tempProject = join(tmpdir(), `hive-import-test-${Date.now()}-${randomBytes(4).toString("hex")}`);
       const hiveDir = join(tempProject, ".hive");
       mkdirSync(hiveDir, { recursive: true });
 
@@ -1426,6 +1452,7 @@ describe("beads integration", () => {
       // Initial commit and push
       execSync("git add .", { cwd: tempProject });
       execSync('git commit -m "initial commit"', { cwd: tempProject });
+      execSync("git branch -M main", { cwd: tempProject }); // Ensure main branch exists
       execSync("git push -u origin main", { cwd: tempProject });
 
       // Now create unstaged changes OUTSIDE .hive/
@@ -1841,7 +1868,7 @@ describe("beads integration", () => {
           mockContext,
         );
 
-        // Verify cell is NOT in JSONL yet (only in PGLite)
+        // Verify cell is NOT in JSONL yet (only in libSQL)
         const beforeContent = readFileSync(join(hiveDir, "issues.jsonl"), "utf-8");
         expect(beforeContent.trim()).toBe("");
 
@@ -2080,7 +2107,7 @@ describe("beads integration", () => {
   });
 
   describe("bigint to Date conversion", () => {
-    it("should handle PGLite bigint timestamps correctly in hive_query", async () => {
+    it("should handle libSQL bigint timestamps correctly in hive_query", async () => {
       const { mkdirSync, rmSync } = await import("node:fs");
       const { join } = await import("node:path");
       const { tmpdir } = await import("node:os");
@@ -2100,7 +2127,7 @@ describe("beads integration", () => {
         );
         const created = parseResponse<Cell>(createResponse);
         
-        // Query it back - this triggers formatCellForOutput with PGLite bigint timestamps
+        // Query it back - this triggers formatCellForOutput with libSQL bigint timestamps
         const queryResponse = await hive_query.execute({ status: "open" }, mockContext);
         const queried = parseResponse<Cell[]>(queryResponse);
 

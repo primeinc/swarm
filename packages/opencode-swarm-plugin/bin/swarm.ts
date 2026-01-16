@@ -38,7 +38,7 @@ import {
   checkBeadsMigrationNeeded,
   migrateBeadsToHive,
   mergeHistoricBeads,
-  importJsonlToPGLite,
+  importJsonlToLibSQL,
   ensureHiveDirectory,
   getHiveAdapter,
 } from "../dist/hive.js";
@@ -2429,9 +2429,9 @@ async function setup(forceReinstall = false, nonInteractive = false) {
             migrateSpinner.stop("No historic cells to merge");
           }
           
-          // Import JSONL into PGLite database
+          // Import JSONL into libSQL database
           migrateSpinner.start("Importing to database...");
-          const importResult = await importJsonlToPGLite(cwd);
+          const importResult = await importJsonlToLibSQL(cwd);
           migrateSpinner.stop("Database import complete");
           if (importResult.imported > 0 || importResult.updated > 0) {
             p.log.success(`Database: ${importResult.imported} imported, ${importResult.updated} updated`);

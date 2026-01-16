@@ -72,6 +72,7 @@ function aliasCommonKeys(obj: Record<string, unknown>): Record<string, unknown> 
   move("beadId", "id");
   move("parentId", "parent_id");
   move("issue_type", "type");
+  move("issueType", "type");
   move("kind", "type");
   // Epic aliases
   move("epicTitle", "epic_title");

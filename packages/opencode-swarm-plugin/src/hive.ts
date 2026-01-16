@@ -351,7 +351,7 @@ export async function mergeHistoricBeads(projectPath: string): Promise<{merged: 
 }
 
 /**
- * Import cells from .hive/issues.jsonl into PGLite database
+ * Import cells from .hive/issues.jsonl into libSQL database
  * 
  * Reads the JSONL file and upserts each record into the cells table
  * using the HiveAdapter. Provides granular error reporting for invalid lines.
@@ -362,7 +362,7 @@ export async function mergeHistoricBeads(projectPath: string): Promise<{merged: 
  * @param projectPath - Absolute path to the project root
  * @returns Object with imported, updated, and error counts
  */
-export async function importJsonlToPGLite(projectPath: string): Promise<{
+export async function importJsonlToLibSQL(projectPath: string): Promise<{
   imported: number;
   updated: number;
   errors: number;
@@ -466,6 +466,12 @@ export async function importJsonlToPGLite(projectPath: string): Promise<{
   
   return { imported, updated, errors };
 }
+
+/**
+ * Backward compatibility alias for importJsonlToLibSQL
+ * @deprecated Use importJsonlToLibSQL instead
+ */
+export const importJsonlToPGLite = importJsonlToLibSQL;
 
 // ============================================================================
 // Adapter Singleton

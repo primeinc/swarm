@@ -10,7 +10,7 @@
  */
 
 import type { DatabaseAdapter } from "swarm-mail";
-import { getSwarmMailLibSQL } from "swarm-mail";
+import { getSwarmMailLibSQL, normalizeProjectKey } from "swarm-mail";
 
 export interface WorkerStatus {
 	agent_name: string;
@@ -56,9 +56,9 @@ export interface EpicInfo {
  */
 export async function getWorkerStatus(
 	projectPath: string,
-	options?: { project_key?: string },
 ): Promise<WorkerStatus[]> {
-	const swarmMail = await getSwarmMailLibSQL(projectPath);
+	const normalizedPath = normalizeProjectKey(projectPath);
+	const swarmMail = await getSwarmMailLibSQL(normalizedPath);
 	const db = await swarmMail.getDatabase();
 	// Query for latest task-related events per agent+bead, then pick primary status
 	const query = `
@@ -75,7 +75,7 @@ export async function getWorkerStatus(
 			FROM events
 			WHERE type IN ('task_started', 'progress_reported', 'task_blocked', 'task_completed')
 				AND json_extract(data, '$.agent_name') IS NOT NULL
-				${options?.project_key ? "AND project_key = ?" : ""}
+				AND project_key = ?
 		),
 		agent_latest_task AS (
 			SELECT 
@@ -103,7 +103,7 @@ export async function getWorkerStatus(
 		GROUP BY agent_name, type, bead_id
 	`;
 
-	const params = options?.project_key ? [options.project_key] : [];
+	const params = [normalizedPath];
 	const result = await db.query<{
 		agent_name: string;
 		type: string;
@@ -137,7 +137,8 @@ export async function getSubtaskProgress(
 	projectPath: string,
 	epic_id: string,
 ): Promise<SubtaskProgress[]> {
-	const swarmMail = await getSwarmMailLibSQL(projectPath);
+	const normalizedPath = normalizeProjectKey(projectPath);
+	const swarmMail = await getSwarmMailLibSQL(normalizedPath);
 	const db = await swarmMail.getDatabase();
 	// Get all subtasks from any task-related events matching epic prefix
 	const query = `
@@ -146,7 +147,8 @@ export async function getSubtaskProgress(
 				json_extract(data, '$.bead_id') as bead_id,
 				MIN(timestamp) as first_seen
 			FROM events
-			WHERE type IN ('task_started', 'progress_reported', 'task_blocked', 'task_completed')
+			WHERE project_key = ?
+				AND type IN ('task_started', 'progress_reported', 'task_blocked', 'task_completed')
 				AND json_extract(data, '$.bead_id') LIKE ? || '.%'
 			GROUP BY json_extract(data, '$.bead_id')
 		),
@@ -155,7 +157,8 @@ export async function getSubtaskProgress(
 				json_extract(data, '$.bead_id') as bead_id,
 				json_extract(data, '$.title') as title
 			FROM events
-			WHERE type IN ('task_started', 'task_blocked')
+			WHERE project_key = ?
+				AND type IN ('task_started', 'task_blocked')
 				AND json_extract(data, '$.bead_id') LIKE ? || '.%'
 				AND json_extract(data, '$.title') IS NOT NULL
 		),
@@ -167,7 +170,8 @@ export async function getSubtaskProgress(
 				json_extract(data, '$.progress_percent') as progress_percent,
 				ROW_NUMBER() OVER (PARTITION BY json_extract(data, '$.bead_id') ORDER BY timestamp DESC) as rn
 			FROM events
-			WHERE type IN ('task_started', 'progress_reported', 'task_blocked', 'task_completed')
+			WHERE project_key = ?
+				AND type IN ('task_started', 'progress_reported', 'task_blocked', 'task_completed')
 				AND json_extract(data, '$.bead_id') LIKE ? || '.%'
 		)
 		SELECT 
@@ -185,7 +189,7 @@ export async function getSubtaskProgress(
 		title: string;
 		status: string;
 		progress_percent: number;
-	}>(query, [epic_id, epic_id, epic_id]);
+	}>(query, [normalizedPath, epic_id, normalizedPath, epic_id, normalizedPath, epic_id]);
 
 	return result.rows.map((row) => ({
 		bead_id: row.bead_id,
@@ -201,9 +205,9 @@ export async function getSubtaskProgress(
  */
 export async function getFileLocks(
 	projectPath: string,
-	options?: { project_key?: string },
 ): Promise<FileLock[]> {
-	const swarmMail = await getSwarmMailLibSQL(projectPath);
+	const normalizedPath = normalizeProjectKey(projectPath);
+	const swarmMail = await getSwarmMailLibSQL(normalizedPath);
 	const db = await swarmMail.getDatabase();
 	// Query for active reservations (acquired but not released)
 	const query = `
@@ -216,7 +220,7 @@ export async function getFileLocks(
 				json_extract(data, '$.ttl_seconds') as ttl_seconds
 			FROM events
 			WHERE type = 'reservation_acquired'
-				${options?.project_key ? "AND project_key = ?" : ""}
+				AND project_key = ?
 		),
 		released AS (
 			SELECT DISTINCT
@@ -224,7 +228,7 @@ export async function getFileLocks(
 				json_extract(data, '$.agent_name') as agent_name
 			FROM events
 			WHERE type = 'reservation_released'
-				${options?.project_key ? "AND project_key = ?" : ""}
+				AND project_key = ?
 		)
 		SELECT 
 			a.path,
@@ -237,7 +241,7 @@ export async function getFileLocks(
 		WHERE r.path IS NULL
 	`;
 
-	const params = options?.project_key ? [options.project_key, options.project_key] : [];
+	const params = [normalizedPath, normalizedPath];
 	const result = await db.query<{
 		path: string;
 		agent_name: string;
@@ -267,13 +271,14 @@ export async function getRecentMessages(
 		importance?: "low" | "normal" | "high" | "urgent";
 	},
 ): Promise<RecentMessage[]> {
-	const swarmMail = await getSwarmMailLibSQL(projectPath);
+	const normalizedPath = normalizeProjectKey(projectPath);
+	const swarmMail = await getSwarmMailLibSQL(normalizedPath);
 	const db = await swarmMail.getDatabase();
 	const limit = options?.limit ?? 10;
 	
-	// Build WHERE clause dynamically
-	const whereClauses = ["type = 'message_sent'"];
-	const params: (string | number)[] = [];
+	// Build WHERE clause dynamically - ALWAYS filter by project_key to prevent cross-project pollution
+	const whereClauses = ["type = 'message_sent'", "project_key = ?"];
+	const params: (string | number)[] = [normalizedPath];
 	
 	if (options?.thread_id) {
 		whereClauses.push("json_extract(data, '$.thread_id') = ?");
@@ -331,7 +336,8 @@ export async function getEpicList(
 	projectPath: string,
 	options?: { status?: "open" | "in_progress" | "completed" | "blocked" },
 ): Promise<EpicInfo[]> {
-	const swarmMail = await getSwarmMailLibSQL(projectPath);
+	const normalizedPath = normalizeProjectKey(projectPath);
+	const swarmMail = await getSwarmMailLibSQL(normalizedPath);
 	const db = await swarmMail.getDatabase();
 	// Check if beads table exists
 	const tablesResult = await db.query<{ name: string }>(

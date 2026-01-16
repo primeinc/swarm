@@ -70,11 +70,6 @@ const TOOL_DEFINITIONS: Omit<DiscoveredTool, "available">[] = [
     type: "mcp",
     capabilities: ["http-fetch", "markdown-conversion"],
   },
-  {
-    name: "pdf-brain",
-    type: "mcp",
-    capabilities: ["knowledge-base-search", "internal-docs"],
-  },
 ];
 
 /**
@@ -324,8 +319,7 @@ function isMcpToolAvailable(_toolName: string): boolean {
  * Discover available documentation tools
  *
  * Checks for:
- * - Skills (via skills discovery)
- * - MCP servers (next-devtools, context7, fetch, pdf-brain)
+ * - MCP servers (next-devtools, context7, fetch)
  *
  * @returns List of discovered tools with availability status
  */

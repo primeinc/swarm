@@ -63,8 +63,6 @@ describe("discoverDocTools", () => {
       "next-devtools",
       "context7",
       "fetch",
-      "pdf-brain",
-      "semantic-memory",
     ];
 
     for (const expected of expectedTools) {
@@ -129,20 +127,20 @@ describe("discoverDocTools", () => {
       expect(fetchTool.capabilities).toContain("http-fetch");
     }
 
-    // semantic-memory should have storage capabilities
-    const semMem = toolMap.get("semantic-memory");
-    if (semMem) {
-      expect(semMem.capabilities).toContain("storage");
+    // pdf-brain should have knowledge-base-search capability
+    const pdfBrain = toolMap.get("pdf-brain");
+    if (pdfBrain) {
+      expect(pdfBrain.capabilities).toContain("knowledge-base-search");
     }
   });
 
-  test("marks semantic-memory availability based on ollama", async () => {
+  test("all tools have defined capabilities", async () => {
     const tools = await discoverDocTools();
-    const semMem = tools.find((t) => t.name === "semantic-memory");
-
-    expect(semMem).toBeDefined();
-    // Availability depends on runtime env - just check it's defined
-    expect(typeof semMem?.available).toBe("boolean");
+    
+    for (const tool of tools) {
+      expect(Array.isArray(tool.capabilities)).toBe(true);
+      expect(tool.capabilities.length).toBeGreaterThan(0);
+    }
   });
 });
 

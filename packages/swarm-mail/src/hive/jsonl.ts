@@ -384,8 +384,8 @@ async function importSingleCell(
     // If it's a tombstone, mark as deleted
     if (cellExport.status === "tombstone") {
       await db.query(
-        "UPDATE beads SET deleted_at = $1 WHERE id = $2",
-        [Date.now(), cellExport.id]
+        "UPDATE cells SET status = $1, updated_at = $2 WHERE id = $3",
+        ["closed", Date.now(), cellExport.id]
       );
     }
 
@@ -410,7 +410,7 @@ async function importSingleCell(
       } else if (cellExport.status === "in_progress") {
         const db = await adapter.getDatabase();
         await db.query(
-          "UPDATE beads SET status = $1, updated_at = $2 WHERE id = $3",
+          "UPDATE cells SET status = $1, updated_at = $2 WHERE id = $3",
           ["in_progress", Date.now(), cellExport.id]
         );
       }
