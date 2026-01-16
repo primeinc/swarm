@@ -35,17 +35,17 @@ for (const [dir, newName] of Object.entries(packages)) {
 for (const [dir, newName] of Object.entries(packages)) {
   const pkgPath = join(dir, "package.json");
   const pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
-  
+
   const oldName = pkg.name;
   pkg.name = newName;
-  
-  // Update internal dependency references - resolve workspace:* to actual version
+
+  // Update internal dependency references - rename swarm-mail to scoped name
+  // Note: bun publish will resolve workspace:* to actual versions automatically
   if (pkg.dependencies?.["swarm-mail"]) {
-    const swarmMailVersion = versions[`${scope}/swarm-mail`];
-    pkg.dependencies[`${scope}/swarm-mail`] = swarmMailVersion || pkg.dependencies["swarm-mail"];
+    pkg.dependencies[`${scope}/swarm-mail`] = pkg.dependencies["swarm-mail"];
     delete pkg.dependencies["swarm-mail"];
   }
-  
+
   writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
   console.log(`✅ ${oldName} → ${newName}`);
 }

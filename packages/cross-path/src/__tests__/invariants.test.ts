@@ -160,7 +160,10 @@ describe('Property: Round-trip conversions', () => {
 });
 
 describe('Property: toNative produces platform-appropriate paths', () => {
-  it('toNative on Windows environment produces backslashes', () => {
+  // Skip on non-Windows platforms since toNative produces native paths
+  const isWindows = process.platform === 'win32';
+
+  it.skipIf(!isWindows)('toNative on Windows environment produces backslashes', () => {
     for (let i = 0; i < 50; i++) {
       const path = randomWindowsPath();
       const canonical = normalize(path);

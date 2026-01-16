@@ -56,8 +56,9 @@ jobs:
 
           for pkg in packages/cross-path packages/swarm-mail packages/opencode-swarm-plugin; do
             echo "📦 Publishing $pkg..."
+            # Use bun publish to properly resolve workspace:* dependencies
             # Always publish as beta - this is a fork, not the canonical release
-            (cd "$pkg" && npm publish --access public --tag beta) || echo "⚠️ May already exist"
+            (cd "$pkg" && bun publish --access public --tag beta) || echo "⚠️ May already exist"
           done
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
