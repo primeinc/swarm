@@ -42,7 +42,9 @@ jobs:
 
       - name: Build only publishable packages
         run: |
-          # Build swarm-mail first (dependency)
+          # Build cross-path first (no dependencies)
+          (cd packages/cross-path && bun run build)
+          # Build swarm-mail (dependency)
           (cd packages/swarm-mail && bun run build)
           # Build opencode-swarm-plugin
           (cd packages/opencode-swarm-plugin && bun run build)
@@ -51,8 +53,8 @@ jobs:
         if: ${{ inputs.dry_run != true }}
         run: |
           set -euo pipefail
-          
-          for pkg in packages/swarm-mail packages/opencode-swarm-plugin; do
+
+          for pkg in packages/cross-path packages/swarm-mail packages/opencode-swarm-plugin; do
             echo "📦 Publishing $pkg..."
             # Always publish as beta - this is a fork, not the canonical release
             (cd "$pkg" && npm publish --access public --tag beta) || echo "⚠️ May already exist"
@@ -63,7 +65,7 @@ jobs:
       - name: Dry run - show what would be published
         if: ${{ inputs.dry_run == true }}
         run: |
-          for pkg in packages/swarm-mail packages/opencode-swarm-plugin; do
+          for pkg in packages/cross-path packages/swarm-mail packages/opencode-swarm-plugin; do
             echo "📦 Would publish $pkg:"
             cat "$pkg/package.json" | jq '{name, version}'
           done
