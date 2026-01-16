@@ -1,5 +1,5 @@
 {
-  "title": "opencode-swarm-plugin",
-  "description": "OpenCode plugin for swarm coordination",
-  "pages": ["index", "beads", "swarm", "skills"]
+	"title": "opencode-swarm-plugin",
+	"description": "OpenCode plugin for swarm coordination",
+	"pages": ["index", "beads", "swarm", "skills"]
 }

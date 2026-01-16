@@ -7,10 +7,10 @@
  * IMPORTANT: We save and restore global.fetch to avoid breaking other tests.
  */
 
-import { describe, test, expect, beforeEach, afterEach, mock } from "bun:test";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import { Effect, Layer } from "effect";
-import { Ollama, makeOllamaLive } from "./ollama.js";
 import type { MemoryConfig } from "../types/index.js";
+import { makeOllamaLive, Ollama } from "./ollama.js";
 
 // Save original fetch to restore after each test
 const originalFetch = global.fetch;
@@ -67,7 +67,9 @@ describe("Ollama Service", () => {
 			});
 
 			const layer = makeOllamaLive(mockConfig);
-			const result = await Effect.runPromise(program.pipe(Effect.provide(layer)));
+			const result = await Effect.runPromise(
+				program.pipe(Effect.provide(layer)),
+			);
 
 			expect(result).toEqual(mockEmbedding);
 			expect(mockFetch).toHaveBeenCalledTimes(1);
@@ -119,7 +121,9 @@ describe("Ollama Service", () => {
 			});
 
 			const layer = makeOllamaLive(mockConfig);
-			const result = await Effect.runPromise(program.pipe(Effect.provide(layer)));
+			const result = await Effect.runPromise(
+				program.pipe(Effect.provide(layer)),
+			);
 
 			expect(result).toEqual(mockEmbedding);
 			expect(attempts).toBe(3);
@@ -146,9 +150,7 @@ describe("Ollama Service", () => {
 		});
 
 		test("handles connection errors", async () => {
-			const mockFetch = mock(() =>
-				Promise.reject(new Error("ECONNREFUSED")),
-			);
+			const mockFetch = mock(() => Promise.reject(new Error("ECONNREFUSED")));
 			global.fetch = mockFetch as typeof fetch;
 
 			const program = Effect.gen(function* () {
@@ -202,7 +204,9 @@ describe("Ollama Service", () => {
 			});
 
 			const layer = makeOllamaLive(mockConfig);
-			const result = await Effect.runPromise(program.pipe(Effect.provide(layer)));
+			const result = await Effect.runPromise(
+				program.pipe(Effect.provide(layer)),
+			);
 
 			expect(result).toHaveLength(3);
 			expect(result[0]).toEqual(mockEmbedding);
@@ -284,14 +288,14 @@ describe("Ollama Service", () => {
 			await Effect.runPromise(program.pipe(Effect.provide(layer)));
 
 			expect(mockFetch).toHaveBeenCalledTimes(1);
-			expect(mockFetch.mock.calls[0][0]).toBe("http://localhost:11434/api/tags");
+			expect(mockFetch.mock.calls[0][0]).toBe(
+				"http://localhost:11434/api/tags",
+			);
 		});
 
 		test("matches model with version suffix", async () => {
 			const mockFetch = mock(() =>
-				mockHealthResponse([
-					{ name: "mxbai-embed-large:latest" },
-				]),
+				mockHealthResponse([{ name: "mxbai-embed-large:latest" }]),
 			);
 			global.fetch = mockFetch as typeof fetch;
 
@@ -328,9 +332,7 @@ describe("Ollama Service", () => {
 		});
 
 		test("fails when Ollama not running", async () => {
-			const mockFetch = mock(() =>
-				Promise.reject(new Error("ECONNREFUSED")),
-			);
+			const mockFetch = mock(() => Promise.reject(new Error("ECONNREFUSED")));
 			global.fetch = mockFetch as typeof fetch;
 
 			const program = Effect.gen(function* () {

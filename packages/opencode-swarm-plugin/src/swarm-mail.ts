@@ -32,7 +32,7 @@ import {
   type MailSessionState,
 } from "swarm-mail";
 import { isInCoordinatorContext } from "./planning-guardrails.js";
-import { normalize as normalizePath, normalizePaths } from "@primeinc/cross-path";
+import { normalize as normalizePath, normalizePaths } from "swarm-cross-path";
 import {
   existsSync,
 

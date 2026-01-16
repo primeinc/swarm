@@ -1,5 +1,5 @@
 {
-  "name": "claude-code-swarm-plugin",
+  "name": "swarm-claude-code",
   "version": "0.58.0",
   "description": "Multi-agent swarm coordination plugin for Claude Code",
   "type": "module",
@@ -8,7 +8,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "1.25.2",
+    "@modelcontextprotocol/sdk": "^1.25.2",
     "zod": "^4.3.5"
   },
   "devDependencies": {

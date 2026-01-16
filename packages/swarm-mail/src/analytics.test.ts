@@ -216,7 +216,12 @@ describe("runAnalyticsQuery integration", () => {
 		for (const event of events) {
 			await db.query(
 				"INSERT INTO events (type, project_key, timestamp, data) VALUES (?, ?, ?, ?)",
-				[event.type, testProjectPath, event.timestamp, JSON.stringify(event.data)],
+				[
+					event.type,
+					testProjectPath,
+					event.timestamp,
+					JSON.stringify(event.data),
+				],
 			);
 		}
 	});

@@ -79,7 +79,11 @@
  * @module migrations/legacy-hive-transformer
  */
 
-import type { NewBead, NewCellEvent, NewBeadDependency } from "../db/schema/hive.js";
+import type {
+	NewBead,
+	NewBeadDependency,
+	NewCellEvent,
+} from "../db/schema/hive.js";
 
 /**
  * Legacy issue schema (from .hive/swarm-mail.db)
@@ -142,7 +146,10 @@ function iso8601ToEpochMs(iso8601: string): number {
  * @param projectPath - Project path to use as project_key
  * @returns Transformed bead ready for insertion
  */
-export function transformIssue(issue: LegacyIssue, projectPath: string): NewBead {
+export function transformIssue(
+	issue: LegacyIssue,
+	projectPath: string,
+): NewBead {
 	return {
 		id: issue.id,
 		project_key: projectPath,
@@ -175,7 +182,9 @@ export function transformIssue(issue: LegacyIssue, projectPath: string): NewBead
  * @param event - Legacy event record
  * @returns Transformed bead event ready for insertion
  */
-export function transformEvent(event: LegacyEvent): Omit<NewCellEvent, "created_at"> & { created_at: number } {
+export function transformEvent(
+	event: LegacyEvent,
+): Omit<NewCellEvent, "created_at"> & { created_at: number } {
 	return {
 		id: event.id,
 		cell_id: event.issue_id, // Map issue_id → bead_id
@@ -256,7 +265,7 @@ export async function migrateLegacyHive(
 	legacyDbPath: string,
 	// biome-ignore lint/suspicious/noExplicitAny: Database type depends on Drizzle ORM setup
 	globalDb: any,
-	projectPath: string
+	projectPath: string,
 ): Promise<MigrationSummary> {
 	// TODO: Implement database migration
 	// This requires:
@@ -267,5 +276,7 @@ export async function migrateLegacyHive(
 	// 5. Handle transaction rollback on errors
 	// 6. Return summary
 
-	throw new Error("migrateLegacyHive not yet implemented - see function JSDoc for design");
+	throw new Error(
+		"migrateLegacyHive not yet implemented - see function JSDoc for design",
+	);
 }

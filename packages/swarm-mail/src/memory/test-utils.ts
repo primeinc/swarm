@@ -56,14 +56,14 @@ import { createDrizzleClient } from "../db/drizzle.js";
  * @returns Database client, Drizzle client, and cleanup function
  */
 export async function createTestMemoryDb(): Promise<{
-  client: Client;
-  db: SwarmDb;
-  cleanup: () => Promise<void>;
+	client: Client;
+	db: SwarmDb;
+	cleanup: () => Promise<void>;
 }> {
-  const client = createClient({ url: ":memory:" });
+	const client = createClient({ url: ":memory:" });
 
-  // Create memories table with vector column (libSQL schema)
-  await client.execute(`
+	// Create memories table with vector column (libSQL schema)
+	await client.execute(`
     CREATE TABLE memories (
       id TEXT PRIMARY KEY,
       content TEXT NOT NULL,
@@ -77,8 +77,8 @@ export async function createTestMemoryDb(): Promise<{
     )
   `);
 
-  // Create FTS5 virtual table for full-text search
-  await client.execute(`
+	// Create FTS5 virtual table for full-text search
+	await client.execute(`
     CREATE VIRTUAL TABLE memories_fts USING fts5(
       content,
       content='memories',
@@ -86,34 +86,34 @@ export async function createTestMemoryDb(): Promise<{
     )
   `);
 
-  // Create triggers to keep FTS in sync
-  await client.execute(`
+	// Create triggers to keep FTS in sync
+	await client.execute(`
     CREATE TRIGGER memories_ai AFTER INSERT ON memories BEGIN
       INSERT INTO memories_fts(rowid, content) VALUES (NEW.rowid, NEW.content);
     END
   `);
-  await client.execute(`
+	await client.execute(`
     CREATE TRIGGER memories_ad AFTER DELETE ON memories BEGIN
       INSERT INTO memories_fts(memories_fts, rowid, content) VALUES('delete', OLD.rowid, OLD.content);
     END
   `);
-  await client.execute(`
+	await client.execute(`
     CREATE TRIGGER memories_au AFTER UPDATE ON memories BEGIN
       INSERT INTO memories_fts(memories_fts, rowid, content) VALUES('delete', OLD.rowid, OLD.content);
       INSERT INTO memories_fts(rowid, content) VALUES (NEW.rowid, NEW.content);
     END
   `);
 
-  // Create vector index for similarity search (CRITICAL - required for vector_top_k)
-  await client.execute(`
+	// Create vector index for similarity search (CRITICAL - required for vector_top_k)
+	await client.execute(`
     CREATE INDEX idx_memories_embedding ON memories(libsql_vector_idx(embedding))
   `);
 
-  const db = createDrizzleClient(client);
+	const db = createDrizzleClient(client);
 
-  const cleanup = async () => {
-    client.close();
-  };
+	const cleanup = async () => {
+		client.close();
+	};
 
-  return { client, db, cleanup };
+	return { client, db, cleanup };
 }

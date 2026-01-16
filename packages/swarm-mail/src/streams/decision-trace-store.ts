@@ -43,114 +43,114 @@ import type { DatabaseAdapter } from "../types/database.js";
  * All JSON fields accept objects that will be serialized.
  */
 export interface DecisionTraceInput {
-  /** Type of decision being made */
-  decision_type: string;
-  /** Epic this decision relates to (optional) */
-  epic_id?: string;
-  /** Specific cell/bead this decision relates to (optional) */
-  bead_id?: string;
-  /** Agent making the decision */
-  agent_name: string;
-  /** Project key for scoping */
-  project_key: string;
-  /** The decision itself (JSON-serializable) */
-  decision: Record<string, unknown>;
-  /** Human-readable explanation of why this decision was made */
-  rationale?: string;
-  /** Inputs gathered before making the decision */
-  inputs_gathered?: Array<Record<string, unknown>>;
-  /** Policy rules evaluated during decision */
-  policy_evaluated?: Record<string, unknown>;
-  /** Alternative decisions considered but rejected */
-  alternatives?: Array<Record<string, unknown>>;
-  /** Prior decisions or memories cited as precedent */
-  precedent_cited?: Record<string, unknown>;
+	/** Type of decision being made */
+	decision_type: string;
+	/** Epic this decision relates to (optional) */
+	epic_id?: string;
+	/** Specific cell/bead this decision relates to (optional) */
+	bead_id?: string;
+	/** Agent making the decision */
+	agent_name: string;
+	/** Project key for scoping */
+	project_key: string;
+	/** The decision itself (JSON-serializable) */
+	decision: Record<string, unknown>;
+	/** Human-readable explanation of why this decision was made */
+	rationale?: string;
+	/** Inputs gathered before making the decision */
+	inputs_gathered?: Array<Record<string, unknown>>;
+	/** Policy rules evaluated during decision */
+	policy_evaluated?: Record<string, unknown>;
+	/** Alternative decisions considered but rejected */
+	alternatives?: Array<Record<string, unknown>>;
+	/** Prior decisions or memories cited as precedent */
+	precedent_cited?: Record<string, unknown>;
 }
 
 /**
  * Stored decision trace with generated fields.
  */
 export interface DecisionTrace {
-  id: string;
-  decision_type: string;
-  epic_id: string | null;
-  bead_id: string | null;
-  agent_name: string;
-  project_key: string;
-  decision: string; // JSON string
-  rationale: string | null;
-  inputs_gathered: string | null; // JSON string
-  policy_evaluated: string | null; // JSON string
-  alternatives: string | null; // JSON string
-  precedent_cited: string | null; // JSON string
-  outcome_event_id: number | null;
-  quality_score: number | null;
-  timestamp: number;
-  created_at: string | null;
+	id: string;
+	decision_type: string;
+	epic_id: string | null;
+	bead_id: string | null;
+	agent_name: string;
+	project_key: string;
+	decision: string; // JSON string
+	rationale: string | null;
+	inputs_gathered: string | null; // JSON string
+	policy_evaluated: string | null; // JSON string
+	alternatives: string | null; // JSON string
+	precedent_cited: string | null; // JSON string
+	outcome_event_id: number | null;
+	quality_score: number | null;
+	timestamp: number;
+	created_at: string | null;
 }
 
 /**
  * Input for creating an entity link.
  */
 export interface EntityLinkInput {
-  /** Decision that is the source of this link */
-  source_decision_id: string;
-  /** Type of entity being linked to */
-  target_entity_type: string;
-  /** ID of the entity being linked to */
-  target_entity_id: string;
-  /** Nature of the relationship */
-  link_type: string;
-  /** Confidence in the relationship (0.0 to 1.0) */
-  strength?: number;
-  /** Optional context explaining the link */
-  context?: string;
+	/** Decision that is the source of this link */
+	source_decision_id: string;
+	/** Type of entity being linked to */
+	target_entity_type: string;
+	/** ID of the entity being linked to */
+	target_entity_id: string;
+	/** Nature of the relationship */
+	link_type: string;
+	/** Confidence in the relationship (0.0 to 1.0) */
+	strength?: number;
+	/** Optional context explaining the link */
+	context?: string;
 }
 
 /**
  * Stored entity link with generated fields.
  */
 export interface EntityLink {
-  id: string;
-  source_decision_id: string;
-  target_entity_type: string;
-  target_entity_id: string;
-  link_type: string;
-  strength: number;
-  context: string | null;
-  created_at: string | null;
+	id: string;
+	source_decision_id: string;
+	target_entity_type: string;
+	target_entity_id: string;
+	link_type: string;
+	strength: number;
+	context: string | null;
+	created_at: string | null;
 }
 
 /**
  * Decision with optional link metadata.
  */
 export interface DecisionWithLink extends DecisionTrace {
-  link_type?: string;
-  link_strength?: number;
-  link_context?: string | null;
+	link_type?: string;
+	link_strength?: number;
+	link_context?: string | null;
 }
 
 /**
  * Decision quality metrics.
  */
 export interface DecisionQuality {
-  decision_id: string;
-  quality_score: number | null;
-  outcome_type: string | null;
-  success: boolean | null;
-  error_count: number | null;
+	decision_id: string;
+	quality_score: number | null;
+	outcome_type: string | null;
+	success: boolean | null;
+	error_count: number | null;
 }
 
 /**
  * Strategy success rate metrics.
  */
 export interface StrategySuccessRate {
-  strategy: string;
-  total_decisions: number;
-  successful_decisions: number;
-  failed_decisions: number;
-  success_rate: number;
-  avg_quality: number | null;
+	strategy: string;
+	total_decisions: number;
+	successful_decisions: number;
+	failed_decisions: number;
+	success_rate: number;
+	avg_quality: number | null;
 }
 
 /**
@@ -164,53 +164,61 @@ export interface StrategySuccessRate {
  * @returns Created decision trace with generated ID and timestamp
  */
 export async function createDecisionTrace(
-  db: DatabaseAdapter,
-  input: DecisionTraceInput,
+	db: DatabaseAdapter,
+	input: DecisionTraceInput,
 ): Promise<DecisionTrace> {
-  const id = `dt-${nanoid(10)}`;
-  const timestamp = Date.now();
+	const id = `dt-${nanoid(10)}`;
+	const timestamp = Date.now();
 
-  await db.query(
-    `INSERT INTO decision_traces (
+	await db.query(
+		`INSERT INTO decision_traces (
       id, decision_type, epic_id, bead_id, agent_name, project_key,
       decision, rationale, inputs_gathered, policy_evaluated,
       alternatives, precedent_cited, timestamp
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      id,
-      input.decision_type,
-      input.epic_id ?? null,
-      input.bead_id ?? null,
-      input.agent_name,
-      input.project_key,
-      JSON.stringify(input.decision),
-      input.rationale ?? null,
-      input.inputs_gathered ? JSON.stringify(input.inputs_gathered) : null,
-      input.policy_evaluated ? JSON.stringify(input.policy_evaluated) : null,
-      input.alternatives ? JSON.stringify(input.alternatives) : null,
-      input.precedent_cited ? JSON.stringify(input.precedent_cited) : null,
-      timestamp,
-    ],
-  );
+		[
+			id,
+			input.decision_type,
+			input.epic_id ?? null,
+			input.bead_id ?? null,
+			input.agent_name,
+			input.project_key,
+			JSON.stringify(input.decision),
+			input.rationale ?? null,
+			input.inputs_gathered ? JSON.stringify(input.inputs_gathered) : null,
+			input.policy_evaluated ? JSON.stringify(input.policy_evaluated) : null,
+			input.alternatives ? JSON.stringify(input.alternatives) : null,
+			input.precedent_cited ? JSON.stringify(input.precedent_cited) : null,
+			timestamp,
+		],
+	);
 
-  return {
-    id,
-    decision_type: input.decision_type,
-    epic_id: input.epic_id ?? null,
-    bead_id: input.bead_id ?? null,
-    agent_name: input.agent_name,
-    project_key: input.project_key,
-    decision: JSON.stringify(input.decision),
-    rationale: input.rationale ?? null,
-    inputs_gathered: input.inputs_gathered ? JSON.stringify(input.inputs_gathered) : null,
-    policy_evaluated: input.policy_evaluated ? JSON.stringify(input.policy_evaluated) : null,
-    alternatives: input.alternatives ? JSON.stringify(input.alternatives) : null,
-    precedent_cited: input.precedent_cited ? JSON.stringify(input.precedent_cited) : null,
-    outcome_event_id: null,
-    quality_score: null,
-    timestamp,
-    created_at: null, // Set by database default
-  };
+	return {
+		id,
+		decision_type: input.decision_type,
+		epic_id: input.epic_id ?? null,
+		bead_id: input.bead_id ?? null,
+		agent_name: input.agent_name,
+		project_key: input.project_key,
+		decision: JSON.stringify(input.decision),
+		rationale: input.rationale ?? null,
+		inputs_gathered: input.inputs_gathered
+			? JSON.stringify(input.inputs_gathered)
+			: null,
+		policy_evaluated: input.policy_evaluated
+			? JSON.stringify(input.policy_evaluated)
+			: null,
+		alternatives: input.alternatives
+			? JSON.stringify(input.alternatives)
+			: null,
+		precedent_cited: input.precedent_cited
+			? JSON.stringify(input.precedent_cited)
+			: null,
+		outcome_event_id: null,
+		quality_score: null,
+		timestamp,
+		created_at: null, // Set by database default
+	};
 }
 
 /**
@@ -221,15 +229,15 @@ export async function createDecisionTrace(
  * @returns Array of decision traces in chronological order
  */
 export async function getDecisionTracesByEpic(
-  db: DatabaseAdapter,
-  epicId: string,
+	db: DatabaseAdapter,
+	epicId: string,
 ): Promise<DecisionTrace[]> {
-  const result = await db.query<DecisionTrace>(
-    `SELECT * FROM decision_traces WHERE epic_id = ? ORDER BY timestamp ASC`,
-    [epicId],
-  );
+	const result = await db.query<DecisionTrace>(
+		`SELECT * FROM decision_traces WHERE epic_id = ? ORDER BY timestamp ASC`,
+		[epicId],
+	);
 
-  return result.rows;
+	return result.rows;
 }
 
 /**
@@ -240,15 +248,15 @@ export async function getDecisionTracesByEpic(
  * @returns Array of decision traces in chronological order
  */
 export async function getDecisionTracesByAgent(
-  db: DatabaseAdapter,
-  agentName: string,
+	db: DatabaseAdapter,
+	agentName: string,
 ): Promise<DecisionTrace[]> {
-  const result = await db.query<DecisionTrace>(
-    `SELECT * FROM decision_traces WHERE agent_name = ? ORDER BY timestamp ASC`,
-    [agentName],
-  );
+	const result = await db.query<DecisionTrace>(
+		`SELECT * FROM decision_traces WHERE agent_name = ? ORDER BY timestamp ASC`,
+		[agentName],
+	);
 
-  return result.rows;
+	return result.rows;
 }
 
 /**
@@ -259,15 +267,15 @@ export async function getDecisionTracesByAgent(
  * @returns Array of decision traces in chronological order
  */
 export async function getDecisionTracesByType(
-  db: DatabaseAdapter,
-  decisionType: string,
+	db: DatabaseAdapter,
+	decisionType: string,
 ): Promise<DecisionTrace[]> {
-  const result = await db.query<DecisionTrace>(
-    `SELECT * FROM decision_traces WHERE decision_type = ? ORDER BY timestamp ASC`,
-    [decisionType],
-  );
+	const result = await db.query<DecisionTrace>(
+		`SELECT * FROM decision_traces WHERE decision_type = ? ORDER BY timestamp ASC`,
+		[decisionType],
+	);
 
-  return result.rows;
+	return result.rows;
 }
 
 /**
@@ -282,24 +290,24 @@ export async function getDecisionTracesByType(
  * @param outcomeEventId - Event ID of the outcome
  */
 export async function linkOutcomeToTrace(
-  db: DatabaseAdapter,
-  traceId: string,
-  outcomeEventId: number,
+	db: DatabaseAdapter,
+	traceId: string,
+	outcomeEventId: number,
 ): Promise<void> {
-  // Link the outcome
-  await db.query(
-    `UPDATE decision_traces SET outcome_event_id = ? WHERE id = ?`,
-    [outcomeEventId, traceId],
-  );
+	// Link the outcome
+	await db.query(
+		`UPDATE decision_traces SET outcome_event_id = ? WHERE id = ?`,
+		[outcomeEventId, traceId],
+	);
 
-  // Calculate and update quality score
-  const quality = await calculateDecisionQuality(db, traceId);
-  if (quality.quality_score !== null) {
-    await db.query(
-      `UPDATE decision_traces SET quality_score = ? WHERE id = ?`,
-      [quality.quality_score, traceId],
-    );
-  }
+	// Calculate and update quality score
+	const quality = await calculateDecisionQuality(db, traceId);
+	if (quality.quality_score !== null) {
+		await db.query(
+			`UPDATE decision_traces SET quality_score = ? WHERE id = ?`,
+			[quality.quality_score, traceId],
+		);
+	}
 }
 
 /**
@@ -315,23 +323,23 @@ export async function linkOutcomeToTrace(
  * @returns Array of similar decision traces with outcomes
  */
 export async function findSimilarDecisions(
-  db: DatabaseAdapter,
-  task: string,
-  limit: number,
+	db: DatabaseAdapter,
+	task: string,
+	limit: number,
 ): Promise<DecisionTrace[]> {
-  // Simple text matching - in production, this could use vector similarity
-  const searchTerm = `%${task.toLowerCase()}%`;
-  
-  const result = await db.query<DecisionTrace>(
-    `SELECT * FROM decision_traces 
+	// Simple text matching - in production, this could use vector similarity
+	const searchTerm = `%${task.toLowerCase()}%`;
+
+	const result = await db.query<DecisionTrace>(
+		`SELECT * FROM decision_traces 
      WHERE decision_type = 'strategy_selection' 
      AND LOWER(decision) LIKE ?
      ORDER BY timestamp DESC
      LIMIT ?`,
-    [searchTerm, limit],
-  );
+		[searchTerm, limit],
+	);
 
-  return result.rows;
+	return result.rows;
 }
 
 /**
@@ -347,38 +355,38 @@ export async function findSimilarDecisions(
  * @returns Created entity link with generated ID
  */
 export async function createEntityLink(
-  db: DatabaseAdapter,
-  input: EntityLinkInput,
+	db: DatabaseAdapter,
+	input: EntityLinkInput,
 ): Promise<EntityLink> {
-  const id = `el-${nanoid(10)}`;
-  const strength = input.strength ?? 1.0;
+	const id = `el-${nanoid(10)}`;
+	const strength = input.strength ?? 1.0;
 
-  await db.query(
-    `INSERT INTO entity_links (
+	await db.query(
+		`INSERT INTO entity_links (
       id, source_decision_id, target_entity_type, target_entity_id,
       link_type, strength, context
     ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [
-      id,
-      input.source_decision_id,
-      input.target_entity_type,
-      input.target_entity_id,
-      input.link_type,
-      strength,
-      input.context ?? null,
-    ],
-  );
+		[
+			id,
+			input.source_decision_id,
+			input.target_entity_type,
+			input.target_entity_id,
+			input.link_type,
+			strength,
+			input.context ?? null,
+		],
+	);
 
-  return {
-    id,
-    source_decision_id: input.source_decision_id,
-    target_entity_type: input.target_entity_type,
-    target_entity_id: input.target_entity_id,
-    link_type: input.link_type,
-    strength,
-    context: input.context ?? null,
-    created_at: null, // Set by database default
-  };
+	return {
+		id,
+		source_decision_id: input.source_decision_id,
+		target_entity_type: input.target_entity_type,
+		target_entity_id: input.target_entity_id,
+		link_type: input.link_type,
+		strength,
+		context: input.context ?? null,
+		created_at: null, // Set by database default
+	};
 }
 
 /**
@@ -392,11 +400,11 @@ export async function createEntityLink(
  * @returns Array of decisions with link metadata
  */
 export async function getDecisionsByMemoryPattern(
-  db: DatabaseAdapter,
-  memoryId: string,
+	db: DatabaseAdapter,
+	memoryId: string,
 ): Promise<DecisionWithLink[]> {
-  const result = await db.query<DecisionWithLink>(
-    `SELECT 
+	const result = await db.query<DecisionWithLink>(
+		`SELECT 
       dt.*,
       el.link_type,
       el.strength as link_strength,
@@ -406,10 +414,10 @@ export async function getDecisionsByMemoryPattern(
      WHERE el.target_entity_type = 'memory' 
      AND el.target_entity_id = ?
      ORDER BY dt.timestamp DESC`,
-    [memoryId],
-  );
+		[memoryId],
+	);
 
-  return result.rows;
+	return result.rows;
 }
 
 /**
@@ -430,64 +438,64 @@ export async function getDecisionsByMemoryPattern(
  * @returns Decision quality metrics
  */
 export async function calculateDecisionQuality(
-  db: DatabaseAdapter,
-  decisionId: string,
+	db: DatabaseAdapter,
+	decisionId: string,
 ): Promise<DecisionQuality> {
-  const result = await db.query<{
-    outcome_event_id: number | null;
-    event_type: string | null;
-    event_data: string | null;
-  }>(
-    `SELECT 
+	const result = await db.query<{
+		outcome_event_id: number | null;
+		event_type: string | null;
+		event_data: string | null;
+	}>(
+		`SELECT 
       dt.outcome_event_id,
       e.type as event_type,
       e.data as event_data
      FROM decision_traces dt
      LEFT JOIN events e ON dt.outcome_event_id = e.id
      WHERE dt.id = ?`,
-    [decisionId],
-  );
+		[decisionId],
+	);
 
-  const row = result.rows[0];
-  
-  if (!row || !row.outcome_event_id || !row.event_type || !row.event_data) {
-    return {
-      decision_id: decisionId,
-      quality_score: null,
-      outcome_type: null,
-      success: null,
-      error_count: null,
-    };
-  }
+	const row = result.rows[0];
 
-  // Parse event data
-  const eventData = JSON.parse(row.event_data);
-  const success = eventData.success ?? null;
-  const errorCount = eventData.errors ?? eventData.error_count ?? 0;
+	if (!row || !row.outcome_event_id || !row.event_type || !row.event_data) {
+		return {
+			decision_id: decisionId,
+			quality_score: null,
+			outcome_type: null,
+			success: null,
+			error_count: null,
+		};
+	}
 
-  // Calculate quality score
-  let qualityScore: number;
-  
-  if (row.event_type.includes("failed") || success === false) {
-    qualityScore = 0.0;
-  } else if (row.event_type.includes("completed") || success === true) {
-    if (errorCount === 0) {
-      qualityScore = 1.0;
-    } else {
-      // Penalize for errors, but don't go below 0.5 if completed
-      qualityScore = Math.max(0.5, 1.0 - (errorCount * 0.1));
-    }
-  } else {
-    qualityScore = 0.5; // Unknown outcome type
-  }
+	// Parse event data
+	const eventData = JSON.parse(row.event_data);
+	const success = eventData.success ?? null;
+	const errorCount = eventData.errors ?? eventData.error_count ?? 0;
 
-  return {
-    decision_id: decisionId,
-    quality_score: qualityScore,
-    outcome_type: row.event_type,
-    success,
-    error_count: errorCount,
-  };
+	// Calculate quality score
+	let qualityScore: number;
+
+	if (row.event_type.includes("failed") || success === false) {
+		qualityScore = 0.0;
+	} else if (row.event_type.includes("completed") || success === true) {
+		if (errorCount === 0) {
+			qualityScore = 1.0;
+		} else {
+			// Penalize for errors, but don't go below 0.5 if completed
+			qualityScore = Math.max(0.5, 1.0 - errorCount * 0.1);
+		}
+	} else {
+		qualityScore = 0.5; // Unknown outcome type
+	}
+
+	return {
+		decision_id: decisionId,
+		quality_score: qualityScore,
+		outcome_type: row.event_type,
+		success,
+		error_count: errorCount,
+	};
 }
 
 /**
@@ -500,16 +508,16 @@ export async function calculateDecisionQuality(
  * @returns Array of strategy success rates
  */
 export async function getStrategySuccessRates(
-  db: DatabaseAdapter,
+	db: DatabaseAdapter,
 ): Promise<StrategySuccessRate[]> {
-  const result = await db.query<{
-    strategy: string;
-    total_decisions: number;
-    successful_decisions: number;
-    failed_decisions: number;
-    avg_quality: number | null;
-  }>(
-    `SELECT 
+	const result = await db.query<{
+		strategy: string;
+		total_decisions: number;
+		successful_decisions: number;
+		failed_decisions: number;
+		avg_quality: number | null;
+	}>(
+		`SELECT 
       JSON_EXTRACT(decision, '$.strategy') as strategy,
       COUNT(*) as total_decisions,
       SUM(CASE WHEN quality_score >= 0.5 THEN 1 ELSE 0 END) as successful_decisions,
@@ -521,16 +529,17 @@ export async function getStrategySuccessRates(
      AND quality_score IS NOT NULL
      GROUP BY strategy
      ORDER BY total_decisions DESC`,
-  );
+	);
 
-  return result.rows.map(row => ({
-    strategy: row.strategy,
-    total_decisions: row.total_decisions,
-    successful_decisions: row.successful_decisions,
-    failed_decisions: row.failed_decisions,
-    success_rate: row.total_decisions > 0 
-      ? row.successful_decisions / row.total_decisions 
-      : 0,
-    avg_quality: row.avg_quality,
-  }));
+	return result.rows.map((row) => ({
+		strategy: row.strategy,
+		total_decisions: row.total_decisions,
+		successful_decisions: row.successful_decisions,
+		failed_decisions: row.failed_decisions,
+		success_rate:
+			row.total_decisions > 0
+				? row.successful_decisions / row.total_decisions
+				: 0,
+		avg_quality: row.avg_quality,
+	}));
 }

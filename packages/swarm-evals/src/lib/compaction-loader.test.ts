@@ -7,7 +7,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import type { CoordinatorEvent } from "opencode-swarm-plugin/eval-capture";
+import type { CoordinatorEvent } from "swarm/eval-capture";
 import {
   loadCompactionEvents,
   loadCompactionSessions,

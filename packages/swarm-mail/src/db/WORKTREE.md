@@ -74,13 +74,11 @@ resolveDbPath("/path/to/main-repo");
 ```typescript
 export function getOldProjectDbPaths(projectPath: string): {
   libsql: string;
-  pglite: string;
 } {
   const mainRepoPath = getMainRepoPath(projectPath);
   const localDir = join(mainRepoPath, ".opencode");
   return {
     libsql: join(localDir, "streams.db"),
-    pglite: join(localDir, "streams"),
   };
 }
 ```

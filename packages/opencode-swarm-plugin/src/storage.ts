@@ -30,11 +30,11 @@
  * ```
  */
 
-import type { FeedbackEvent } from "./learning";
 import type { DecompositionPattern } from "./anti-patterns";
-import type { PatternMaturity, MaturityFeedback } from "./pattern-maturity";
-import { InMemoryFeedbackStorage } from "./learning";
 import { InMemoryPatternStorage } from "./anti-patterns";
+import type { FeedbackEvent } from "./learning";
+import { InMemoryFeedbackStorage } from "./learning";
+import type { MaturityFeedback, PatternMaturity } from "./pattern-maturity";
 import { InMemoryMaturityStorage } from "./pattern-maturity";
 
 // ============================================================================
@@ -53,62 +53,62 @@ let cachedCommand: string[] | null = null;
  * Result is cached for the session.
  */
 async function resolveSemanticMemoryCommand(): Promise<string[]> {
-  if (cachedCommand) return cachedCommand;
+	if (cachedCommand) return cachedCommand;
 
-  // Try native install first
-  const nativeResult = await Bun.$`which semantic-memory`.quiet().nothrow();
-  if (nativeResult.exitCode === 0) {
-    cachedCommand = ["semantic-memory"];
-    return cachedCommand;
-  }
+	// Try native install first
+	const nativeResult = await Bun.$`which semantic-memory`.quiet().nothrow();
+	if (nativeResult.exitCode === 0) {
+		cachedCommand = ["semantic-memory"];
+		return cachedCommand;
+	}
 
-  // Fall back to bunx
-  cachedCommand = ["bunx", "semantic-memory"];
-  return cachedCommand;
+	// Fall back to bunx
+	cachedCommand = ["bunx", "semantic-memory"];
+	return cachedCommand;
 }
 
 /**
  * Execute semantic-memory command with args
  */
 async function execSemanticMemory(
-  args: string[],
+	args: string[],
 ): Promise<{ exitCode: number; stdout: Buffer; stderr: Buffer }> {
-  try {
-    const cmd = await resolveSemanticMemoryCommand();
-    const fullCmd = [...cmd, ...args];
+	try {
+		const cmd = await resolveSemanticMemoryCommand();
+		const fullCmd = [...cmd, ...args];
 
-    // Use Bun.spawn for dynamic command arrays
-    const proc = Bun.spawn(fullCmd, {
-      stdout: "pipe",
-      stderr: "pipe",
-    });
+		// Use Bun.spawn for dynamic command arrays
+		const proc = Bun.spawn(fullCmd, {
+			stdout: "pipe",
+			stderr: "pipe",
+		});
 
-    try {
-      const stdout = Buffer.from(await new Response(proc.stdout).arrayBuffer());
-      const stderr = Buffer.from(await new Response(proc.stderr).arrayBuffer());
-      const exitCode = await proc.exited;
+		try {
+			const stdout = Buffer.from(await new Response(proc.stdout).arrayBuffer());
+			const stderr = Buffer.from(await new Response(proc.stderr).arrayBuffer());
+			const exitCode = await proc.exited;
 
-      return { exitCode, stdout, stderr };
-    } finally {
-      // Ensure process cleanup
-      proc.kill();
-    }
-  } catch (error) {
-    // Return structured error result on exceptions
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    return {
-      exitCode: 1,
-      stdout: Buffer.from(""),
-      stderr: Buffer.from(`Error executing semantic-memory: ${errorMessage}`),
-    };
-  }
+			return { exitCode, stdout, stderr };
+		} finally {
+			// Ensure process cleanup
+			proc.kill();
+		}
+	} catch (error) {
+		// Return structured error result on exceptions
+		const errorMessage = error instanceof Error ? error.message : String(error);
+		return {
+			exitCode: 1,
+			stdout: Buffer.from(""),
+			stderr: Buffer.from(`Error executing semantic-memory: ${errorMessage}`),
+		};
+	}
 }
 
 /**
  * Reset the cached command (for testing)
  */
 export function resetCommandCache(): void {
-  cachedCommand = null;
+	cachedCommand = null;
 }
 
 // ============================================================================
@@ -124,21 +124,21 @@ export type StorageBackend = "semantic-memory" | "memory";
  * Collection names for semantic-memory
  */
 export interface StorageCollections {
-  feedback: string;
-  patterns: string;
-  maturity: string;
+	feedback: string;
+	patterns: string;
+	maturity: string;
 }
 
 /**
  * Storage configuration
  */
 export interface StorageConfig {
-  /** Backend to use (default: "semantic-memory") */
-  backend: StorageBackend;
-  /** Collection names for semantic-memory backend */
-  collections: StorageCollections;
-  /** Whether to use semantic search for queries (default: true) */
-  useSemanticSearch: boolean;
+	/** Backend to use (default: "semantic-memory") */
+	backend: StorageBackend;
+	/** Collection names for semantic-memory backend */
+	collections: StorageCollections;
+	/** Whether to use semantic search for queries (default: true) */
+	useSemanticSearch: boolean;
 }
 
 /**
@@ -157,7 +157,7 @@ export interface StorageConfig {
  * ```
  */
 export function getTestCollectionName(): string {
-  return `test-${Date.now()}`;
+	return `test-${Date.now()}`;
 }
 
 /**
@@ -188,32 +188,32 @@ export function getTestCollectionName(): string {
  * ```
  */
 function getCollectionNames(): StorageCollections {
-  const base = {
-    feedback: "swarm-feedback",
-    patterns: "swarm-patterns",
-    maturity: "swarm-maturity",
-  };
+	const base = {
+		feedback: "swarm-feedback",
+		patterns: "swarm-patterns",
+		maturity: "swarm-maturity",
+	};
 
-  // Test isolation mode 2 (preferred): unique suffix per test run
-  const testSuffix = process.env.TEST_SEMANTIC_MEMORY_COLLECTION;
-  if (testSuffix) {
-    return {
-      feedback: `${base.feedback}-${testSuffix}`,
-      patterns: `${base.patterns}-${testSuffix}`,
-      maturity: `${base.maturity}-${testSuffix}`,
-    };
-  }
+	// Test isolation mode 2 (preferred): unique suffix per test run
+	const testSuffix = process.env.TEST_SEMANTIC_MEMORY_COLLECTION;
+	if (testSuffix) {
+		return {
+			feedback: `${base.feedback}-${testSuffix}`,
+			patterns: `${base.patterns}-${testSuffix}`,
+			maturity: `${base.maturity}-${testSuffix}`,
+		};
+	}
 
-  // Test isolation mode 1 (legacy): shared "-test" suffix
-  if (process.env.TEST_MEMORY_COLLECTIONS === "true") {
-    return {
-      feedback: `${base.feedback}-test`,
-      patterns: `${base.patterns}-test`,
-      maturity: `${base.maturity}-test`,
-    };
-  }
+	// Test isolation mode 1 (legacy): shared "-test" suffix
+	if (process.env.TEST_MEMORY_COLLECTIONS === "true") {
+		return {
+			feedback: `${base.feedback}-test`,
+			patterns: `${base.patterns}-test`,
+			maturity: `${base.maturity}-test`,
+		};
+	}
 
-  return base;
+	return base;
 }
 
 /**
@@ -225,11 +225,11 @@ function getCollectionNames(): StorageCollections {
  * @returns Default storage configuration
  */
 export function getDefaultStorageConfig(): StorageConfig {
-  return {
-    backend: "semantic-memory",
-    collections: getCollectionNames(),
-    useSemanticSearch: true,
-  };
+	return {
+		backend: "semantic-memory",
+		collections: getCollectionNames(),
+		useSemanticSearch: true,
+	};
 }
 
 /**
@@ -246,34 +246,34 @@ export const DEFAULT_STORAGE_CONFIG: StorageConfig = getDefaultStorageConfig();
  * Unified storage interface for all learning data
  */
 export interface LearningStorage {
-  // Feedback operations
-  storeFeedback(event: FeedbackEvent): Promise<void>;
-  getFeedbackByCriterion(criterion: string): Promise<FeedbackEvent[]>;
-  getFeedbackByBead(beadId: string): Promise<FeedbackEvent[]>;
-  getAllFeedback(): Promise<FeedbackEvent[]>;
-  findSimilarFeedback(query: string, limit?: number): Promise<FeedbackEvent[]>;
+	// Feedback operations
+	storeFeedback(event: FeedbackEvent): Promise<void>;
+	getFeedbackByCriterion(criterion: string): Promise<FeedbackEvent[]>;
+	getFeedbackByCell(cellId: string): Promise<FeedbackEvent[]>;
+	getAllFeedback(): Promise<FeedbackEvent[]>;
+	findSimilarFeedback(query: string, limit?: number): Promise<FeedbackEvent[]>;
 
-  // Pattern operations
-  storePattern(pattern: DecompositionPattern): Promise<void>;
-  getPattern(id: string): Promise<DecompositionPattern | null>;
-  getAllPatterns(): Promise<DecompositionPattern[]>;
-  getAntiPatterns(): Promise<DecompositionPattern[]>;
-  getPatternsByTag(tag: string): Promise<DecompositionPattern[]>;
-  findSimilarPatterns(
-    query: string,
-    limit?: number,
-  ): Promise<DecompositionPattern[]>;
+	// Pattern operations
+	storePattern(pattern: DecompositionPattern): Promise<void>;
+	getPattern(id: string): Promise<DecompositionPattern | null>;
+	getAllPatterns(): Promise<DecompositionPattern[]>;
+	getAntiPatterns(): Promise<DecompositionPattern[]>;
+	getPatternsByTag(tag: string): Promise<DecompositionPattern[]>;
+	findSimilarPatterns(
+		query: string,
+		limit?: number,
+	): Promise<DecompositionPattern[]>;
 
-  // Maturity operations
-  storeMaturity(maturity: PatternMaturity): Promise<void>;
-  getMaturity(patternId: string): Promise<PatternMaturity | null>;
-  getAllMaturity(): Promise<PatternMaturity[]>;
-  getMaturityByState(state: string): Promise<PatternMaturity[]>;
-  storeMaturityFeedback(feedback: MaturityFeedback): Promise<void>;
-  getMaturityFeedback(patternId: string): Promise<MaturityFeedback[]>;
+	// Maturity operations
+	storeMaturity(maturity: PatternMaturity): Promise<void>;
+	getMaturity(patternId: string): Promise<PatternMaturity | null>;
+	getAllMaturity(): Promise<PatternMaturity[]>;
+	getMaturityByState(state: string): Promise<PatternMaturity[]>;
+	storeMaturityFeedback(feedback: MaturityFeedback): Promise<void>;
+	getMaturityFeedback(patternId: string): Promise<MaturityFeedback[]>;
 
-  // Lifecycle
-  close(): Promise<void>;
+	// Lifecycle
+	close(): Promise<void>;
 }
 
 // ============================================================================
@@ -281,36 +281,36 @@ export interface LearningStorage {
 // ============================================================================
 
 interface SessionStats {
-  storesCount: number;
-  queriesCount: number;
-  sessionStart: number;
-  lastAlertCheck: number;
+	storesCount: number;
+	queriesCount: number;
+	sessionStart: number;
+	lastAlertCheck: number;
 }
 
 let sessionStats: SessionStats = {
-  storesCount: 0,
-  queriesCount: 0,
-  sessionStart: Date.now(),
-  lastAlertCheck: Date.now(),
+	storesCount: 0,
+	queriesCount: 0,
+	sessionStart: Date.now(),
+	lastAlertCheck: Date.now(),
 };
 
 /**
  * Reset session stats (for testing)
  */
 export function resetSessionStats(): void {
-  sessionStats = {
-    storesCount: 0,
-    queriesCount: 0,
-    sessionStart: Date.now(),
-    lastAlertCheck: Date.now(),
-  };
+	sessionStats = {
+		storesCount: 0,
+		queriesCount: 0,
+		sessionStart: Date.now(),
+		lastAlertCheck: Date.now(),
+	};
 }
 
 /**
  * Get current session stats
  */
 export function getSessionStats(): Readonly<SessionStats> {
-  return { ...sessionStats };
+	return { ...sessionStats };
 }
 
 // ============================================================================
@@ -324,316 +324,328 @@ export function getSessionStats(): Readonly<SessionStats> {
  * Data survives across sessions and can be searched by meaning.
  */
 export class SemanticMemoryStorage implements LearningStorage {
-  private config: StorageConfig;
+	private config: StorageConfig;
 
-  constructor(config: Partial<StorageConfig> = {}) {
-    // Use getDefaultStorageConfig() to ensure env vars are read at runtime
-    this.config = { ...getDefaultStorageConfig(), ...config };
-  }
+	constructor(config: Partial<StorageConfig> = {}) {
+		// Use getDefaultStorageConfig() to ensure env vars are read at runtime
+		this.config = { ...getDefaultStorageConfig(), ...config };
+	}
 
-  // -------------------------------------------------------------------------
-  // Helpers
-  // -------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
+	// Helpers
+	// -------------------------------------------------------------------------
 
-  /**
-   * Check if low usage alert should be sent
-   *
-   * Sends alert via agentmail if:
-   * - More than 10 minutes have elapsed since session start
-   * - Less than 1 store operation has occurred
-   * - Alert hasn't been sent in the last 10 minutes
-   */
-  private async checkLowUsageAlert(): Promise<void> {
-    const TEN_MINUTES = 10 * 60 * 1000;
-    const now = Date.now();
-    const sessionDuration = now - sessionStats.sessionStart;
-    const timeSinceLastAlert = now - sessionStats.lastAlertCheck;
+	/**
+	 * Check if low usage alert should be sent
+	 *
+	 * Sends alert via agentmail if:
+	 * - More than 10 minutes have elapsed since session start
+	 * - Less than 1 store operation has occurred
+	 * - Alert hasn't been sent in the last 10 minutes
+	 */
+	private async checkLowUsageAlert(): Promise<void> {
+		const TEN_MINUTES = 10 * 60 * 1000;
+		const now = Date.now();
+		const sessionDuration = now - sessionStats.sessionStart;
+		const timeSinceLastAlert = now - sessionStats.lastAlertCheck;
 
-    if (
-      sessionDuration >= TEN_MINUTES &&
-      sessionStats.storesCount < 1 &&
-      timeSinceLastAlert >= TEN_MINUTES
-    ) {
-      console.warn(
-        `[storage] LOW USAGE ALERT: ${sessionStats.storesCount} stores after ${Math.floor(sessionDuration / 60000)} minutes`,
-      );
-      sessionStats.lastAlertCheck = now;
+		if (
+			sessionDuration >= TEN_MINUTES &&
+			sessionStats.storesCount < 1 &&
+			timeSinceLastAlert >= TEN_MINUTES
+		) {
+			console.warn(
+				`[storage] LOW USAGE ALERT: ${sessionStats.storesCount} stores after ${Math.floor(sessionDuration / 60000)} minutes`,
+			);
+			sessionStats.lastAlertCheck = now;
 
-      // Send alert via Agent Mail if available
-      // Note: This requires agentmail to be initialized, which may not always be the case
-      // We'll log the alert and let the coordinator detect it in logs
-    }
-  }
+			// Send alert via Agent Mail if available
+			// Note: This requires agentmail to be initialized, which may not always be the case
+			// We'll log the alert and let the coordinator detect it in logs
+		}
+	}
 
-  private async store(
-    collection: string,
-    data: unknown,
-    metadata?: Record<string, unknown>,
-  ): Promise<void> {
-    const content = typeof data === "string" ? data : JSON.stringify(data);
-    const args = ["store", content, "--collection", collection];
+	private async store(
+		collection: string,
+		data: unknown,
+		metadata?: Record<string, unknown>,
+	): Promise<void> {
+		let content = typeof data === "string" ? data : JSON.stringify(data);
 
-    if (metadata) {
-      args.push("--metadata", JSON.stringify(metadata));
-    }
+		// On Windows/bunx, content containing quotes needs escaping too
+		if (process.platform === "win32") {
+			content = content.replace(/"/g, '\\"');
+		}
 
-    sessionStats.storesCount++;
+		const args = ["store", content, "--collection", collection];
 
-    const result = await execSemanticMemory(args);
+		if (metadata) {
+			let json = JSON.stringify(metadata);
+			// On Windows, when using bunx/cmd, double quotes need to be escaped
+			// to prevent them being stripped by the shell
+			if (process.platform === "win32") {
+				json = json.replace(/"/g, '\\"');
+			}
+			args.push("--metadata", json);
+		}
 
-    if (result.exitCode !== 0) {
-      console.warn(
-        `[storage] semantic-memory store() failed with exit code ${result.exitCode}: ${result.stderr.toString().trim()}`,
-      );
-    }
+		sessionStats.storesCount++;
 
-    // Alert check: if 10+ minutes elapsed with < 1 store, send alert
-    await this.checkLowUsageAlert();
-  }
+		const result = await execSemanticMemory(args);
 
-  private async find<T>(
-    collection: string,
-    query: string,
-    limit: number = 10,
-    useFts: boolean = false,
-  ): Promise<T[]> {
-    const args = [
-      "find",
-      query,
-      "--collection",
-      collection,
-      "--limit",
-      String(limit),
-      "--json",
-    ];
+		if (result.exitCode !== 0) {
+			console.warn(
+				`[storage] semantic-memory store() failed with exit code ${result.exitCode}: ${result.stderr.toString().trim()}`,
+			);
+		}
 
-    if (useFts) {
-      args.push("--fts");
-    }
+		// Alert check: if 10+ minutes elapsed with < 1 store, send alert
+		await this.checkLowUsageAlert();
+	}
 
-    sessionStats.queriesCount++;
+	private async find<T>(
+		collection: string,
+		query: string,
+		limit: number = 10,
+		useFts: boolean = false,
+	): Promise<T[]> {
+		const args = [
+			"find",
+			query,
+			"--collection",
+			collection,
+			"--limit",
+			String(limit),
+			"--json",
+		];
 
-    const result = await execSemanticMemory(args);
+		if (useFts) {
+			args.push("--fts");
+		}
 
-    if (result.exitCode !== 0) {
-      console.warn(
-        `[storage] semantic-memory find() failed with exit code ${result.exitCode}: ${result.stderr.toString().trim()}`,
-      );
-      return [];
-    }
+		sessionStats.queriesCount++;
 
-    try {
-      const output = result.stdout.toString().trim();
-      if (!output) return [];
+		const result = await execSemanticMemory(args);
 
-      const parsed = JSON.parse(output);
-      // semantic-memory returns { results: [...] } or just [...]
-      const results = Array.isArray(parsed) ? parsed : parsed.results || [];
+		if (result.exitCode !== 0) {
+			console.warn(
+				`[storage] semantic-memory find() failed with exit code ${result.exitCode}: ${result.stderr.toString().trim()}`,
+			);
+			return [];
+		}
 
-      // Extract the stored content from each result
-      return results.map((r: { content?: string; information?: string }) => {
-        const content = r.content || r.information || "";
-        try {
-          return JSON.parse(content);
-        } catch {
-          return content;
-        }
-      });
-    } catch (error) {
-      console.warn(
-        `[storage] Failed to parse semantic-memory find() output: ${error instanceof Error ? error.message : String(error)}`,
-      );
-      return [];
-    }
-  }
+		try {
+			const output = result.stdout.toString().trim();
+			if (!output) return [];
 
-  private async list<T>(collection: string): Promise<T[]> {
-    sessionStats.queriesCount++;
+			const parsed = JSON.parse(output);
+			// semantic-memory returns { results: [...] } or just [...]
+			const results = Array.isArray(parsed) ? parsed : parsed.results || [];
 
-    const result = await execSemanticMemory([
-      "list",
-      "--collection",
-      collection,
-      "--json",
-    ]);
+			// Extract the stored content from each result
+			return results.map((r: { content?: string; information?: string }) => {
+				const content = r.content || r.information || "";
+				try {
+					return JSON.parse(content);
+				} catch {
+					return content;
+				}
+			});
+		} catch (error) {
+			console.warn(
+				`[storage] Failed to parse semantic-memory find() output: ${error instanceof Error ? error.message : String(error)}`,
+			);
+			return [];
+		}
+	}
 
-    if (result.exitCode !== 0) {
-      console.warn(
-        `[storage] semantic-memory list() failed with exit code ${result.exitCode}: ${result.stderr.toString().trim()}`,
-      );
-      return [];
-    }
+	private async list<T>(collection: string): Promise<T[]> {
+		sessionStats.queriesCount++;
 
-    try {
-      const output = result.stdout.toString().trim();
-      if (!output) return [];
+		const result = await execSemanticMemory([
+			"list",
+			"--collection",
+			collection,
+			"--json",
+		]);
 
-      const parsed = JSON.parse(output);
-      const items = Array.isArray(parsed) ? parsed : parsed.items || [];
+		if (result.exitCode !== 0) {
+			console.warn(
+				`[storage] semantic-memory list() failed with exit code ${result.exitCode}: ${result.stderr.toString().trim()}`,
+			);
+			return [];
+		}
 
-      return items.map((item: { content?: string; information?: string }) => {
-        const content = item.content || item.information || "";
-        try {
-          return JSON.parse(content);
-        } catch {
-          return content;
-        }
-      });
-    } catch (error) {
-      console.warn(
-        `[storage] Failed to parse semantic-memory list() output: ${error instanceof Error ? error.message : String(error)}`,
-      );
-      return [];
-    }
-  }
+		try {
+			const output = result.stdout.toString().trim();
+			if (!output) return [];
 
-  // -------------------------------------------------------------------------
-  // Feedback Operations
-  // -------------------------------------------------------------------------
+			const parsed = JSON.parse(output);
+			const items = Array.isArray(parsed) ? parsed : parsed.items || [];
 
-  async storeFeedback(event: FeedbackEvent): Promise<void> {
-    await this.store(this.config.collections.feedback, event, {
-      criterion: event.criterion,
-      type: event.type,
-      bead_id: event.bead_id || "",
-      timestamp: event.timestamp,
-    });
-  }
+			return items.map((item: { content?: string; information?: string }) => {
+				const content = item.content || item.information || "";
+				try {
+					return JSON.parse(content);
+				} catch {
+					return content;
+				}
+			});
+		} catch (error) {
+			console.warn(
+				`[storage] Failed to parse semantic-memory list() output: ${error instanceof Error ? error.message : String(error)}`,
+			);
+			return [];
+		}
+	}
 
-  async getFeedbackByCriterion(criterion: string): Promise<FeedbackEvent[]> {
-    // Use FTS for exact criterion match
-    return this.find<FeedbackEvent>(
-      this.config.collections.feedback,
-      criterion,
-      100,
-      true, // FTS for exact match
-    );
-  }
+	// -------------------------------------------------------------------------
+	// Feedback Operations
+	// -------------------------------------------------------------------------
 
-  async getFeedbackByBead(beadId: string): Promise<FeedbackEvent[]> {
-    return this.find<FeedbackEvent>(
-      this.config.collections.feedback,
-      beadId,
-      100,
-      true,
-    );
-  }
+	async storeFeedback(event: FeedbackEvent): Promise<void> {
+		await this.store(this.config.collections.feedback, event, {
+			criterion: event.criterion,
+			type: event.type,
+			cell_id: event.cell_id || "",
+			timestamp: event.timestamp,
+		});
+	}
 
-  async getAllFeedback(): Promise<FeedbackEvent[]> {
-    return this.list<FeedbackEvent>(this.config.collections.feedback);
-  }
+	async getFeedbackByCriterion(criterion: string): Promise<FeedbackEvent[]> {
+		// Use FTS for exact criterion match
+		return this.find<FeedbackEvent>(
+			this.config.collections.feedback,
+			criterion,
+			100,
+			true, // FTS for exact match
+		);
+	}
 
-  async findSimilarFeedback(
-    query: string,
-    limit: number = 10,
-  ): Promise<FeedbackEvent[]> {
-    return this.find<FeedbackEvent>(
-      this.config.collections.feedback,
-      query,
-      limit,
-      !this.config.useSemanticSearch,
-    );
-  }
+	async getFeedbackByCell(cellId: string): Promise<FeedbackEvent[]> {
+		return this.find<FeedbackEvent>(
+			this.config.collections.feedback,
+			cellId,
+			100,
+			true,
+		);
+	}
 
-  // -------------------------------------------------------------------------
-  // Pattern Operations
-  // -------------------------------------------------------------------------
+	async getAllFeedback(): Promise<FeedbackEvent[]> {
+		return this.list<FeedbackEvent>(this.config.collections.feedback);
+	}
 
-  async storePattern(pattern: DecompositionPattern): Promise<void> {
-    await this.store(this.config.collections.patterns, pattern, {
-      id: pattern.id,
-      kind: pattern.kind,
-      is_negative: pattern.is_negative,
-      tags: pattern.tags.join(","),
-    });
-  }
+	async findSimilarFeedback(
+		query: string,
+		limit: number = 10,
+	): Promise<FeedbackEvent[]> {
+		return this.find<FeedbackEvent>(
+			this.config.collections.feedback,
+			query,
+			limit,
+			!this.config.useSemanticSearch,
+		);
+	}
 
-  async getPattern(id: string): Promise<DecompositionPattern | null> {
-    // List all and filter by ID - FTS search by ID is unreliable
-    const all = await this.list<DecompositionPattern>(
-      this.config.collections.patterns,
-    );
-    return all.find((p) => p.id === id) || null;
-  }
+	// -------------------------------------------------------------------------
+	// Pattern Operations
+	// -------------------------------------------------------------------------
 
-  async getAllPatterns(): Promise<DecompositionPattern[]> {
-    return this.list<DecompositionPattern>(this.config.collections.patterns);
-  }
+	async storePattern(pattern: DecompositionPattern): Promise<void> {
+		await this.store(this.config.collections.patterns, pattern, {
+			id: pattern.id,
+			kind: pattern.kind,
+			is_negative: pattern.is_negative,
+			tags: pattern.tags.join(","),
+		});
+	}
 
-  async getAntiPatterns(): Promise<DecompositionPattern[]> {
-    const all = await this.getAllPatterns();
-    return all.filter((p) => p.kind === "anti_pattern");
-  }
+	async getPattern(id: string): Promise<DecompositionPattern | null> {
+		// List all and filter by ID - FTS search by ID is unreliable
+		const all = await this.list<DecompositionPattern>(
+			this.config.collections.patterns,
+		);
+		return all.find((p) => p.id === id) || null;
+	}
 
-  async getPatternsByTag(tag: string): Promise<DecompositionPattern[]> {
-    const results = await this.find<DecompositionPattern>(
-      this.config.collections.patterns,
-      tag,
-      100,
-      true,
-    );
-    return results.filter((p) => p.tags.includes(tag));
-  }
+	async getAllPatterns(): Promise<DecompositionPattern[]> {
+		return this.list<DecompositionPattern>(this.config.collections.patterns);
+	}
 
-  async findSimilarPatterns(
-    query: string,
-    limit: number = 10,
-  ): Promise<DecompositionPattern[]> {
-    return this.find<DecompositionPattern>(
-      this.config.collections.patterns,
-      query,
-      limit,
-      !this.config.useSemanticSearch,
-    );
-  }
+	async getAntiPatterns(): Promise<DecompositionPattern[]> {
+		const all = await this.getAllPatterns();
+		return all.filter((p) => p.kind === "anti_pattern");
+	}
 
-  // -------------------------------------------------------------------------
-  // Maturity Operations
-  // -------------------------------------------------------------------------
+	async getPatternsByTag(tag: string): Promise<DecompositionPattern[]> {
+		const results = await this.find<DecompositionPattern>(
+			this.config.collections.patterns,
+			tag,
+			100,
+			true,
+		);
+		return results.filter((p) => p.tags.includes(tag));
+	}
 
-  async storeMaturity(maturity: PatternMaturity): Promise<void> {
-    await this.store(this.config.collections.maturity, maturity, {
-      pattern_id: maturity.pattern_id,
-      state: maturity.state,
-    });
-  }
+	async findSimilarPatterns(
+		query: string,
+		limit: number = 10,
+	): Promise<DecompositionPattern[]> {
+		return this.find<DecompositionPattern>(
+			this.config.collections.patterns,
+			query,
+			limit,
+			!this.config.useSemanticSearch,
+		);
+	}
 
-  async getMaturity(patternId: string): Promise<PatternMaturity | null> {
-    // List all and filter by pattern_id - FTS search by ID is unreliable
-    const all = await this.list<PatternMaturity>(
-      this.config.collections.maturity,
-    );
-    return all.find((m) => m.pattern_id === patternId) || null;
-  }
+	// -------------------------------------------------------------------------
+	// Maturity Operations
+	// -------------------------------------------------------------------------
 
-  async getAllMaturity(): Promise<PatternMaturity[]> {
-    return this.list<PatternMaturity>(this.config.collections.maturity);
-  }
+	async storeMaturity(maturity: PatternMaturity): Promise<void> {
+		await this.store(this.config.collections.maturity, maturity, {
+			pattern_id: maturity.pattern_id,
+			state: maturity.state,
+		});
+	}
 
-  async getMaturityByState(state: string): Promise<PatternMaturity[]> {
-    const all = await this.getAllMaturity();
-    return all.filter((m) => m.state === state);
-  }
+	async getMaturity(patternId: string): Promise<PatternMaturity | null> {
+		// List all and filter by pattern_id - FTS search by ID is unreliable
+		const all = await this.list<PatternMaturity>(
+			this.config.collections.maturity,
+		);
+		return all.find((m) => m.pattern_id === patternId) || null;
+	}
 
-  async storeMaturityFeedback(feedback: MaturityFeedback): Promise<void> {
-    await this.store(this.config.collections.maturity + "-feedback", feedback, {
-      pattern_id: feedback.pattern_id,
-      type: feedback.type,
-      timestamp: feedback.timestamp,
-    });
-  }
+	async getAllMaturity(): Promise<PatternMaturity[]> {
+		return this.list<PatternMaturity>(this.config.collections.maturity);
+	}
 
-  async getMaturityFeedback(patternId: string): Promise<MaturityFeedback[]> {
-    // List all and filter by pattern_id - FTS search by ID is unreliable
-    const all = await this.list<MaturityFeedback>(
-      this.config.collections.maturity + "-feedback",
-    );
-    return all.filter((f) => f.pattern_id === patternId);
-  }
+	async getMaturityByState(state: string): Promise<PatternMaturity[]> {
+		const all = await this.getAllMaturity();
+		return all.filter((m) => m.state === state);
+	}
 
-  async close(): Promise<void> {
-    // No cleanup needed for CLI-based storage
-  }
+	async storeMaturityFeedback(feedback: MaturityFeedback): Promise<void> {
+		await this.store(this.config.collections.maturity + "-feedback", feedback, {
+			pattern_id: feedback.pattern_id,
+			type: feedback.type,
+			timestamp: feedback.timestamp,
+		});
+	}
+
+	async getMaturityFeedback(patternId: string): Promise<MaturityFeedback[]> {
+		// List all and filter by pattern_id - FTS search by ID is unreliable
+		const all = await this.list<MaturityFeedback>(
+			this.config.collections.maturity + "-feedback",
+		);
+		return all.filter((f) => f.pattern_id === patternId);
+	}
+
+	async close(): Promise<void> {
+		// No cleanup needed for CLI-based storage
+	}
 }
 
 // ============================================================================
@@ -647,106 +659,106 @@ export class SemanticMemoryStorage implements LearningStorage {
  * Useful for testing and ephemeral sessions.
  */
 export class InMemoryStorage implements LearningStorage {
-  private feedback: InMemoryFeedbackStorage;
-  private patterns: InMemoryPatternStorage;
-  private maturity: InMemoryMaturityStorage;
+	private feedback: InMemoryFeedbackStorage;
+	private patterns: InMemoryPatternStorage;
+	private maturity: InMemoryMaturityStorage;
 
-  constructor() {
-    this.feedback = new InMemoryFeedbackStorage();
-    this.patterns = new InMemoryPatternStorage();
-    this.maturity = new InMemoryMaturityStorage();
-  }
+	constructor() {
+		this.feedback = new InMemoryFeedbackStorage();
+		this.patterns = new InMemoryPatternStorage();
+		this.maturity = new InMemoryMaturityStorage();
+	}
 
-  // Feedback
-  async storeFeedback(event: FeedbackEvent): Promise<void> {
-    return this.feedback.store(event);
-  }
+	// Feedback
+	async storeFeedback(event: FeedbackEvent): Promise<void> {
+		return this.feedback.store(event);
+	}
 
-  async getFeedbackByCriterion(criterion: string): Promise<FeedbackEvent[]> {
-    return this.feedback.getByCriterion(criterion);
-  }
+	async getFeedbackByCriterion(criterion: string): Promise<FeedbackEvent[]> {
+		return this.feedback.getByCriterion(criterion);
+	}
 
-  async getFeedbackByBead(beadId: string): Promise<FeedbackEvent[]> {
-    return this.feedback.getByBead(beadId);
-  }
+	async getFeedbackByCell(cellId: string): Promise<FeedbackEvent[]> {
+		return this.feedback.getByCell(cellId);
+	}
 
-  async getAllFeedback(): Promise<FeedbackEvent[]> {
-    return this.feedback.getAll();
-  }
+	async getAllFeedback(): Promise<FeedbackEvent[]> {
+		return this.feedback.getAll();
+	}
 
-  async findSimilarFeedback(
-    query: string,
-    limit: number = 10,
-  ): Promise<FeedbackEvent[]> {
-    // In-memory doesn't support semantic search, filter by query string match
-    const all = await this.feedback.getAll();
-    const lowerQuery = query.toLowerCase();
-    const filtered = all.filter(
-      (event) =>
-        event.criterion.toLowerCase().includes(lowerQuery) ||
-        (event.bead_id && event.bead_id.toLowerCase().includes(lowerQuery)) ||
-        (event.context && event.context.toLowerCase().includes(lowerQuery)),
-    );
-    return filtered.slice(0, limit);
-  }
+	async findSimilarFeedback(
+		query: string,
+		limit: number = 10,
+	): Promise<FeedbackEvent[]> {
+		// In-memory doesn't support semantic search, filter by query string match
+		const all = await this.feedback.getAll();
+		const lowerQuery = query.toLowerCase();
+		const filtered = all.filter(
+			(event) =>
+				event.criterion.toLowerCase().includes(lowerQuery) ||
+				(event.cell_id && event.cell_id.toLowerCase().includes(lowerQuery)) ||
+				(event.context && event.context.toLowerCase().includes(lowerQuery)),
+		);
+		return filtered.slice(0, limit);
+	}
 
-  // Patterns
-  async storePattern(pattern: DecompositionPattern): Promise<void> {
-    return this.patterns.store(pattern);
-  }
+	// Patterns
+	async storePattern(pattern: DecompositionPattern): Promise<void> {
+		return this.patterns.store(pattern);
+	}
 
-  async getPattern(id: string): Promise<DecompositionPattern | null> {
-    return this.patterns.get(id);
-  }
+	async getPattern(id: string): Promise<DecompositionPattern | null> {
+		return this.patterns.get(id);
+	}
 
-  async getAllPatterns(): Promise<DecompositionPattern[]> {
-    return this.patterns.getAll();
-  }
+	async getAllPatterns(): Promise<DecompositionPattern[]> {
+		return this.patterns.getAll();
+	}
 
-  async getAntiPatterns(): Promise<DecompositionPattern[]> {
-    return this.patterns.getAntiPatterns();
-  }
+	async getAntiPatterns(): Promise<DecompositionPattern[]> {
+		return this.patterns.getAntiPatterns();
+	}
 
-  async getPatternsByTag(tag: string): Promise<DecompositionPattern[]> {
-    return this.patterns.getByTag(tag);
-  }
+	async getPatternsByTag(tag: string): Promise<DecompositionPattern[]> {
+		return this.patterns.getByTag(tag);
+	}
 
-  async findSimilarPatterns(
-    query: string,
-    limit: number = 10,
-  ): Promise<DecompositionPattern[]> {
-    const results = await this.patterns.findByContent(query);
-    return results.slice(0, limit);
-  }
+	async findSimilarPatterns(
+		query: string,
+		limit: number = 10,
+	): Promise<DecompositionPattern[]> {
+		const results = await this.patterns.findByContent(query);
+		return results.slice(0, limit);
+	}
 
-  // Maturity
-  async storeMaturity(maturity: PatternMaturity): Promise<void> {
-    return this.maturity.store(maturity);
-  }
+	// Maturity
+	async storeMaturity(maturity: PatternMaturity): Promise<void> {
+		return this.maturity.store(maturity);
+	}
 
-  async getMaturity(patternId: string): Promise<PatternMaturity | null> {
-    return this.maturity.get(patternId);
-  }
+	async getMaturity(patternId: string): Promise<PatternMaturity | null> {
+		return this.maturity.get(patternId);
+	}
 
-  async getAllMaturity(): Promise<PatternMaturity[]> {
-    return this.maturity.getAll();
-  }
+	async getAllMaturity(): Promise<PatternMaturity[]> {
+		return this.maturity.getAll();
+	}
 
-  async getMaturityByState(state: string): Promise<PatternMaturity[]> {
-    return this.maturity.getByState(state as any);
-  }
+	async getMaturityByState(state: string): Promise<PatternMaturity[]> {
+		return this.maturity.getByState(state as any);
+	}
 
-  async storeMaturityFeedback(feedback: MaturityFeedback): Promise<void> {
-    return this.maturity.storeFeedback(feedback);
-  }
+	async storeMaturityFeedback(feedback: MaturityFeedback): Promise<void> {
+		return this.maturity.storeFeedback(feedback);
+	}
 
-  async getMaturityFeedback(patternId: string): Promise<MaturityFeedback[]> {
-    return this.maturity.getFeedback(patternId);
-  }
+	async getMaturityFeedback(patternId: string): Promise<MaturityFeedback[]> {
+		return this.maturity.getFeedback(patternId);
+	}
 
-  async close(): Promise<void> {
-    // No cleanup needed
-  }
+	async close(): Promise<void> {
+		// No cleanup needed
+	}
 }
 
 // ============================================================================
@@ -779,38 +791,38 @@ export class InMemoryStorage implements LearningStorage {
  * ```
  */
 export function createStorage(
-  config: Partial<StorageConfig> = {},
+	config: Partial<StorageConfig> = {},
 ): LearningStorage {
-  // Use getDefaultStorageConfig() to ensure env vars are read at runtime
-  const fullConfig = { ...getDefaultStorageConfig(), ...config };
+	// Use getDefaultStorageConfig() to ensure env vars are read at runtime
+	const fullConfig = { ...getDefaultStorageConfig(), ...config };
 
-  switch (fullConfig.backend) {
-    case "semantic-memory":
-      return new SemanticMemoryStorage(fullConfig);
-    case "memory":
-      return new InMemoryStorage();
-    default:
-      throw new Error(`Unknown storage backend: ${fullConfig.backend}`);
-  }
+	switch (fullConfig.backend) {
+		case "semantic-memory":
+			return new SemanticMemoryStorage(fullConfig);
+		case "memory":
+			return new InMemoryStorage();
+		default:
+			throw new Error(`Unknown storage backend: ${fullConfig.backend}`);
+	}
 }
 
 /**
  * Check if semantic-memory is available (native or via bunx)
  */
 export async function isSemanticMemoryAvailable(): Promise<boolean> {
-  try {
-    const result = await execSemanticMemory(["stats"]);
-    return result.exitCode === 0;
-  } catch {
-    return false;
-  }
+	try {
+		const result = await execSemanticMemory(["stats"]);
+		return result.exitCode === 0;
+	} catch {
+		return false;
+	}
 }
 
 /**
  * Get the resolved semantic-memory command (for debugging/logging)
  */
 export async function getResolvedCommand(): Promise<string[]> {
-  return resolveSemanticMemoryCommand();
+	return resolveSemanticMemoryCommand();
 }
 
 /**
@@ -822,21 +834,21 @@ export async function getResolvedCommand(): Promise<string[]> {
  * @returns Storage instance
  */
 export async function createStorageWithFallback(
-  config: Partial<StorageConfig> = {},
+	config: Partial<StorageConfig> = {},
 ): Promise<LearningStorage> {
-  if (config.backend === "memory") {
-    return new InMemoryStorage();
-  }
+	if (config.backend === "memory") {
+		return new InMemoryStorage();
+	}
 
-  const available = await isSemanticMemoryAvailable();
-  if (available) {
-    return new SemanticMemoryStorage(config);
-  }
+	const available = await isSemanticMemoryAvailable();
+	if (available) {
+		return new SemanticMemoryStorage(config);
+	}
 
-  console.warn(
-    "semantic-memory not available, falling back to in-memory storage",
-  );
-  return new InMemoryStorage();
+	console.warn(
+		"semantic-memory not available, falling back to in-memory storage",
+	);
+	return new InMemoryStorage();
 }
 
 // ============================================================================
@@ -853,13 +865,13 @@ let globalStoragePromise: Promise<LearningStorage> | null = null;
  * Prevents race conditions by storing the initialization promise.
  */
 export async function getStorage(): Promise<LearningStorage> {
-  if (!globalStoragePromise) {
-    globalStoragePromise = createStorageWithFallback().then((storage) => {
-      globalStorage = storage;
-      return storage;
-    });
-  }
-  return globalStoragePromise;
+	if (!globalStoragePromise) {
+		globalStoragePromise = createStorageWithFallback().then((storage) => {
+			globalStorage = storage;
+			return storage;
+		});
+	}
+	return globalStoragePromise;
 }
 
 /**
@@ -868,17 +880,17 @@ export async function getStorage(): Promise<LearningStorage> {
  * Useful for testing or custom configurations.
  */
 export function setStorage(storage: LearningStorage): void {
-  globalStorage = storage;
-  globalStoragePromise = Promise.resolve(storage);
+	globalStorage = storage;
+	globalStoragePromise = Promise.resolve(storage);
 }
 
 /**
  * Reset the global storage instance
  */
 export async function resetStorage(): Promise<void> {
-  if (globalStorage) {
-    await globalStorage.close();
-    globalStorage = null;
-  }
-  globalStoragePromise = null;
+	if (globalStorage) {
+		await globalStorage.close();
+		globalStorage = null;
+	}
+	globalStoragePromise = null;
 }

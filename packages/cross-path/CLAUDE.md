@@ -1,4 +1,4 @@
-# Claude Code Instructions for @primeinc/cross-path
+# Claude Code Instructions for swarm-cross-path
 
 ## Overview
 

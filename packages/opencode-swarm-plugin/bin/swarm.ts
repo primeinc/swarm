@@ -44,9 +44,6 @@ import {
 } from "../dist/hive.js";
 import { formatCoordinatorPrompt } from "../dist/swarm-prompts.js";
 import {
-  legacyDatabaseExists,
-  migratePGliteToLibSQL,
-  pgliteExists,
   getLibSQLProjectTempDirName,
   getLibSQLDatabasePath,
   hashLibSQLProjectPath,
@@ -1532,8 +1529,8 @@ function getPluginWrapper(): string {
     console.warn(
       `[swarm] Could not read plugin template from ${templatePath}, using minimal wrapper`,
     );
-    return `// Minimal fallback - install opencode-swarm-plugin globally for full functionality
-import SwarmPlugin from "opencode-swarm-plugin"
+    return `// Minimal fallback - install swarm globally for full functionality
+import SwarmPlugin from "swarm"
 export default SwarmPlugin
 `;
   }
@@ -2133,41 +2130,7 @@ async function setup(forceReinstall = false, nonInteractive = false) {
   }
   p.log.success(`Bun v${bunCheck.version} detected`);
 
-  // Migrate legacy database if present (do this first, before config check)
   const cwd = process.cwd();
-  const tempDirName = getLibSQLProjectTempDirName(cwd);
-  const tempDir = join(tmpdir(), tempDirName);
-  const pglitePath = join(tempDir, "streams");
-  const libsqlPath = join(tempDir, "streams.db");
-  
-  if (pgliteExists(pglitePath)) {
-    const migrateSpinner = p.spinner();
-    migrateSpinner.start("Migrating...");
-    
-    try {
-      const result = await migratePGliteToLibSQL({
-        pglitePath,
-        libsqlPath,
-        dryRun: false,
-        onProgress: () => {},
-      });
-      
-      const total = result.memories.migrated + result.beads.migrated;
-      if (total > 0) {
-        migrateSpinner.stop(`Migrated ${result.memories.migrated} memories, ${result.beads.migrated} cells`);
-      } else {
-        migrateSpinner.stop("Migrated");
-      }
-      
-      if (result.errors.length > 0) {
-        p.log.warn(`${result.errors.length} errors during migration`);
-      }
-    } catch (error) {
-      migrateSpinner.stop("Migration failed");
-      p.log.error(error instanceof Error ? error.message : String(error));
-    }
-  }
-
   let isReinstall = false;
 
   // Check if already configured
@@ -4868,130 +4831,6 @@ ${bold("Examples:")}
 }
 
 // ============================================================================
-// Migrate Command - PGlite → libSQL migration
-// ============================================================================
-
-async function migrate() {
-  p.intro("swarm migrate v" + VERSION);
-
-  const projectPath = process.cwd();
-  
-  // Calculate the temp directory path (same logic as libsql.convenience.ts)
-  const tempDirName = getLibSQLProjectTempDirName(projectPath);
-  const tempDir = join(tmpdir(), tempDirName);
-  const pglitePath = join(tempDir, "streams");
-  const libsqlPath = join(tempDir, "streams.db");
-
-  // Check if PGlite exists
-  if (!pgliteExists(pglitePath)) {
-    p.log.success("No PGlite database found - nothing to migrate!");
-    p.outro("Done");
-    return;
-  }
-
-  // Dry run to show counts
-  const s = p.spinner();
-  s.start("Scanning PGlite database...");
-
-  try {
-    const dryResult = await migratePGliteToLibSQL({
-      pglitePath,
-      libsqlPath,
-      dryRun: true,
-      onProgress: () => {}, // silent during dry run
-    });
-
-    s.stop("Scan complete");
-
-    // Show summary
-    const totalItems = 
-      dryResult.memories.migrated + 
-      dryResult.beads.migrated + 
-      dryResult.messages.migrated + 
-      dryResult.agents.migrated + 
-      dryResult.events.migrated;
-
-    if (totalItems === 0) {
-      p.log.warn("PGlite database exists but contains no data");
-      p.outro("Nothing to migrate");
-      return;
-    }
-
-    p.log.step("Found data to migrate:");
-    if (dryResult.memories.migrated > 0) {
-      p.log.message(`  📝 ${dryResult.memories.migrated} memories`);
-    }
-    if (dryResult.beads.migrated > 0) {
-      p.log.message(`  🐝 ${dryResult.beads.migrated} cells`);
-    }
-    if (dryResult.messages.migrated > 0) {
-      p.log.message(`  ✉️  ${dryResult.messages.migrated} messages`);
-    }
-    if (dryResult.agents.migrated > 0) {
-      p.log.message(`  🤖 ${dryResult.agents.migrated} agents`);
-    }
-    if (dryResult.events.migrated > 0) {
-      p.log.message(`  📋 ${dryResult.events.migrated} events`);
-    }
-
-    // Confirm
-    const confirmMigrate = await safeConfirm("Migrate this data to libSQL?", true);
-
-    if (!confirmMigrate) {
-      p.outro("Migration cancelled");
-      return;
-    }
-
-    // Run actual migration
-    const migrateSpinner = p.spinner();
-    migrateSpinner.start("Migrating data...");
-
-    const result = await migratePGliteToLibSQL({
-      pglitePath,
-      libsqlPath,
-      dryRun: false,
-      onProgress: (msg) => {
-        // Update spinner for key milestones
-        if (msg.includes("Migrating") || msg.includes("complete")) {
-          migrateSpinner.message(msg.replace("[migrate] ", ""));
-        }
-      },
-    });
-
-    migrateSpinner.stop("Migration complete!");
-
-    // Show results
-    const showStat = (label: string, stat: { migrated: number; skipped: number; failed: number }) => {
-      if (stat.migrated > 0 || stat.skipped > 0 || stat.failed > 0) {
-        const parts: string[] = [];
-        if (stat.migrated > 0) parts.push(green(`${stat.migrated} migrated`));
-        if (stat.skipped > 0) parts.push(dim(`${stat.skipped} skipped`));
-        if (stat.failed > 0) parts.push(`\x1b[31m${stat.failed} failed\x1b[0m`);
-        p.log.message(`  ${label}: ${parts.join(", ")}`);
-      }
-    };
-
-    showStat("Memories", result.memories);
-    showStat("Cells", result.beads);
-    showStat("Messages", result.messages);
-    showStat("Agents", result.agents);
-    showStat("Events", result.events);
-
-    if (result.errors.length > 0) {
-      p.log.warn(`${result.errors.length} errors occurred`);
-    }
-
-    p.outro("Migration complete! 🐝");
-
-  } catch (error) {
-    s.stop("Migration failed");
-    p.log.error(error instanceof Error ? error.message : String(error));
-    p.outro("Migration failed");
-    process.exit(1);
-  }
-}
-
-// ============================================================================
 // Session Log Helpers
 // ============================================================================
 
@@ -7486,9 +7325,6 @@ switch (command) {
     await agents(agentsNonInteractive);
     break;
   }
-  case "migrate":
-    await migrate();
-    break;
   case "backup": {
     const backupAction = process.argv[3] || "create";
     await backup(backupAction);

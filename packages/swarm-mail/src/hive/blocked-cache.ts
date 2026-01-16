@@ -19,7 +19,7 @@
  */
 
 export {
-  rebuildBeadBlockedCache,
-  rebuildAllBlockedCaches,
-  invalidateBlockedCache,
+	invalidateBlockedCache,
+	rebuildAllBlockedCaches,
+	rebuildBeadBlockedCache,
 } from "./dependencies.js";

@@ -1,4 +1,4 @@
-import type { Page } from '@/lib/source';
+import type { Page } from "@/lib/source";
 
 /**
  * Convert a Fumadocs page to LLM-friendly text format
@@ -14,13 +14,13 @@ import type { Page } from '@/lib/source';
  * ```
  */
 export async function getLLMText(page: Page): Promise<string> {
-  // Get raw markdown content from the page
-  const content = await page.data.getText('raw');
+	// Get raw markdown content from the page
+	const content = await page.data.getText("raw");
 
-  return `# ${page.data.title}
+	return `# ${page.data.title}
 URL: ${page.url}
 
-${page.data.description ?? ''}
+${page.data.description ?? ""}
 
 ${content}`;
 }

@@ -1,5 +1,5 @@
 /**
- * Type definitions for @primeinc/cross-path
+ * Type definitions for swarm-cross-path
  *
  * This module provides TypeScript types for cross-platform path normalization,
  * ensuring consistent path identifiers across Windows, WSL, and Linux environments.

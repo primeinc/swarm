@@ -37,9 +37,9 @@ import type { Migration } from "../streams/migrations.js";
  * in src/streams/migrations.ts.
  */
 export const memoryMigration: Migration = {
-  version: 9,
-  description: "Add semantic memory tables (memories, memory_embeddings)",
-  up: `
+	version: 9,
+	description: "Add semantic memory tables (memories, memory_embeddings)",
+	up: `
     -- ========================================================================
     -- Enable pgvector extension (required for vector type)
     -- ========================================================================
@@ -78,7 +78,7 @@ export const memoryMigration: Migration = {
     ON memory_embeddings 
     USING hnsw (embedding vector_cosine_ops);
   `,
-  down: `
+	down: `
     -- Drop in reverse order to handle foreign key constraints
     DROP INDEX IF EXISTS memory_embeddings_hnsw_idx;
     DROP TABLE IF EXISTS memory_embeddings;
@@ -98,9 +98,10 @@ export const memoryMigration: Migration = {
  * - FTS5 virtual table (instead of PostgreSQL GIN index)
  */
 export const memoryMigrationLibSQL: Migration = {
-  version: 9,
-  description: "Add semantic memory tables (memories with vector support, FTS5)",
-  up: `
+	version: 9,
+	description:
+		"Add semantic memory tables (memories with vector support, FTS5)",
+	up: `
     -- ========================================================================
     -- Memories Table
     -- ========================================================================
@@ -148,7 +149,7 @@ export const memoryMigrationLibSQL: Migration = {
       DELETE FROM memories_fts WHERE rowid = old.rowid;
     END;
   `,
-  down: `
+	down: `
     -- Drop in reverse order
     DROP TRIGGER IF EXISTS memories_fts_delete;
     DROP TRIGGER IF EXISTS memories_fts_update;
@@ -182,9 +183,10 @@ export const memoryMigrationLibSQL: Migration = {
  * - keywords: Space-separated keywords for FTS boost
  */
 export const memorySchemaOverhaulLibSQL: Migration = {
-  version: 10,
-  description: "Memory schema overhaul: links, entities, relationships, temporal fields",
-  up: `
+	version: 10,
+	description:
+		"Memory schema overhaul: links, entities, relationships, temporal fields",
+	up: `
     -- ========================================================================
     -- Add temporal and metadata columns to memories table
     -- ========================================================================
@@ -254,7 +256,7 @@ export const memorySchemaOverhaulLibSQL: Migration = {
       PRIMARY KEY(memory_id, entity_id)
     );
   `,
-  down: `
+	down: `
     -- Drop tables in dependency order
     DROP TABLE IF EXISTS memory_entities;
     DROP TABLE IF EXISTS relationships;
@@ -290,9 +292,10 @@ export const memorySchemaOverhaulLibSQL: Migration = {
  * 3. Agent-specific filtering (compare how different agents solve problems)
  */
 export const sessionMetadataExtensionLibSQL: Migration = {
-  version: 11,
-  description: "Add session metadata columns (agent_type, session_id, message_role, message_idx, source_path)",
-  up: `
+	version: 11,
+	description:
+		"Add session metadata columns (agent_type, session_id, message_role, message_idx, source_path)",
+	up: `
     -- ========================================================================
     -- Add session metadata columns to memories table
     -- ========================================================================
@@ -311,7 +314,7 @@ export const sessionMetadataExtensionLibSQL: Migration = {
     -- Index for role filtering
     CREATE INDEX IF NOT EXISTS idx_memories_role ON memories(message_role);
   `,
-  down: `
+	down: `
     -- Drop indexes first
     DROP INDEX IF EXISTS idx_memories_role;
     DROP INDEX IF EXISTS idx_memories_agent_type;
@@ -328,26 +331,26 @@ export const sessionMetadataExtensionLibSQL: Migration = {
  */
 export const memoryMigrations: Migration[] = [memoryMigration];
 export const memoryMigrationsLibSQL: Migration[] = [
-  memoryMigrationLibSQL,
-  memorySchemaOverhaulLibSQL,
-  sessionMetadataExtensionLibSQL
+	memoryMigrationLibSQL,
+	memorySchemaOverhaulLibSQL,
+	sessionMetadataExtensionLibSQL,
 ];
 
 /**
  * Repair stats returned by repairStaleEmbeddings
  */
 export interface RepairStats {
-  /** Number of memories that were re-embedded */
-  repaired: number;
-  /** Number of memories that were removed (couldn't be re-embedded) */
-  removed: number;
+	/** Number of memories that were re-embedded */
+	repaired: number;
+	/** Number of memories that were removed (couldn't be re-embedded) */
+	removed: number;
 }
 
 /**
  * Simple Ollama-compatible interface for embedding
  */
 export interface OllamaEmbedder {
-  embed(text: string): Promise<number[]>;
+	embed(text: string): Promise<number[]>;
 }
 
 /**
@@ -379,49 +382,49 @@ export interface OllamaEmbedder {
  * ```
  */
 export async function repairStaleEmbeddings(
-  db: { query: <T>(sql: string, params?: unknown[]) => Promise<{ rows: T[] }> },
-  ollama?: OllamaEmbedder
+	db: { query: <T>(sql: string, params?: unknown[]) => Promise<{ rows: T[] }> },
+	ollama?: OllamaEmbedder,
 ): Promise<RepairStats> {
-  const stats: RepairStats = { repaired: 0, removed: 0 };
+	const stats: RepairStats = { repaired: 0, removed: 0 };
 
-  // Find memories with null embeddings
-  // In libSQL, F32_BLOB can be NULL when not set
-  const staleMemories = await db.query<{ id: string; content: string }>(
-    `SELECT id, content FROM memories WHERE embedding IS NULL`
-  );
+	// Find memories with null embeddings
+	// In libSQL, F32_BLOB can be NULL when not set
+	const staleMemories = await db.query<{ id: string; content: string }>(
+		`SELECT id, content FROM memories WHERE embedding IS NULL`,
+	);
 
-  if (staleMemories.rows.length === 0) {
-    return stats; // No stale memories to repair
-  }
+	if (staleMemories.rows.length === 0) {
+		return stats; // No stale memories to repair
+	}
 
-  // If Ollama is available, try to re-embed
-  if (ollama) {
-    for (const memory of staleMemories.rows) {
-      try {
-        // Generate new embedding
-        const embedding = await ollama.embed(memory.content);
-        
-        // Update memory with new embedding
-        await db.query(
-          `UPDATE memories SET embedding = vector($1) WHERE id = $2`,
-          [JSON.stringify(embedding), memory.id]
-        );
-        
-        stats.repaired++;
-      } catch (error) {
-        // If embedding fails, remove the memory
-        await db.query(`DELETE FROM memories WHERE id = $1`, [memory.id]);
-        stats.removed++;
-      }
-    }
-  } else {
-    // No Ollama - remove all memories without embeddings
-    // They can't be searched anyway, so keeping them would just cause errors
-    for (const memory of staleMemories.rows) {
-      await db.query(`DELETE FROM memories WHERE id = $1`, [memory.id]);
-      stats.removed++;
-    }
-  }
+	// If Ollama is available, try to re-embed
+	if (ollama) {
+		for (const memory of staleMemories.rows) {
+			try {
+				// Generate new embedding
+				const embedding = await ollama.embed(memory.content);
 
-  return stats;
+				// Update memory with new embedding
+				await db.query(
+					`UPDATE memories SET embedding = vector($1) WHERE id = $2`,
+					[JSON.stringify(embedding), memory.id],
+				);
+
+				stats.repaired++;
+			} catch (error) {
+				// If embedding fails, remove the memory
+				await db.query(`DELETE FROM memories WHERE id = $1`, [memory.id]);
+				stats.removed++;
+			}
+		}
+	} else {
+		// No Ollama - remove all memories without embeddings
+		// They can't be searched anyway, so keeping them would just cause errors
+		for (const memory of staleMemories.rows) {
+			await db.query(`DELETE FROM memories WHERE id = $1`, [memory.id]);
+			stats.removed++;
+		}
+	}
+
+	return stats;
 }

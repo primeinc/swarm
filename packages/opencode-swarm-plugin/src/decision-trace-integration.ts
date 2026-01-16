@@ -37,9 +37,6 @@ import {
   type DecisionTraceInput,
   type EntityLinkInput,
 } from "swarm-mail";
-import { createLibSQLAdapter } from "swarm-mail";
-import { getDatabasePath } from "swarm-mail";
-
 // ============================================================================
 // Database Helper
 // ============================================================================
@@ -47,11 +44,12 @@ import { getDatabasePath } from "swarm-mail";
 /**
  * Get database adapter for decision trace storage
  *
- * Uses the same database as swarm-mail for consistency.
+ * Uses cached singleton from swarm-mail to prevent connection leaks.
+ * This avoids creating new connections per trace call.
  */
 async function getTraceDb(projectPath?: string) {
-  const dbPath = getDatabasePath(projectPath);
-  return createLibSQLAdapter({ url: `file:${dbPath}` });
+  const { getOrCreateAdapter } = await import("swarm-mail");
+  return getOrCreateAdapter(undefined, projectPath);
 }
 
 // ============================================================================
@@ -165,7 +163,6 @@ export async function traceStrategySelection(
       });
     }
 
-    await db.close?.();
     return trace.id;
   } catch (error) {
     // Non-fatal - log and continue
@@ -239,7 +236,6 @@ export async function traceWorkerSpawn(
       });
     }
 
-    await db.close?.();
     return trace.id;
   } catch (error) {
     // Non-fatal - log and continue

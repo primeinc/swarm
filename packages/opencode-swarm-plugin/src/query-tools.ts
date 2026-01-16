@@ -219,8 +219,8 @@ export function getDbPath(): string {
  * Uses global database regardless of project path.
  */
 async function createDbAdapter(): Promise<DatabaseAdapter> {
-	const dbPath = getDbPath();
-	return createLibSQLAdapter({ url: `file:${dbPath}` });
+	const { getOrCreateAdapter } = await import("swarm-mail");
+	return getOrCreateAdapter();
 }
 
 // ============================================================================

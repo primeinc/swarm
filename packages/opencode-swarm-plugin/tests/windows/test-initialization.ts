@@ -148,9 +148,10 @@ async function testSwarmInit(): Promise<TestResult> {
  * 
  * WHAT IT TESTS:
  * - Database connection is healthy
- * - SQLite/PGLite is properly initialized
+ * - SQLite is properly initialized
  * - No database locking issues (SQLITE_BUSY)
  */
+
 async function testSwarmMailHealth(): Promise<TestResult> {
 	const testName = 'swarmmail_health - Database Health Check';
 	console.log(`\n🧪 ${testName}`);

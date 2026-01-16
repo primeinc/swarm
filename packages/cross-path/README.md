@@ -1,13 +1,13 @@
-# @primeinc/cross-path
+# swarm-cross-path
 
 Cross-platform path normalization for consistent identifiers across Windows, WSL, and Linux environments.
 
 ## Installation
 
 ```bash
-npm install @primeinc/cross-path
+npm install swarm-cross-path
 # or
-bun add @primeinc/cross-path
+bun add swarm-cross-path
 ```
 
 ## Problem
@@ -27,7 +27,7 @@ When these paths are used as database keys or cache keys, they create fragmented
 ## Solution
 
 ```typescript
-import { normalize, normalizeProjectKey } from '@primeinc/cross-path';
+import { normalize, normalizeProjectKey } from 'swarm-cross-path';
 
 // All of these produce the same canonical path:
 normalize('C:\\Users\\will\\project');      // → 'c:/users/will/project'
@@ -85,7 +85,7 @@ const info = analyze('C:\\Users\\will');
 ### Environment Detection
 
 ```typescript
-import { detectEnvironment, isWSL, isGitBash } from '@primeinc/cross-path';
+import { detectEnvironment, isWSL, isGitBash } from 'swarm-cross-path';
 
 detectEnvironment(); // → 'windows' | 'wsl' | 'git-bash' | 'linux' | 'darwin'
 isWSL();            // → true/false
@@ -95,7 +95,7 @@ isGitBash();        // → true/false
 ### Path Conversion
 
 ```typescript
-import { toNative, toWSL, wslToCanonical } from '@primeinc/cross-path';
+import { toNative, toWSL, wslToCanonical } from 'swarm-cross-path';
 
 // Convert canonical to platform-native
 toNative('c:/users/will');  // Windows: 'C:\Users\will', Linux: 'c:/users/will'
@@ -110,7 +110,7 @@ wslToCanonical('/mnt/c/Users/will'); // → 'c:/users/will'
 ### Validation
 
 ```typescript
-import { isAbsolute, isUNC, isWSLMount, hasDriveLetter } from '@primeinc/cross-path';
+import { isAbsolute, isUNC, isWSLMount, hasDriveLetter } from 'swarm-cross-path';
 
 isAbsolute('C:\\Users');        // → true
 isAbsolute('./relative');       // → false

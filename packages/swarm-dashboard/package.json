@@ -1,6 +1,5 @@
 {
   "name": "swarm-dashboard",
-  "private": true,
   "version": "0.0.11",
   "type": "module",
   "scripts": {

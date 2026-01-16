@@ -144,8 +144,7 @@ export function listAnalyticsCommands(): AnalyticsCommand[] {
 		},
 		{
 			name: "task-duration",
-			description:
-				"Analyze task completion times grouped by type or strategy",
+			description: "Analyze task completion times grouped by type or strategy",
 		},
 		{
 			name: "checkpoint-frequency",
@@ -255,9 +254,9 @@ export async function executeAnalyticsCommand(
  * @param command - Analytics command name
  * @returns Query builder function
  */
-function getQueryFunction(
-	command: string,
-): (filters?: Record<string, unknown>) => {
+function getQueryFunction(command: string): (
+	filters?: Record<string, unknown>,
+) => {
 	name: string;
 	description: string;
 	sql: string;
@@ -304,7 +303,11 @@ async function executeAnalyticsQuery(
 		sql: string;
 		parameters?: Record<string, unknown>;
 	},
-): Promise<{ columns: string[]; rows: Record<string, unknown>[]; rowCount: number }> {
+): Promise<{
+	columns: string[];
+	rows: Record<string, unknown>[];
+	rowCount: number;
+}> {
 	// Extract parameters as array (in order of appearance)
 	const params = query.parameters ? Object.values(query.parameters) : [];
 

@@ -1,5 +1,5 @@
 ---
-"opencode-swarm-plugin": minor
+"swarm": minor
 ---
 
 ## 🧠 Swarm Insights: Data-Driven Decomposition

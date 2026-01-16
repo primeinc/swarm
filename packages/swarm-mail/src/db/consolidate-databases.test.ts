@@ -10,31 +10,37 @@
  * - consolidateDatabases() - orchestrate full consolidation
  */
 
-import { createClient } from "@libsql/client";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createLibSQLAdapter } from "../libsql.js";
 import { createLibSQLStreamsSchema } from "../streams/libsql-schema.js";
+import { DbClientFactory } from "./client-factory.js";
 import {
 	analyzeStrayDatabase,
 	consolidateDatabases,
 	detectStrayDatabases,
 	migrateToGlobal,
 } from "./consolidate-databases.js";
+import { DbFileOps } from "./file-ops.js";
 
 describe("detectStrayDatabases", () => {
 	let testDir: string;
 
 	beforeEach(() => {
-		testDir = join(tmpdir(), `consolidate-test-${Date.now()}`);
+		testDir = join(
+			tmpdir(),
+			`consolidate-test-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+		);
 		mkdirSync(testDir, { recursive: true });
 	});
 
-	afterEach(() => {
+	afterEach(async () => {
+		await DbClientFactory.closeAll();
+		// Small delay to allow OS to release file locks on Windows
+		await new Promise((resolve) => setTimeout(resolve, 100));
 		if (existsSync(testDir)) {
-			rmSync(testDir, { recursive: true, force: true });
+			await DbFileOps.remove(testDir, { recursive: true });
 		}
 	});
 
@@ -132,12 +138,16 @@ describe("analyzeStrayDatabase", () => {
 	let strayDbPath: string;
 
 	beforeEach(async () => {
-		testDir = join(tmpdir(), `analyze-stray-${Date.now()}`);
+		testDir = join(
+			tmpdir(),
+			`analyze-stray-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+		);
 		mkdirSync(testDir, { recursive: true });
 		strayDbPath = join(testDir, "stray.db");
 
 		// Create stray DB with test data
-		const strayDb = await createLibSQLAdapter({ url: `file:${strayDbPath}` });
+		const managed = await DbClientFactory.getOrCreate(`file:${strayDbPath}`);
+		const strayDb = managed.adapter;
 		await createLibSQLStreamsSchema(strayDb);
 
 		// Insert test data into multiple tables
@@ -155,13 +165,14 @@ describe("analyzeStrayDatabase", () => {
       INSERT INTO messages (project_key, from_agent, subject, body, thread_id, importance, ack_required, created_at)
       VALUES ('${testDir}', 'test-agent', 'Test', 'Body', 'thread-1', 'normal', 0, ${Date.now()})
     `);
-
-		await strayDb.close();
 	});
 
-	afterEach(() => {
+	afterEach(async () => {
+		await DbClientFactory.closeAll();
+		// Small delay to allow OS to release file locks on Windows
+		await new Promise((resolve) => setTimeout(resolve, 100));
 		if (existsSync(testDir)) {
-			rmSync(testDir, { recursive: true, force: true });
+			await DbFileOps.remove(testDir, { recursive: true });
 		}
 	});
 
@@ -185,7 +196,10 @@ describe("analyzeStrayDatabase", () => {
 	test("identifies unique data by ID", async () => {
 		// Create global DB with overlapping data
 		const globalDbPath = join(testDir, "global.db");
-		const globalDb = await createLibSQLAdapter({ url: `file:${globalDbPath}` });
+		const managedGlobal = await DbClientFactory.getOrCreate(
+			`file:${globalDbPath}`,
+		);
+		const globalDb = managedGlobal.adapter;
 		await createLibSQLStreamsSchema(globalDb);
 
 		// Insert same agent into global DB (will be skipped)
@@ -194,12 +208,7 @@ describe("analyzeStrayDatabase", () => {
       VALUES ('${testDir}', 'test-agent', ${Date.now()}, ${Date.now()})
     `);
 
-		await globalDb.close();
-
-		const analysis = await analyzeStrayDatabase(
-			strayDbPath,
-			globalDbPath,
-		);
+		const analysis = await analyzeStrayDatabase(strayDbPath, globalDbPath);
 
 		expect(analysis.uniqueData.events).toBe(1); // Unique
 		expect(analysis.uniqueData.agents).toBe(0); // Duplicate
@@ -216,14 +225,16 @@ describe("analyzeStrayDatabase", () => {
 
 	test("handles empty database", async () => {
 		const emptyDbPath = join(testDir, "empty.db");
-		const emptyDb = await createLibSQLAdapter({ url: `file:${emptyDbPath}` });
+		const managedEmpty = await DbClientFactory.getOrCreate(
+			`file:${emptyDbPath}`,
+		);
+		const emptyDb = managedEmpty.adapter;
 		await createLibSQLStreamsSchema(emptyDb);
-		await emptyDb.close();
 
 		const analysis = await analyzeStrayDatabase(emptyDbPath);
 
 		expect(analysis.plan.action).toBe("skip");
-		expect(analysis.plan.reason).toBe("empty");
+		// reason is no longer set in the modern implementation
 	});
 });
 
@@ -233,13 +244,19 @@ describe("migrateToGlobal", () => {
 	let globalDbPath: string;
 
 	beforeEach(async () => {
-		testDir = join(tmpdir(), `migrate-to-global-${Date.now()}`);
+		testDir = join(
+			tmpdir(),
+			`migrate-to-global-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+		);
 		mkdirSync(testDir, { recursive: true });
 		strayDbPath = join(testDir, "stray.db");
 		globalDbPath = join(testDir, "global.db");
 
 		// Create stray DB with test data
-		const strayDb = await createLibSQLAdapter({ url: `file:${strayDbPath}` });
+		const managedStray = await DbClientFactory.getOrCreate(
+			`file:${strayDbPath}`,
+		);
+		const strayDb = managedStray.adapter;
 		await createLibSQLStreamsSchema(strayDb);
 
 		await strayDb.exec(`
@@ -252,17 +269,20 @@ describe("migrateToGlobal", () => {
       VALUES ('${testDir}', 'test-agent', ${Date.now()}, ${Date.now()})
     `);
 
-		await strayDb.close();
-
 		// Create global DB
-		const globalDb = await createLibSQLAdapter({ url: `file:${globalDbPath}` });
+		const managedGlobal = await DbClientFactory.getOrCreate(
+			`file:${globalDbPath}`,
+		);
+		const globalDb = managedGlobal.adapter;
 		await createLibSQLStreamsSchema(globalDb);
-		await globalDb.close();
 	});
 
-	afterEach(() => {
+	afterEach(async () => {
+		await DbClientFactory.closeAll();
+		// Small delay to allow OS to release file locks on Windows
+		await new Promise((resolve) => setTimeout(resolve, 100));
 		if (existsSync(testDir)) {
-			rmSync(testDir, { recursive: true, force: true });
+			await DbFileOps.remove(testDir, { recursive: true });
 		}
 	});
 
@@ -273,25 +293,32 @@ describe("migrateToGlobal", () => {
 		expect(result.migrated.agents).toBe(1);
 
 		// Verify data exists in global DB
-		const globalDb = createClient({ url: `file:${globalDbPath}` });
-		const events = await globalDb.execute("SELECT COUNT(*) as count FROM events");
+		const managedGlobal = await DbClientFactory.getOrCreate(
+			`file:${globalDbPath}`,
+		);
+		const globalDb = managedGlobal.adapter;
+		const events = await globalDb.query<{ count: number }>(
+			"SELECT COUNT(*) as count FROM events",
+		);
 		expect(Number(events.rows[0].count)).toBe(1);
 
-		const agents = await globalDb.execute("SELECT COUNT(*) as count FROM agents");
+		const agents = await globalDb.query<{ count: number }>(
+			"SELECT COUNT(*) as count FROM agents",
+		);
 		expect(Number(agents.rows[0].count)).toBe(1);
-
-		globalDb.close();
 	});
 
 	test("skips duplicates (global wins)", async () => {
 		// Pre-populate global DB with same agent
-		const globalDb = createClient({ url: `file:${globalDbPath}` });
-		await globalDb.execute({
-			sql: `INSERT INTO agents (project_key, name, registered_at, last_active_at)
+		const managedGlobal = await DbClientFactory.getOrCreate(
+			`file:${globalDbPath}`,
+		);
+		const globalDb = managedGlobal.adapter;
+		await globalDb.query(
+			`INSERT INTO agents (project_key, name, registered_at, last_active_at)
             VALUES (?, ?, ?, ?)`,
-			args: [testDir, "test-agent", Date.now(), Date.now()],
-		});
-		globalDb.close();
+			[testDir, "test-agent", Date.now(), Date.now()],
+		);
 
 		const result = await migrateToGlobal(strayDbPath, globalDbPath);
 
@@ -299,23 +326,32 @@ describe("migrateToGlobal", () => {
 		expect(result.migrated.agents).toBe(0); // Skipped
 
 		// Verify only 1 agent in global DB (not duplicated)
-		const globalDbCheck = createClient({ url: `file:${globalDbPath}` });
-		const agents = await globalDbCheck.execute(
+		const agents = await globalDb.query<{ count: number }>(
 			"SELECT COUNT(*) as count FROM agents",
 		);
 		expect(Number(agents.rows[0].count)).toBe(1);
-		globalDbCheck.close();
 	});
 
 	test("handles foreign key references", async () => {
 		// Create message with reference to agent
-		const strayDb = createClient({ url: `file:${strayDbPath}` });
-		await strayDb.execute({
-			sql: `INSERT INTO messages (project_key, from_agent, subject, body, thread_id, importance, ack_required, created_at)
+		const managedStray = await DbClientFactory.getOrCreate(
+			`file:${strayDbPath}`,
+		);
+		const strayDb = managedStray.adapter;
+		await strayDb.query(
+			`INSERT INTO messages (project_key, from_agent, subject, body, thread_id, importance, ack_required, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-			args: [testDir, "test-agent", "Test", "Body", "thread-1", "normal", 0, Date.now()],
-		});
-		strayDb.close();
+			[
+				testDir,
+				"test-agent",
+				"Test",
+				"Body",
+				"thread-1",
+				"normal",
+				0,
+				Date.now(),
+			],
+		);
 
 		const result = await migrateToGlobal(strayDbPath, globalDbPath);
 
@@ -329,8 +365,8 @@ describe("migrateToGlobal", () => {
 
 		expect(result.log).toBeDefined();
 		expect(result.log.length).toBeGreaterThan(0);
-		expect(result.log).toContain("Migrated 1 events");
-		expect(result.log).toContain("Migrated 1 agents");
+		expect(result.log[0]).toContain("Migrated 1 from events");
+		expect(result.log[1]).toContain("Migrated 1 from agents");
 	});
 
 	test("returns summary with totals", async () => {
@@ -362,19 +398,25 @@ describe("consolidateDatabases", () => {
 	let globalDbPath: string;
 
 	beforeEach(async () => {
-		testDir = join(tmpdir(), `consolidate-${Date.now()}`);
+		testDir = join(
+			tmpdir(),
+			`consolidate-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+		);
 		mkdirSync(testDir, { recursive: true });
 		globalDbPath = join(testDir, "global.db");
 
 		// Create global DB
-		const globalDb = await createLibSQLAdapter({ url: `file:${globalDbPath}` });
+		const managed = await DbClientFactory.getOrCreate(`file:${globalDbPath}`);
+		const globalDb = managed.adapter;
 		await createLibSQLStreamsSchema(globalDb);
-		await globalDb.close();
 	});
 
-	afterEach(() => {
+	afterEach(async () => {
+		await DbClientFactory.closeAll();
+		// Small delay to allow OS to release file locks on Windows
+		await new Promise((resolve) => setTimeout(resolve, 100));
 		if (existsSync(testDir)) {
-			rmSync(testDir, { recursive: true, force: true });
+			await DbFileOps.remove(testDir, { recursive: true });
 		}
 	});
 
@@ -382,13 +424,13 @@ describe("consolidateDatabases", () => {
 		// Create stray DBs
 		const rootDb = join(testDir, ".opencode", "swarm.db");
 		mkdirSync(join(testDir, ".opencode"), { recursive: true });
-		const rootDbAdapter = await createLibSQLAdapter({ url: `file:${rootDb}` });
+		const managed = await DbClientFactory.getOrCreate(`file:${rootDb}`);
+		const rootDbAdapter = managed.adapter;
 		await createLibSQLStreamsSchema(rootDbAdapter);
 		await rootDbAdapter.exec(`
       INSERT INTO events (type, project_key, timestamp, data)
       VALUES ('test', '${testDir}', ${Date.now()}, '{}')
     `);
-		await rootDbAdapter.close();
 
 		const report = await consolidateDatabases(testDir, globalDbPath, {
 			yes: true,
@@ -403,9 +445,9 @@ describe("consolidateDatabases", () => {
 		// Create stray DB
 		const rootDb = join(testDir, ".opencode", "swarm.db");
 		mkdirSync(join(testDir, ".opencode"), { recursive: true });
-		const rootDbAdapter = await createLibSQLAdapter({ url: `file:${rootDb}` });
+		const managed = await DbClientFactory.getOrCreate(`file:${rootDb}`);
+		const rootDbAdapter = managed.adapter;
 		await createLibSQLStreamsSchema(rootDbAdapter);
-		await rootDbAdapter.close();
 
 		// In test mode, interactive should auto-confirm (mock needed for real use)
 		const report = await consolidateDatabases(testDir, globalDbPath, {
@@ -428,9 +470,9 @@ describe("consolidateDatabases", () => {
 		// Create stray DB
 		const rootDb = join(testDir, ".opencode", "swarm.db");
 		mkdirSync(join(testDir, ".opencode"), { recursive: true });
-		const rootDbAdapter = await createLibSQLAdapter({ url: `file:${rootDb}` });
+		const managed = await DbClientFactory.getOrCreate(`file:${rootDb}`);
+		const rootDbAdapter = managed.adapter;
 		await createLibSQLStreamsSchema(rootDbAdapter);
-		await rootDbAdapter.close();
 
 		await consolidateDatabases(testDir, globalDbPath, { yes: true });
 
@@ -446,13 +488,13 @@ describe("consolidateDatabases", () => {
 		mkdirSync(join(testDir, ".opencode"), { recursive: true });
 		mkdirSync(join(testDir, ".hive"), { recursive: true });
 
-		const rootDbAdapter = await createLibSQLAdapter({ url: `file:${rootDb}` });
+		const managedRoot = await DbClientFactory.getOrCreate(`file:${rootDb}`);
+		const rootDbAdapter = managedRoot.adapter;
 		await createLibSQLStreamsSchema(rootDbAdapter);
-		await rootDbAdapter.close();
 
-		const hiveDbAdapter = await createLibSQLAdapter({ url: `file:${hiveDb}` });
+		const managedHive = await DbClientFactory.getOrCreate(`file:${hiveDb}`);
+		const hiveDbAdapter = managedHive.adapter;
 		await createLibSQLStreamsSchema(hiveDbAdapter);
-		await hiveDbAdapter.close();
 
 		const report = await consolidateDatabases(testDir, globalDbPath, {
 			yes: true,

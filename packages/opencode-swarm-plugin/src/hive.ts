@@ -25,8 +25,11 @@ import {
   getSwarmMailLibSQL,
   resolvePartialId,
   findCellsByPartialId,
+  DbFileOps,
 } from "swarm-mail";
-import { normalize as normalizePath } from "@primeinc/cross-path";
+
+
+import { normalize as normalizePath } from "swarm-cross-path";
 import {
   normalizeCreateArgs,
   normalizeUpdateArgs,
@@ -36,8 +39,10 @@ import {
   normalizeCloseArgs,
   formatZodError,
 } from "./utils/arg-normalizer";
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readFileSync, writeFileSync, unlinkSync, mkdirSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { tmpdir } from "node:os";
+
 
 
 // ============================================================================
@@ -144,7 +149,23 @@ import {
   type Cell,
   type CellCreateArgs,
   type EpicCreateResult,
+  type EpicCreateArgs,
+  type CellStatus,
+  type CellQueryArgs,
 } from "./schemas";
+
+interface NormalizedEpicCreateArgs extends EpicCreateArgs {
+  project_key?: string;
+  task?: string;
+  strategy?: "file-based" | "feature-based" | "risk-based";
+  recovery_context?: any;
+}
+
+interface NormalizedCellQueryArgs extends CellQueryArgs {
+  id?: string;
+}
+
+
 import { createEvent, appendEvent } from "swarm-mail";
 
 /**
@@ -247,29 +268,28 @@ export async function migrateBeadsToHive(projectPath: string): Promise<Migration
   const beadsDir = normalizePath(join(projectPath, ".beads"));
   const hiveDir = normalizePath(join(projectPath, ".hive"));
 
-  
   // Check if .hive already exists - skip migration
-  if (existsSync(hiveDir)) {
-    return { 
-      migrated: false, 
-      reason: ".hive directory already exists - skipping migration to avoid data loss" 
+  if (DbFileOps.exists(hiveDir)) {
+    return {
+      migrated: false,
+      reason: ".hive directory already exists - skipping migration to avoid data loss"
     };
   }
-  
+
   // Check if .beads exists
-  if (!existsSync(beadsDir)) {
-    return { 
-      migrated: false, 
-      reason: ".beads directory not found - nothing to migrate" 
+  if (!DbFileOps.exists(beadsDir)) {
+    return {
+      migrated: false,
+      reason: ".beads directory not found - nothing to migrate"
     };
   }
-  
-  // Perform the rename
-  const { renameSync } = await import("node:fs");
-  renameSync(beadsDir, hiveDir);
-  
+
+  // Perform the rename with graceful retry pattern for Windows
+  await DbFileOps.rename(beadsDir, hiveDir);
+
   return { migrated: true };
 }
+
 
 /**
  * Ensure .hive directory exists
@@ -279,15 +299,12 @@ export async function migrateBeadsToHive(projectPath: string): Promise<Migration
  * 
  * @param projectPath - Absolute path to the project root
  */
-export function ensureHiveDirectory(projectPath: string): void {
+export async function ensureHiveDirectory(projectPath: string): Promise<void> {
   const hiveDir = normalizePath(join(projectPath, ".hive"));
 
-  
-  if (!existsSync(hiveDir)) {
-    const { mkdirSync } = require("node:fs");
-    mkdirSync(hiveDir, { recursive: true });
-  }
+  await DbFileOps.mkdir(hiveDir);
 }
+
 
 /**
  * Merge historic beads from beads.base.jsonl into issues.jsonl
@@ -320,11 +337,11 @@ export async function mergeHistoricBeads(projectPath: string): Promise<{merged: 
   const baseBeads = baseLines.map(line => JSON.parse(line));
   
   // Read issues file (or create empty if missing)
-  let issuesBeads: any[] = [];
-  if (existsSync(issuesPath)) {
+  let issuesBeads: AdapterCell[] = [];
+  if (DbFileOps.exists(issuesPath)) {
     const issuesContent = readFileSync(issuesPath, "utf-8");
     const issuesLines = issuesContent.trim().split("\n").filter(l => l);
-    issuesBeads = issuesLines.map(line => JSON.parse(line));
+    issuesBeads = issuesLines.map(line => JSON.parse(line) as AdapterCell);
   }
   
   // Build set of existing IDs in issues.jsonl
@@ -334,7 +351,7 @@ export async function mergeHistoricBeads(projectPath: string): Promise<{merged: 
   let merged = 0;
   let skipped = 0;
   
-  for (const baseBead of baseBeads) {
+  for (const baseBead of baseBeads as AdapterCell[]) {
     if (existingIds.has(baseBead.id)) {
       skipped++;
     } else {
@@ -525,8 +542,9 @@ function registerExitHook(): void {
       for (const [projectKey, adapter] of adapterCache.entries()) {
         const flushPromise = (async () => {
           try {
-            ensureHiveDirectory(projectKey);
+            await ensureHiveDirectory(projectKey);
             const flushManager = new FlushManager({
+
               adapter,
               projectKey,
               outputPath: `${projectKey}/.hive/issues.jsonl`,
@@ -633,8 +651,7 @@ async function autoMigrateFromJSONL(adapter: HiveAdapter, projectKey: string): P
       );
     } else if (result.created > 0) {
       // Success with no errors - rename to .old so we don't reimport
-      const { renameSync } = await import("node:fs");
-      renameSync(jsonlPath, oldPath);
+      await DbFileOps.rename(jsonlPath, oldPath);
       console.error(`[hive] Migration complete, renamed to ${oldPath}`);
     }
   } catch (error) {
@@ -813,7 +830,7 @@ export const hive_create_epic = tool({
   },
   async execute(args, ctx) {
     // Be permissive: normalize first, then strictly validate
-    const normalized = normalizeEpicCreateArgs(args);
+    const normalized = normalizeEpicCreateArgs(args) as NormalizedEpicCreateArgs;
     const parsed = EpicCreateArgsSchema.safeParse(normalized);
     if (!parsed.success) {
       const message = formatZodError(
@@ -866,10 +883,11 @@ export const hive_create_epic = tool({
             `Post-create validation failed: expected ${validated.subtasks.length} subtasks, found ${children.length}`,
           );
         }
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
         throw new Error(`Epic integrity check failed: ${msg}`);
       }
+
 
       const result: EpicCreateResult = {
         success: true,
@@ -878,7 +896,7 @@ export const hive_create_epic = tool({
       };
 
       // Emit epic_created event for observability
-      const effectiveProjectKey = (normalized as any).project_key || projectKey;
+      const effectiveProjectKey = normalized.project_key || projectKey;
       try {
         const epicCreatedEvent = createEvent("epic_created", {
           project_key: effectiveProjectKey,
@@ -901,16 +919,16 @@ export const hive_create_epic = tool({
         const event = createEvent("decomposition_generated", {
           project_key: effectiveProjectKey,
           epic_id: epic.id,
-          task: (normalized as any).task || validated.epic_title,
+          task: normalized.task || validated.epic_title,
           context: validated.epic_description,
-          strategy: (normalized as any).strategy || "feature-based",
+          strategy: normalized.strategy || "feature-based",
           epic_title: validated.epic_title,
           subtasks: validated.subtasks.map((st) => ({
             title: st.title,
             files: st.files || [],
             priority: st.priority,
           })),
-          recovery_context: (normalized as any).recovery_context,
+          recovery_context: normalized.recovery_context,
         });
         await appendEvent(event, effectiveProjectKey);
       } catch (error) {
@@ -931,7 +949,7 @@ export const hive_create_epic = tool({
           project_key: effectiveProjectKey,
           epic_id: epic.id,
           epic_title: validated.epic_title,
-          strategy: (normalized as any).strategy || "feature-based",
+          strategy: normalized.strategy || "feature-based",
           subtask_count: validated.subtasks.length,
           total_files: totalFiles,
           coordinator_agent: "coordinator", // Default coordinator name
@@ -965,10 +983,10 @@ export const hive_create_epic = tool({
             decision_type: "decomposition_complete",
             payload: {
               subtask_count: validated.subtasks.length,
-              strategy_used: (normalized as any).strategy || "feature-based",
+              strategy_used: normalized.strategy || "feature-based",
               files_per_subtask: filesPerSubtask,
               epic_title: validated.epic_title,
-              task: (normalized as any).task,
+              task: normalized.task,
             },
           });
       } catch (error) {
@@ -981,13 +999,14 @@ export const hive_create_epic = tool({
 
       // Sync cells to JSONL so spawned workers can see them immediately
       try {
-        ensureHiveDirectory(projectKey);
+        await ensureHiveDirectory(projectKey);
         const flushManager = new FlushManager({
           adapter,
           projectKey,
           outputPath: `${projectKey}/.hive/issues.jsonl`,
         });
         await flushManager.flush();
+
       } catch (error) {
         // Non-fatal - log and continue
         console.warn(
@@ -1153,7 +1172,7 @@ export const hive_update = tool({
 
       // Status changes use changeCellStatus, other fields use updateCell
       if (validated.status !== undefined) {
-        const newStatus = validated.status as any; // already validated by Zod
+        const newStatus = validated.status as CellStatus; // already validated by Zod
         cell = await withRetry(() =>
           adapter.changeCellStatus(projectKey, cellId, newStatus),
         );
@@ -1236,190 +1255,18 @@ export const hive_close = tool({
     reason: tool.schema.string().describe("Completion reason"),
   },
   async execute(args, ctx) {
-    const normalized = normalizeCloseArgs(args);
-    const parsed = CellCloseArgsSchema.safeParse(normalized);
-    if (!parsed.success) {
-      const message = formatZodError(
-        "hive_close",
-        parsed.error,
-        `{
-  "id": "project-abc12",
-  "reason": "Merged in main"
-}`,
-      );
-      throw new HiveValidationError(message, parsed.error);
-    }
-    const validated = parsed.data;
     const projectKey = getHiveWorkingDirectory();
     const adapter = await getHiveAdapter(projectKey);
-
     try {
-      // Resolve partial ID to full ID
-      const cellId = await resolvePartialId(adapter, projectKey, validated.id) || validated.id;
-      
-      // Get cell details before closing to check if it's an epic
-      const cellBeforeClose = await adapter.getCell(projectKey, cellId);
-      const isEpic = cellBeforeClose?.type === "epic";
-      
-      const cell = await withRetry(() =>
-        adapter.closeCell(projectKey, cellId, validated.reason),
-      );
-
+      const cellId = (await resolvePartialId(adapter, projectKey, args.id)) || args.id;
+      const cell = await withRetry(() => adapter.closeCell(projectKey, cellId, args.reason));
       await adapter.markDirty(projectKey, cellId);
-
-      // Emit SwarmCompletedEvent if this was an epic
-      if (isEpic && cellBeforeClose) {
-        try {
-          const { createEvent, appendEvent } = await import("swarm-mail");
-          
-          // Query subtasks to gather metrics
-          const subtasks = await adapter.queryCells(projectKey, { parent_id: cellId });
-          const completedSubtasks = subtasks.filter(st => st.status === "closed");
-          const failedSubtasks = subtasks.filter(st => st.status === "blocked");
-          
-          // Gather all unique files from DecompositionGeneratedEvent
-          let totalFilesTouched: string[] = [];
-          try {
-            const { readEvents } = await import("swarm-mail");
-            const decompositionEvents = await readEvents({
-              projectKey,
-              types: ["decomposition_generated"],
-            }, projectKey);
-            
-            const epicDecomp = decompositionEvents.find((e: any) => 
-              e.type === "decomposition_generated" && e.epic_id === cellId
-            );
-            
-            if (epicDecomp) {
-              const allFiles = new Set<string>();
-              for (const subtask of (epicDecomp as any).subtasks || []) {
-                for (const file of subtask.files || []) {
-                  allFiles.add(file);
-                }
-              }
-              totalFilesTouched = Array.from(allFiles);
-            }
-          } catch (error) {
-            console.warn("[hive_close] Failed to gather files from decomposition:", error);
-          }
-          
-          // Calculate total duration from swarm_started to now
-          let totalDurationMs = 0;
-          try {
-            const { readEvents } = await import("swarm-mail");
-            const swarmStartedEvents = await readEvents({
-              projectKey,
-              types: ["swarm_started"],
-            }, projectKey);
-            
-            const startEvent = swarmStartedEvents.find((e: any) => 
-              e.type === "swarm_started" && e.epic_id === cellId
-            );
-            
-            if (startEvent) {
-              totalDurationMs = Date.now() - (startEvent as any).timestamp;
-            }
-          } catch (error) {
-            console.warn("[hive_close] Failed to calculate duration:", error);
-          }
-          
-          const swarmCompletedEvent = createEvent("swarm_completed", {
-            project_key: projectKey,
-            epic_id: cellId,
-            epic_title: cellBeforeClose.title,
-            success: failedSubtasks.length === 0,
-            total_duration_ms: totalDurationMs,
-            subtasks_completed: completedSubtasks.length,
-            subtasks_failed: failedSubtasks.length,
-            total_files_touched: totalFilesTouched,
-          });
-          await appendEvent(swarmCompletedEvent, projectKey);
-          
-          // Run validation hook (fire-and-forget)
-          // This validates the swarm event stream and emits validation events
-          // Don't block on it - validation is for observability, not a gate
-          try {
-            const { runPostSwarmValidation } = await import("./swarm-validation");
-            const { readEvents } = await import("swarm-mail");
-            
-            // Query events for this swarm
-            const swarmEvents = await readEvents({
-              projectKey,
-              types: [
-                "swarm_started",
-                "swarm_completed",
-                "worker_spawned",
-                "subtask_outcome",
-                "decomposition_generated",
-              ],
-            }, projectKey);
-            
-            // Fire validation asynchronously
-            runPostSwarmValidation(
-              {
-                project_key: projectKey,
-                epic_id: cellId,
-                swarm_id: cellId, // Use epic ID as swarm ID
-                started_at: new Date(),
-                emit: async (event) => {
-                  // Use the same event emitter
-                  // Cast to any to bypass type checking - validation events are defined in swarm-mail
-                  await appendEvent(event as any, projectKey);
-                },
-              },
-              swarmEvents
-            ).then(result => {
-              if (!result.passed) {
-                console.warn(`[Validation] Found ${result.issues.length} issues in swarm ${cellId}`);
-              }
-            }).catch(err => {
-              console.error(`[Validation] Failed:`, err);
-            });
-          } catch (error) {
-            // Non-fatal - validation is observability, not critical path
-            console.warn("[hive_close] Validation hook failed (non-fatal):", error);
-          }
-        } catch (error) {
-          // Non-fatal - log and continue
-          console.warn("[hive_close] Failed to emit SwarmCompletedEvent:", error);
-        }
-      }
-
-      // Emit cell_closed event for all cells (including epics)
-      try {
-        const event = createEvent("cell_closed", {
-          project_key: projectKey,
-          cell_id: cellId,
-          reason: validated.reason,
-        });
-        await appendEvent(event, projectKey);
-      } catch (error) {
-        // Non-fatal - log and continue
-        console.warn("[hive_close] Failed to emit cell_closed event:", error);
-      }
-
-      return `Closed ${cell.id}: ${validated.reason}`;
-    } catch (error) {
+      const event = createEvent("cell_closed", { project_key: projectKey, cell_id: cellId, reason: args.reason });
+      await appendEvent(event, projectKey);
+      return `Closed ${cell.id}: ${args.reason}`;
+    } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      
-      // Provide helpful error messages
-      if (message.includes("Ambiguous hash")) {
-        throw new HiveError(
-          `Ambiguous ID '${validated.id}': multiple cells match. Please provide more characters.`,
-          "hive_close",
-        );
-      }
-      if (message.includes("Bead not found") || message.includes("Cell not found")) {
-        throw new HiveError(
-          `No cell found matching ID '${validated.id}'`,
-          "hive_close",
-        );
-      }
-      
-      throw new HiveError(
-        `Failed to close cell: ${message}`,
-        "hive_close",
-      );
+      throw new HiveError(`Failed to close cell: ${message}`, "hive_close");
     }
   },
 });
@@ -1428,61 +1275,23 @@ export const hive_close = tool({
  * Mark a cell as in-progress
  */
 export const hive_start = tool({
-  description:
-    "Mark a cell as in-progress (shortcut for update --status in_progress)",
+  description: "Mark a cell as in-progress",
   args: {
     id: tool.schema.string().describe("Cell ID or partial hash"),
   },
   async execute(args, ctx) {
     const projectKey = getHiveWorkingDirectory();
     const adapter = await getHiveAdapter(projectKey);
-
     try {
-      // Resolve partial ID to full ID
-      const cellId = await resolvePartialId(adapter, projectKey, args.id) || args.id;
-      
-      const cell = await withRetry(() =>
-        adapter.changeCellStatus(projectKey, cellId, "in_progress"),
-      );
-
+      const cellId = (await resolvePartialId(adapter, projectKey, args.id)) || args.id;
+      const cell = await withRetry(() => adapter.changeCellStatus(projectKey, cellId, "in_progress"));
       await adapter.markDirty(projectKey, cellId);
-
-      // Emit cell_status_changed event for observability
-      try {
-        const event = createEvent("cell_status_changed", {
-          project_key: projectKey,
-          cell_id: cellId,
-          old_status: "open",
-          new_status: "in_progress",
-        });
-        await appendEvent(event, projectKey);
-      } catch (error) {
-        // Non-fatal - log and continue
-        console.warn("[hive_start] Failed to emit cell_status_changed event:", error);
-      }
-
+      const event = createEvent("cell_status_changed", { project_key: projectKey, cell_id: cellId, old_status: "open", new_status: "in_progress" });
+      await appendEvent(event, projectKey);
       return `Started: ${cell.id}`;
-    } catch (error) {
+    } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      
-      // Provide helpful error messages
-      if (message.includes("Ambiguous hash")) {
-        throw new HiveError(
-          `Ambiguous ID '${args.id}': multiple cells match. Please provide more characters.`,
-          "hive_start",
-        );
-      }
-      if (message.includes("Bead not found") || message.includes("Cell not found")) {
-        throw new HiveError(
-          `No cell found matching ID '${args.id}'`,
-          "hive_start",
-        );
-      }
-      
-      throw new HiveError(
-        `Failed to start cell: ${message}`,
-        "hive_start",
-      );
+      throw new HiveError(`Failed to start cell: ${message}`, "hive_start");
     }
   },
 });
@@ -1491,131 +1300,64 @@ export const hive_start = tool({
  * Get the next ready cell
  */
 export const hive_ready = tool({
-  description: "Get the next ready cell (unblocked, highest priority)",
+  description: "Get the next ready cell",
   args: {},
   async execute(args, ctx) {
     const projectKey = getHiveWorkingDirectory();
     const adapter = await getHiveAdapter(projectKey);
-
     try {
       const cell = await adapter.getNextReadyCell(projectKey);
-
-      if (!cell) {
-        return "No ready cells";
-      }
-
-      const formatted = formatCellForOutput(cell);
-      return JSON.stringify(formatted, null, 2);
-    } catch (error) {
+      if (!cell) return "No ready cells";
+      return JSON.stringify(formatCellForOutput(cell), null, 2);
+    } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      throw new HiveError(
-        `Failed to get ready cells: ${message}`,
-        "hive_ready",
-      );
+      throw new HiveError(`Failed to get ready cells: ${message}`, "hive_ready");
     }
   },
 });
 
 /**
- * Query cells from the hive database with flexible filtering
+ * Query cells from the hive database
  */
 export const hive_cells = tool({
-  description: `Query cells from the hive database with flexible filtering.
-
-USE THIS TOOL TO:
-- List all open cells: hive_cells()
-- Find cells by status: hive_cells({ status: "in_progress" })
-- Find cells by type: hive_cells({ type: "bug" })
-- Get a specific cell by partial ID: hive_cells({ id: "mjkmd" })
-- Get the next ready (unblocked) cell: hive_cells({ ready: true })
-- Get children of an epic: hive_cells({ parent_id: "epic-id" })
-- Combine filters: hive_cells({ status: "open", type: "task" })
-
-RETURNS: Array of cells with id, title, status, priority, type, parent_id, created_at, updated_at
-
-PREFER THIS OVER hive_query when you need to:
-- See what work is available
-- Check status of multiple cells
-- Find cells matching criteria
-- Look up a cell by partial ID`,
+  description: "Query cells from the hive database with flexible filtering.",
   args: {
-    id: tool.schema.string().optional().describe("Partial or full cell ID to look up"),
-    status: tool.schema.enum(["open", "in_progress", "blocked", "closed"]).optional().describe("Filter by status"),
-    type: tool.schema.enum(["task", "bug", "feature", "epic", "chore"]).optional().describe("Filter by type"),
-    parent_id: tool.schema.string().optional().describe("Filter by parent epic ID (returns children of an epic)"),
-    ready: tool.schema.boolean().optional().describe("If true, return only the next unblocked cell"),
-    limit: tool.schema.number().optional().describe("Max cells to return (default 20)"),
+    id: tool.schema.string().optional().describe("Partial or full cell ID"),
+    status: tool.schema.enum(["open", "in_progress", "blocked", "closed"]).optional().describe("Status"),
+    type: tool.schema.enum(["task", "bug", "feature", "epic", "chore"]).optional().describe("Type"),
+    parent_id: tool.schema.string().optional().describe("Parent epic ID"),
+    ready: tool.schema.boolean().optional().describe("Ready (unblocked) only"),
+    limit: tool.schema.number().optional().describe("Max cells"),
   },
   async execute(args, ctx) {
     const projectKey = getHiveWorkingDirectory();
     const adapter = await getHiveAdapter(projectKey);
-    const normalized = normalizeCellsArgs(args) as any;
-    
     try {
-      // If specific ID requested, find all matching cells (supports partial IDs)
-      if (normalized.id) {
-        const matchingCells = await findCellsByPartialId(adapter, projectKey, normalized.id);
-        if (matchingCells.length === 0) {
-          throw new HiveError(`No cell found matching ID '${normalized.id}'`, "hive_cells");
-        }
-        const formatted = matchingCells.map(c => formatCellForOutput(c));
-        return JSON.stringify(formatted, null, 2);
+      if (args.id) {
+        const matchingCells = await findCellsByPartialId(adapter, projectKey, args.id);
+        if (matchingCells.length === 0) throw new HiveError(`No cell found matching ID '${args.id}'`, "hive_cells");
+        return JSON.stringify(matchingCells.map(c => formatCellForOutput(c)), null, 2);
       }
-      
-      // If ready flag, return next unblocked cell
-      if (normalized.ready) {
+      if (args.ready) {
         const ready = await adapter.getNextReadyCell(projectKey);
-        if (!ready) {
-          return JSON.stringify([], null, 2);
-        }
-        const formatted = formatCellForOutput(ready);
-        return JSON.stringify([formatted], null, 2);
+        return JSON.stringify(ready ? [formatCellForOutput(ready)] : [], null, 2);
       }
-      
-      // Query with filters
-      const cells = await adapter.queryCells(projectKey, {
-        status: normalized.status,
-        type: normalized.type,
-        parent_id: normalized.parent_id,
-        limit: normalized.limit || 20,
-      });
-      
-      const formatted = cells.map(c => formatCellForOutput(c));
-      return JSON.stringify(formatted, null, 2);
-    } catch (error) {
-      // Re-throw HiveErrors as-is
-      if (error instanceof HiveError) {
-        throw error;
-      }
-      
+      const cells = await adapter.queryCells(projectKey, { status: args.status, type: args.type, parent_id: args.parent_id, limit: args.limit || 20 });
+      return JSON.stringify(cells.map(c => formatCellForOutput(c)), null, 2);
+    } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      
-      // Provide helpful error messages
-      if (message.includes("Bead not found") || message.includes("Cell not found")) {
-        throw new HiveError(
-          `No cell found matching ID '${(normalized as any).id || "unknown"}'`,
-          "hive_cells",
-        );
-      }
-      
-      throw new HiveError(
-        `Failed to query cells: ${message}`,
-        "hive_cells",
-      );
+      throw new HiveError(`Failed to query cells: ${message}`, "hive_cells");
     }
   },
 });
 
 /**
- * Sync hive to git and push
+ * Sync hive to git
  */
 export const hive_sync = tool({
-  description: "Sync hive to git and push (MANDATORY at session end)",
+  description: "Sync hive to git and push",
   args: {
-    auto_pull: tool.schema
-      .boolean()
-      .optional()
-      .describe("Pull before sync (default: true)"),
+    auto_pull: tool.schema.boolean().optional().describe("Pull before sync (default: true)"),
   },
   async execute(args, ctx) {
     const autoPull = args.auto_pull ?? true;
@@ -1656,7 +1398,7 @@ export const hive_sync = tool({
     };
 
     // 1. Ensure .hive directory exists before writing
-    ensureHiveDirectory(projectKey);
+    await ensureHiveDirectory(projectKey);
 
     // 2. Flush cells to JSONL using FlushManager
     const flushManager = new FlushManager({

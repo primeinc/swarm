@@ -166,10 +166,7 @@ describe("DecompositionError", () => {
 			agent: "WiseStone",
 			epic_id: "bd-100",
 			reason: "Multiple subtasks editing same file",
-			suggestions: [
-				"Split subtasks by file",
-				"Merge conflicting subtasks",
-			],
+			suggestions: ["Split subtasks by file", "Merge conflicting subtasks"],
 		});
 
 		expect(error.name).toBe("DecompositionError");

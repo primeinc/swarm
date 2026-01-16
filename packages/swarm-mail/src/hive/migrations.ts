@@ -37,9 +37,9 @@ import type { Migration } from "../streams/migrations.js";
  * in src/streams/migrations.ts.
  */
 export const beadsMigration: Migration = {
-  version: 7,
-  description: "Add beads tables for issue tracking",
-  up: `
+	version: 7,
+	description: "Add beads tables for issue tracking",
+	up: `
     -- ========================================================================
     -- Core Beads Table
     -- ========================================================================
@@ -143,7 +143,7 @@ export const beadsMigration: Migration = {
 
     CREATE INDEX IF NOT EXISTS idx_dirty_beads_marked ON dirty_beads(marked_at);
   `,
-  down: `
+	down: `
     -- Drop in reverse order to handle foreign key constraints
     DROP TABLE IF EXISTS dirty_beads;
     DROP TABLE IF EXISTS blocked_beads_cache;
@@ -163,9 +163,9 @@ export const beadsMigration: Migration = {
  * The view is updatable via INSTEAD OF triggers for INSERT/UPDATE/DELETE.
  */
 export const cellsViewMigration: Migration = {
-  version: 8,
-  description: "Add cells view for beads→hive rename compatibility",
-  up: `
+	version: 8,
+	description: "Add cells view for beads→hive rename compatibility",
+	up: `
     -- ========================================================================
     -- Cells View (alias for beads table)
     -- ========================================================================
@@ -234,7 +234,7 @@ export const cellsViewMigration: Migration = {
       FOR EACH ROW
       EXECUTE FUNCTION cells_delete_trigger();
   `,
-  down: `
+	down: `
     DROP TRIGGER IF EXISTS cells_delete ON cells;
     DROP TRIGGER IF EXISTS cells_update ON cells;
     DROP TRIGGER IF EXISTS cells_insert ON cells;
@@ -247,14 +247,14 @@ export const cellsViewMigration: Migration = {
 
 /**
  * LibSQL-compatible cells view migration (v8)
- * 
+ *
  * SQLite doesn't support CREATE OR REPLACE or stored procedures.
  * Use DROP IF EXISTS + CREATE and inline INSTEAD OF triggers.
  */
 export const cellsViewMigrationLibSQL: Migration = {
-  version: 8,
-  description: "Add cells view for beads→hive rename compatibility (LibSQL)",
-  up: `
+	version: 8,
+	description: "Add cells view for beads→hive rename compatibility (LibSQL)",
+	up: `
     -- ========================================================================
     -- Cells View (alias for beads table) - LibSQL version
     -- ========================================================================
@@ -310,7 +310,7 @@ export const cellsViewMigrationLibSQL: Migration = {
       DELETE FROM beads WHERE id = OLD.id;
     END;
   `,
-  down: `
+	down: `
     DROP TRIGGER IF EXISTS cells_delete;
     DROP TRIGGER IF EXISTS cells_update;
     DROP TRIGGER IF EXISTS cells_insert;
@@ -320,16 +320,16 @@ export const cellsViewMigrationLibSQL: Migration = {
 
 /**
  * LibSQL-compatible beads migration (v7)
- * 
+ *
  * Differences from PGLite version:
  * - Uses INTEGER PRIMARY KEY AUTOINCREMENT instead of SERIAL
  * - Uses TEXT (JSON string) instead of TEXT[] for arrays
  * - Uses INTEGER instead of BIGINT (SQLite treats both as INTEGER anyway)
  */
 export const beadsMigrationLibSQL: Migration = {
-  version: 7,
-  description: "Add beads tables for issue tracking (LibSQL)",
-  up: `
+	version: 7,
+	description: "Add beads tables for issue tracking (LibSQL)",
+	up: `
     -- ========================================================================
     -- Core Beads Table
     -- ========================================================================
@@ -434,7 +434,7 @@ export const beadsMigrationLibSQL: Migration = {
 
     CREATE INDEX IF NOT EXISTS idx_dirty_beads_marked ON dirty_beads(marked_at);
   `,
-  down: `
+	down: `
     -- Drop in reverse order to handle foreign key constraints
     DROP TABLE IF EXISTS dirty_beads;
     DROP TABLE IF EXISTS blocked_beads_cache;

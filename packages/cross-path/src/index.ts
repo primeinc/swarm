@@ -1,5 +1,5 @@
 /**
- * @primeinc/cross-path
+ * swarm-cross-path
  *
  * Cross-platform path normalization for consistent identifiers
  * across Windows, WSL, and Linux environments.

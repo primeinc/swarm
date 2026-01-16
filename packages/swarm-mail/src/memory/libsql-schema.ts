@@ -2,11 +2,11 @@
  * libSQL Memory Schema - FTS5 and Vector Extensions
  *
  * Provides FTS5 full-text search and vector indexes for memories table.
- * 
+ *
  * ## Schema Source of Truth
  * - **Table structure**: db/schema/memory.ts (Drizzle schema)
  * - **FTS5/vector DDL**: This file (raw SQL - Drizzle can't create these)
- * 
+ *
  * ## Synchronization
  * The memories table definition MUST match db/schema/memory.ts exactly.
  * Changes to table structure should be made in db/schema/memory.ts first,
@@ -61,13 +61,13 @@ export const EMBEDDING_DIM = 1024;
  * ```
  */
 export async function createLibSQLMemorySchema(db: Client): Promise<void> {
-  // ========================================================================
-  // Memories Table
-  // ========================================================================
-  // IMPORTANT: This table structure MUST match db/schema/memory.ts (Drizzle schema)
-  // Source of truth: db/schema/memory.ts
-  // Reason for duplication: Convenience for tests and migrations
-  await db.execute(`
+	// ========================================================================
+	// Memories Table
+	// ========================================================================
+	// IMPORTANT: This table structure MUST match db/schema/memory.ts (Drizzle schema)
+	// Source of truth: db/schema/memory.ts
+	// Reason for duplication: Convenience for tests and migrations
+	await db.execute(`
     CREATE TABLE IF NOT EXISTS memories (
       id TEXT PRIMARY KEY,
       content TEXT NOT NULL,
@@ -86,10 +86,10 @@ export async function createLibSQLMemorySchema(db: Client): Promise<void> {
     )
   `);
 
-  // ========================================================================
-  // Memory Links Table (Zettelkasten-style bidirectional connections)
-  // ========================================================================
-  await db.execute(`
+	// ========================================================================
+	// Memory Links Table (Zettelkasten-style bidirectional connections)
+	// ========================================================================
+	await db.execute(`
     CREATE TABLE IF NOT EXISTS memory_links (
       id TEXT PRIMARY KEY,
       source_id TEXT NOT NULL REFERENCES memories(id) ON DELETE CASCADE,
@@ -101,10 +101,10 @@ export async function createLibSQLMemorySchema(db: Client): Promise<void> {
     )
   `);
 
-  // ========================================================================
-  // Entities Table (Named entities extracted from memories)
-  // ========================================================================
-  await db.execute(`
+	// ========================================================================
+	// Entities Table (Named entities extracted from memories)
+	// ========================================================================
+	await db.execute(`
     CREATE TABLE IF NOT EXISTS entities (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
@@ -116,10 +116,10 @@ export async function createLibSQLMemorySchema(db: Client): Promise<void> {
     )
   `);
 
-  // ========================================================================
-  // Relationships Table (Entity-entity triples)
-  // ========================================================================
-  await db.execute(`
+	// ========================================================================
+	// Relationships Table (Entity-entity triples)
+	// ========================================================================
+	await db.execute(`
     CREATE TABLE IF NOT EXISTS relationships (
       id TEXT PRIMARY KEY,
       subject_id TEXT NOT NULL REFERENCES entities(id) ON DELETE CASCADE,
@@ -132,10 +132,10 @@ export async function createLibSQLMemorySchema(db: Client): Promise<void> {
     )
   `);
 
-  // ========================================================================
-  // Memory-Entities Junction Table
-  // ========================================================================
-  await db.execute(`
+	// ========================================================================
+	// Memory-Entities Junction Table
+	// ========================================================================
+	await db.execute(`
     CREATE TABLE IF NOT EXISTS memory_entities (
       memory_id TEXT NOT NULL REFERENCES memories(id) ON DELETE CASCADE,
       entity_id TEXT NOT NULL REFERENCES entities(id) ON DELETE CASCADE,
@@ -144,74 +144,74 @@ export async function createLibSQLMemorySchema(db: Client): Promise<void> {
     )
   `);
 
-  // ========================================================================
-  // Indexes (Drizzle doesn't auto-create these)
-  // ========================================================================
-  
-  // Collection filtering index
-  await db.execute(`
+	// ========================================================================
+	// Indexes (Drizzle doesn't auto-create these)
+	// ========================================================================
+
+	// Collection filtering index
+	await db.execute(`
     CREATE INDEX IF NOT EXISTS idx_memories_collection 
     ON memories(collection)
   `);
 
-  // Memory links indexes
-  await db.execute(`
+	// Memory links indexes
+	await db.execute(`
     CREATE INDEX IF NOT EXISTS idx_memory_links_source 
     ON memory_links(source_id)
   `);
 
-  await db.execute(`
+	await db.execute(`
     CREATE INDEX IF NOT EXISTS idx_memory_links_target 
     ON memory_links(target_id)
   `);
 
-  // Entities indexes
-  await db.execute(`
+	// Entities indexes
+	await db.execute(`
     CREATE INDEX IF NOT EXISTS idx_entities_type 
     ON entities(entity_type)
   `);
 
-  await db.execute(`
+	await db.execute(`
     CREATE INDEX IF NOT EXISTS idx_entities_name 
     ON entities(name)
   `);
 
-  // Relationships indexes
-  await db.execute(`
+	// Relationships indexes
+	await db.execute(`
     CREATE INDEX IF NOT EXISTS idx_relationships_subject 
     ON relationships(subject_id)
   `);
 
-  await db.execute(`
+	await db.execute(`
     CREATE INDEX IF NOT EXISTS idx_relationships_object 
     ON relationships(object_id)
   `);
 
-  await db.execute(`
+	await db.execute(`
     CREATE INDEX IF NOT EXISTS idx_relationships_predicate 
     ON relationships(predicate)
   `);
 
-  // Vector index for cosine similarity search
-  // libSQL requires explicit index creation for vector_top_k() queries
-  // MUST be raw SQL - Drizzle doesn't support libsql_vector_idx() function
-  await db.execute(`
+	// Vector index for cosine similarity search
+	// libSQL requires explicit index creation for vector_top_k() queries
+	// MUST be raw SQL - Drizzle doesn't support libsql_vector_idx() function
+	await db.execute(`
     CREATE INDEX IF NOT EXISTS idx_memories_embedding 
     ON memories(libsql_vector_idx(embedding))
   `);
 
-  // ========================================================================
-  // FTS5 Virtual Table (raw SQL - Drizzle can't create virtual tables)
-  // ========================================================================
-  
-  // FTS5 virtual table for full-text search
-  await db.execute(`
+	// ========================================================================
+	// FTS5 Virtual Table (raw SQL - Drizzle can't create virtual tables)
+	// ========================================================================
+
+	// FTS5 virtual table for full-text search
+	await db.execute(`
     CREATE VIRTUAL TABLE IF NOT EXISTS memories_fts 
     USING fts5(id UNINDEXED, content, content=memories, content_rowid=rowid)
   `);
 
-  // Triggers to keep FTS5 table in sync with memories table
-  await db.execute(`
+	// Triggers to keep FTS5 table in sync with memories table
+	await db.execute(`
     CREATE TRIGGER IF NOT EXISTS memories_fts_insert 
     AFTER INSERT ON memories 
     BEGIN
@@ -220,7 +220,7 @@ export async function createLibSQLMemorySchema(db: Client): Promise<void> {
     END
   `);
 
-  await db.execute(`
+	await db.execute(`
     CREATE TRIGGER IF NOT EXISTS memories_fts_delete 
     AFTER DELETE ON memories 
     BEGIN
@@ -228,7 +228,7 @@ export async function createLibSQLMemorySchema(db: Client): Promise<void> {
     END
   `);
 
-  await db.execute(`
+	await db.execute(`
     CREATE TRIGGER IF NOT EXISTS memories_fts_update 
     AFTER UPDATE ON memories 
     BEGIN
@@ -248,36 +248,36 @@ export async function createLibSQLMemorySchema(db: Client): Promise<void> {
  * @param db - libSQL client instance
  */
 export async function dropLibSQLMemorySchema(db: Client): Promise<void> {
-  // Temporarily disable foreign keys to allow table drops in any order
-  await db.execute("PRAGMA foreign_keys = OFF");
+	// Temporarily disable foreign keys to allow table drops in any order
+	await db.execute("PRAGMA foreign_keys = OFF");
 
-  // Drop triggers first
-  await db.execute("DROP TRIGGER IF EXISTS memories_fts_update");
-  await db.execute("DROP TRIGGER IF EXISTS memories_fts_delete");
-  await db.execute("DROP TRIGGER IF EXISTS memories_fts_insert");
+	// Drop triggers first
+	await db.execute("DROP TRIGGER IF EXISTS memories_fts_update");
+	await db.execute("DROP TRIGGER IF EXISTS memories_fts_delete");
+	await db.execute("DROP TRIGGER IF EXISTS memories_fts_insert");
 
-  // Drop FTS5 table
-  await db.execute("DROP TABLE IF EXISTS memories_fts");
+	// Drop FTS5 table
+	await db.execute("DROP TABLE IF EXISTS memories_fts");
 
-  // Drop indexes (some may be dropped automatically with tables)
-  await db.execute("DROP INDEX IF EXISTS idx_memories_collection");
-  await db.execute("DROP INDEX IF EXISTS idx_memory_links_source");
-  await db.execute("DROP INDEX IF EXISTS idx_memory_links_target");
-  await db.execute("DROP INDEX IF EXISTS idx_entities_type");
-  await db.execute("DROP INDEX IF EXISTS idx_entities_name");
-  await db.execute("DROP INDEX IF EXISTS idx_relationships_subject");
-  await db.execute("DROP INDEX IF EXISTS idx_relationships_object");
-  await db.execute("DROP INDEX IF EXISTS idx_relationships_predicate");
+	// Drop indexes (some may be dropped automatically with tables)
+	await db.execute("DROP INDEX IF EXISTS idx_memories_collection");
+	await db.execute("DROP INDEX IF EXISTS idx_memory_links_source");
+	await db.execute("DROP INDEX IF EXISTS idx_memory_links_target");
+	await db.execute("DROP INDEX IF EXISTS idx_entities_type");
+	await db.execute("DROP INDEX IF EXISTS idx_entities_name");
+	await db.execute("DROP INDEX IF EXISTS idx_relationships_subject");
+	await db.execute("DROP INDEX IF EXISTS idx_relationships_object");
+	await db.execute("DROP INDEX IF EXISTS idx_relationships_predicate");
 
-  // Drop tables in dependency order (children first, then parents)
-  await db.execute("DROP TABLE IF EXISTS memory_entities");
-  await db.execute("DROP TABLE IF EXISTS relationships");
-  await db.execute("DROP TABLE IF EXISTS memory_links");
-  await db.execute("DROP TABLE IF EXISTS entities");
-  await db.execute("DROP TABLE IF EXISTS memories");
+	// Drop tables in dependency order (children first, then parents)
+	await db.execute("DROP TABLE IF EXISTS memory_entities");
+	await db.execute("DROP TABLE IF EXISTS relationships");
+	await db.execute("DROP TABLE IF EXISTS memory_links");
+	await db.execute("DROP TABLE IF EXISTS entities");
+	await db.execute("DROP TABLE IF EXISTS memories");
 
-  // Re-enable foreign keys
-  await db.execute("PRAGMA foreign_keys = ON");
+	// Re-enable foreign keys
+	await db.execute("PRAGMA foreign_keys = ON");
 }
 
 /**
@@ -293,45 +293,56 @@ export async function dropLibSQLMemorySchema(db: Client): Promise<void> {
  * @returns True if schema is valid, false otherwise
  */
 export async function validateLibSQLMemorySchema(db: Client): Promise<boolean> {
-  try {
-    // Check memories table exists
-    const tables = await db.execute(`
+	try {
+		// Check memories table exists
+		const tables = await db.execute(`
       SELECT name FROM sqlite_master 
       WHERE type='table' AND name='memories'
     `);
-    if (tables.rows.length === 0) return false;
+		if (tables.rows.length === 0) return false;
 
-    // Check FTS5 table exists
-    const fts = await db.execute(`
+		// Check FTS5 table exists
+		const fts = await db.execute(`
       SELECT name FROM sqlite_master 
       WHERE type='table' AND name='memories_fts'
     `);
-    if (fts.rows.length === 0) return false;
+		if (fts.rows.length === 0) return false;
 
-    // Check required columns exist
-    const columns = await db.execute(`
+		// Check required columns exist
+		const columns = await db.execute(`
       SELECT name FROM pragma_table_info('memories')
     `);
-    const columnNames = columns.rows.map((r) => r.name);
-    const required = [
-      "id", "content", "metadata", "collection", "tags", 
-      "created_at", "updated_at", "decay_factor", "embedding",
-      "valid_from", "valid_until", "superseded_by", "auto_tags", "keywords"
-    ];
-    
-    for (const col of required) {
-      if (!columnNames.includes(col)) return false;
-    }
+		const columnNames = columns.rows.map((r) => r.name);
+		const required = [
+			"id",
+			"content",
+			"metadata",
+			"collection",
+			"tags",
+			"created_at",
+			"updated_at",
+			"decay_factor",
+			"embedding",
+			"valid_from",
+			"valid_until",
+			"superseded_by",
+			"auto_tags",
+			"keywords",
+		];
 
-    // Check new tables exist
-    const newTables = await db.execute(`
+		for (const col of required) {
+			if (!columnNames.includes(col)) return false;
+		}
+
+		// Check new tables exist
+		const newTables = await db.execute(`
       SELECT name FROM sqlite_master 
       WHERE type='table' AND name IN ('memory_links', 'entities', 'relationships', 'memory_entities')
     `);
-    if (newTables.rows.length !== 4) return false;
+		if (newTables.rows.length !== 4) return false;
 
-    return true;
-  } catch {
-    return false;
-  }
+		return true;
+	} catch {
+		return false;
+	}
 }

@@ -26,13 +26,13 @@ import type { Memory, SearchResult } from "../memory/store.js";
 /**
  * Available fields in Memory objects
  */
-export type MemoryField = 
-  | "id"
-  | "content"
-  | "metadata"
-  | "collection"
-  | "createdAt"
-  | "confidence";
+export type MemoryField =
+	| "id"
+	| "content"
+	| "metadata"
+	| "collection"
+	| "createdAt"
+	| "confidence";
 
 /**
  * Available fields in SearchResult objects (includes Memory fields + score/matchType)
@@ -53,14 +53,14 @@ export type FieldSelection = FieldSet | SearchResultField[];
  * Predefined field sets for common use cases
  */
 export const FIELD_SETS: Record<FieldSet, SearchResultField[] | "*"> = {
-  /** Minimal output: id + content preview + timestamp */
-  minimal: ["id", "content", "createdAt"],
-  
-  /** Summary output: minimal + score + matchType (excludes metadata) */
-  summary: ["id", "content", "createdAt", "score", "matchType"],
-  
-  /** Full output: all fields (default) */
-  full: "*",
+	/** Minimal output: id + content preview + timestamp */
+	minimal: ["id", "content", "createdAt"],
+
+	/** Summary output: minimal + score + matchType (excludes metadata) */
+	summary: ["id", "content", "createdAt", "score", "matchType"],
+
+	/** Full output: all fields (default) */
+	full: "*",
 };
 
 /**
@@ -71,43 +71,50 @@ export const FIELD_SETS: Record<FieldSet, SearchResultField[] | "*"> = {
  * @returns Projected search result with only requested fields
  */
 export function projectSearchResult(
-  result: SearchResult,
-  fields: FieldSelection = "full"
+	result: SearchResult,
+	fields: FieldSelection = "full",
 ): SearchResult | Partial<SearchResult> {
-  // Resolve field set to array
-  const fieldArray = typeof fields === "string" ? FIELD_SETS[fields] : fields;
+	// Resolve field set to array
+	const fieldArray = typeof fields === "string" ? FIELD_SETS[fields] : fields;
 
-  // Full mode - return everything
-  if (fieldArray === "*") {
-    return result;
-  }
+	// Full mode - return everything
+	if (fieldArray === "*") {
+		return result;
+	}
 
-  // Project memory fields
-  const memoryFields = fieldArray.filter((f): f is MemoryField => 
-    ["id", "content", "metadata", "collection", "createdAt", "confidence"].includes(f)
-  );
+	// Project memory fields
+	const memoryFields = fieldArray.filter((f): f is MemoryField =>
+		[
+			"id",
+			"content",
+			"metadata",
+			"collection",
+			"createdAt",
+			"confidence",
+		].includes(f),
+	);
 
-  const projectedMemory: Record<string, any> = {};
-  for (const field of memoryFields) {
-    if (field in result.memory) {
-      projectedMemory[field] = result.memory[field];
-    }
-  }
+	const projectedMemory: Record<string, any> = {};
+	for (const field of memoryFields) {
+		if (field in result.memory) {
+			projectedMemory[field] = result.memory[field];
+		}
+	}
 
-  // Build result object directly to avoid readonly assignment issues
-  const projected: Record<string, any> = {
-    memory: projectedMemory,
-  };
+	// Build result object directly to avoid readonly assignment issues
+	const projected: Record<string, any> = {
+		memory: projectedMemory,
+	};
 
-  if (fieldArray.includes("score")) {
-    projected.score = result.score;
-  }
+	if (fieldArray.includes("score")) {
+		projected.score = result.score;
+	}
 
-  if (fieldArray.includes("matchType")) {
-    projected.matchType = result.matchType;
-  }
+	if (fieldArray.includes("matchType")) {
+		projected.matchType = result.matchType;
+	}
 
-  return projected as Partial<SearchResult>;
+	return projected as Partial<SearchResult>;
 }
 
 /**
@@ -118,8 +125,8 @@ export function projectSearchResult(
  * @returns Projected search results
  */
 export function projectSearchResults(
-  results: SearchResult[],
-  fields: FieldSelection = "full"
+	results: SearchResult[],
+	fields: FieldSelection = "full",
 ): Array<SearchResult | Partial<SearchResult>> {
-  return results.map((r) => projectSearchResult(r, fields));
+	return results.map((r) => projectSearchResult(r, fields));
 }

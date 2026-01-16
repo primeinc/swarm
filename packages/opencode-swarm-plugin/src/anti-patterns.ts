@@ -30,28 +30,28 @@ export type PatternKind = z.infer<typeof PatternKindSchema>;
  * - `is_negative` enables efficient filtering without string comparison
  */
 export const DecompositionPatternSchema = z.object({
-  /** Unique ID for this pattern */
-  id: z.string(),
-  /** Human-readable description of the pattern */
-  content: z.string(),
-  /** Whether this is a positive pattern or anti-pattern */
-  kind: PatternKindSchema,
-  /** Whether this pattern should be avoided (true for anti-patterns) */
-  is_negative: z.boolean(),
-  /** Number of times this pattern succeeded */
-  success_count: z.number().int().min(0).default(0),
-  /** Number of times this pattern failed */
-  failure_count: z.number().int().min(0).default(0),
-  /** When this pattern was first observed */
-  created_at: z.string(), // ISO-8601
-  /** When this pattern was last updated */
-  updated_at: z.string(), // ISO-8601
-  /** Context about why this pattern was created/inverted */
-  reason: z.string().optional(),
-  /** Tags for categorization (e.g., "file-splitting", "dependency-ordering") */
-  tags: z.array(z.string()).default([]),
-  /** Example bead IDs where this pattern was observed */
-  example_beads: z.array(z.string()).default([]),
+	/** Unique ID for this pattern */
+	id: z.string(),
+	/** Human-readable description of the pattern */
+	content: z.string(),
+	/** Whether this is a positive pattern or anti-pattern */
+	kind: PatternKindSchema,
+	/** Whether this pattern should be avoided (true for anti-patterns) */
+	is_negative: z.boolean(),
+	/** Number of times this pattern succeeded */
+	success_count: z.number().int().min(0).default(0),
+	/** Number of times this pattern failed */
+	failure_count: z.number().int().min(0).default(0),
+	/** When this pattern was first observed */
+	created_at: z.string(), // ISO-8601
+	/** When this pattern was last updated */
+	updated_at: z.string(), // ISO-8601
+	/** Context about why this pattern was created/inverted */
+	reason: z.string().optional(),
+	/** Tags for categorization (e.g., "file-splitting", "dependency-ordering") */
+	tags: z.array(z.string()).default([]),
+	/** Example cell IDs where this pattern was observed */
+	example_cells: z.array(z.string()).default([]),
 });
 export type DecompositionPattern = z.infer<typeof DecompositionPatternSchema>;
 
@@ -59,40 +59,40 @@ export type DecompositionPattern = z.infer<typeof DecompositionPatternSchema>;
  * Result of pattern inversion
  */
 export const PatternInversionResultSchema = z.object({
-  /** The original pattern */
-  original: DecompositionPatternSchema,
-  /** The inverted anti-pattern */
-  inverted: DecompositionPatternSchema,
-  /** Why the inversion happened */
-  reason: z.string(),
+	/** The original pattern */
+	original: DecompositionPatternSchema,
+	/** The inverted anti-pattern */
+	inverted: DecompositionPatternSchema,
+	/** Why the inversion happened */
+	reason: z.string(),
 });
 export type PatternInversionResult = z.infer<
-  typeof PatternInversionResultSchema
+	typeof PatternInversionResultSchema
 >;
 
 // ============================================================================
 // Configuration
 // ============================================================================
 
-/** Maximum number of example beads to keep per pattern */
-const MAX_EXAMPLE_BEADS = 10;
+/** Maximum number of example cells to keep per pattern */
+const MAX_EXAMPLE_CELLS = 10;
 
 /**
  * Configuration for anti-pattern detection
  */
 export interface AntiPatternConfig {
-  /** Minimum observations before considering inversion */
-  minObservations: number;
-  /** Failure ratio threshold for inversion (0-1) */
-  failureRatioThreshold: number;
-  /** Prefix for anti-pattern content */
-  antiPatternPrefix: string;
+	/** Minimum observations before considering inversion */
+	minObservations: number;
+	/** Failure ratio threshold for inversion (0-1) */
+	failureRatioThreshold: number;
+	/** Prefix for anti-pattern content */
+	antiPatternPrefix: string;
 }
 
 export const DEFAULT_ANTI_PATTERN_CONFIG: AntiPatternConfig = {
-  minObservations: 3,
-  failureRatioThreshold: 0.6, // 60% failure rate triggers inversion
-  antiPatternPrefix: "AVOID: ",
+	minObservations: 3,
+	failureRatioThreshold: 0.6, // 60% failure rate triggers inversion
+	antiPatternPrefix: "AVOID: ",
 };
 
 // ============================================================================
@@ -111,23 +111,23 @@ export const DEFAULT_ANTI_PATTERN_CONFIG: AntiPatternConfig = {
  * @returns Whether the pattern should be inverted
  */
 export function shouldInvertPattern(
-  pattern: DecompositionPattern,
-  config: AntiPatternConfig = DEFAULT_ANTI_PATTERN_CONFIG,
+	pattern: DecompositionPattern,
+	config: AntiPatternConfig = DEFAULT_ANTI_PATTERN_CONFIG,
 ): boolean {
-  // Already an anti-pattern
-  if (pattern.kind === "anti_pattern") {
-    return false;
-  }
+	// Already an anti-pattern
+	if (pattern.kind === "anti_pattern") {
+		return false;
+	}
 
-  const total = pattern.success_count + pattern.failure_count;
+	const total = pattern.success_count + pattern.failure_count;
 
-  // Not enough observations
-  if (total < config.minObservations) {
-    return false;
-  }
+	// Not enough observations
+	if (total < config.minObservations) {
+		return false;
+	}
 
-  const failureRatio = pattern.failure_count / total;
-  return failureRatio >= config.failureRatioThreshold;
+	const failureRatio = pattern.failure_count / total;
+	return failureRatio >= config.failureRatioThreshold;
 }
 
 /**
@@ -142,31 +142,31 @@ export function shouldInvertPattern(
  * @returns The inverted anti-pattern
  */
 export function invertToAntiPattern(
-  pattern: DecompositionPattern,
-  reason: string,
-  config: AntiPatternConfig = DEFAULT_ANTI_PATTERN_CONFIG,
+	pattern: DecompositionPattern,
+	reason: string,
+	config: AntiPatternConfig = DEFAULT_ANTI_PATTERN_CONFIG,
 ): PatternInversionResult {
-  // Clean the content (remove any existing prefix)
-  const cleaned = pattern.content
-    .replace(/^AVOID:\s*/i, "")
-    .replace(/^DO NOT:\s*/i, "")
-    .replace(/^NEVER:\s*/i, "");
+	// Clean the content (remove any existing prefix)
+	const cleaned = pattern.content
+		.replace(/^AVOID:\s*/i, "")
+		.replace(/^DO NOT:\s*/i, "")
+		.replace(/^NEVER:\s*/i, "");
 
-  const inverted: DecompositionPattern = {
-    ...pattern,
-    id: `anti-${pattern.id}`,
-    content: `${config.antiPatternPrefix}${cleaned}. ${reason}`,
-    kind: "anti_pattern",
-    is_negative: true,
-    reason,
-    updated_at: new Date().toISOString(),
-  };
+	const inverted: DecompositionPattern = {
+		...pattern,
+		id: `anti-${pattern.id}`,
+		content: `${config.antiPatternPrefix}${cleaned}. ${reason}`,
+		kind: "anti_pattern",
+		is_negative: true,
+		reason,
+		updated_at: new Date().toISOString(),
+	};
 
-  return {
-    original: pattern,
-    inverted,
-    reason,
-  };
+	return {
+		original: pattern,
+		inverted,
+		reason,
+	};
 }
 
 /**
@@ -177,40 +177,40 @@ export function invertToAntiPattern(
  *
  * @param pattern - The pattern to update
  * @param success - Whether this observation was successful
- * @param beadId - Optional bead ID to record as example
+ * @param cellId - Optional cell ID to record as example
  * @param config - Anti-pattern configuration
  * @returns Updated pattern and optional inversion result
  */
 export function recordPatternObservation(
-  pattern: DecompositionPattern,
-  success: boolean,
-  beadId?: string,
-  config: AntiPatternConfig = DEFAULT_ANTI_PATTERN_CONFIG,
+	pattern: DecompositionPattern,
+	success: boolean,
+	cellId?: string,
+	config: AntiPatternConfig = DEFAULT_ANTI_PATTERN_CONFIG,
 ): { pattern: DecompositionPattern; inversion?: PatternInversionResult } {
-  // Update counts
-  const updated: DecompositionPattern = {
-    ...pattern,
-    success_count: success ? pattern.success_count + 1 : pattern.success_count,
-    failure_count: success ? pattern.failure_count : pattern.failure_count + 1,
-    updated_at: new Date().toISOString(),
-    example_beads: beadId
-      ? [...pattern.example_beads.slice(-(MAX_EXAMPLE_BEADS - 1)), beadId]
-      : pattern.example_beads,
-  };
+	// Update counts
+	const updated: DecompositionPattern = {
+		...pattern,
+		success_count: success ? pattern.success_count + 1 : pattern.success_count,
+		failure_count: success ? pattern.failure_count : pattern.failure_count + 1,
+		updated_at: new Date().toISOString(),
+		example_cells: cellId
+			? [...pattern.example_cells.slice(-(MAX_EXAMPLE_CELLS - 1)), cellId]
+			: pattern.example_cells,
+	};
 
-  // Check if should invert
-  if (shouldInvertPattern(updated, config)) {
-    const total = updated.success_count + updated.failure_count;
-    const failureRatio = updated.failure_count / total;
-    const reason = `Failed ${updated.failure_count}/${total} times (${Math.round(failureRatio * 100)}% failure rate)`;
+	// Check if should invert
+	if (shouldInvertPattern(updated, config)) {
+		const total = updated.success_count + updated.failure_count;
+		const failureRatio = updated.failure_count / total;
+		const reason = `Failed ${updated.failure_count}/${total} times (${Math.round(failureRatio * 100)}% failure rate)`;
 
-    return {
-      pattern: updated,
-      inversion: invertToAntiPattern(updated, reason, config),
-    };
-  }
+		return {
+			pattern: updated,
+			inversion: invertToAntiPattern(updated, reason, config),
+		};
+	}
 
-  return { pattern: updated };
+	return { pattern: updated };
 }
 
 /**
@@ -222,66 +222,66 @@ export function recordPatternObservation(
  * @returns Extracted pattern descriptions
  */
 export function extractPatternsFromDescription(description: string): string[] {
-  const patterns: string[] = [];
+	const patterns: string[] = [];
 
-  /**
-   * Regex patterns for detecting common decomposition strategies.
-   *
-   * Detection is keyword-based and not exhaustive - patterns can be
-   * manually created for novel strategies not covered here.
-   *
-   * Each pattern maps a regex to a strategy name that will be extracted
-   * from task descriptions during pattern observation.
-   */
-  const strategyPatterns: Array<{ regex: RegExp; pattern: string }> = [
-    {
-      regex: /split(?:ting)?\s+by\s+file\s+type/i,
-      pattern: "Split by file type",
-    },
-    {
-      regex: /split(?:ting)?\s+by\s+component/i,
-      pattern: "Split by component",
-    },
-    {
-      regex: /split(?:ting)?\s+by\s+layer/i,
-      pattern: "Split by layer (UI/logic/data)",
-    },
-    { regex: /split(?:ting)?\s+by\s+feature/i, pattern: "Split by feature" },
-    {
-      regex: /one\s+file\s+per\s+(?:sub)?task/i,
-      pattern: "One file per subtask",
-    },
-    { regex: /shared\s+types?\s+first/i, pattern: "Handle shared types first" },
-    { regex: /api\s+(?:routes?)?\s+separate/i, pattern: "Separate API routes" },
-    {
-      regex: /tests?\s+(?:with|alongside)\s+(?:code|implementation)/i,
-      pattern: "Tests alongside implementation",
-    },
-    {
-      regex: /tests?\s+(?:in\s+)?separate\s+(?:sub)?task/i,
-      pattern: "Tests in separate subtask",
-    },
-    {
-      regex: /parallel(?:ize)?\s+(?:all|everything)/i,
-      pattern: "Maximize parallelization",
-    },
-    {
-      regex: /sequential\s+(?:order|execution)/i,
-      pattern: "Sequential execution order",
-    },
-    {
-      regex: /dependency\s+(?:chain|order)/i,
-      pattern: "Respect dependency chain",
-    },
-  ];
+	/**
+	 * Regex patterns for detecting common decomposition strategies.
+	 *
+	 * Detection is keyword-based and not exhaustive - patterns can be
+	 * manually created for novel strategies not covered here.
+	 *
+	 * Each pattern maps a regex to a strategy name that will be extracted
+	 * from task descriptions during pattern observation.
+	 */
+	const strategyPatterns: Array<{ regex: RegExp; pattern: string }> = [
+		{
+			regex: /split(?:ting)?\s+by\s+file\s+type/i,
+			pattern: "Split by file type",
+		},
+		{
+			regex: /split(?:ting)?\s+by\s+component/i,
+			pattern: "Split by component",
+		},
+		{
+			regex: /split(?:ting)?\s+by\s+layer/i,
+			pattern: "Split by layer (UI/logic/data)",
+		},
+		{ regex: /split(?:ting)?\s+by\s+feature/i, pattern: "Split by feature" },
+		{
+			regex: /one\s+file\s+per\s+(?:sub)?task/i,
+			pattern: "One file per subtask",
+		},
+		{ regex: /shared\s+types?\s+first/i, pattern: "Handle shared types first" },
+		{ regex: /api\s+(?:routes?)?\s+separate/i, pattern: "Separate API routes" },
+		{
+			regex: /tests?\s+(?:with|alongside)\s+(?:code|implementation)/i,
+			pattern: "Tests alongside implementation",
+		},
+		{
+			regex: /tests?\s+(?:in\s+)?separate\s+(?:sub)?task/i,
+			pattern: "Tests in separate subtask",
+		},
+		{
+			regex: /parallel(?:ize)?\s+(?:all|everything)/i,
+			pattern: "Maximize parallelization",
+		},
+		{
+			regex: /sequential\s+(?:order|execution)/i,
+			pattern: "Sequential execution order",
+		},
+		{
+			regex: /dependency\s+(?:chain|order)/i,
+			pattern: "Respect dependency chain",
+		},
+	];
 
-  for (const { regex, pattern } of strategyPatterns) {
-    if (regex.test(description)) {
-      patterns.push(pattern);
-    }
-  }
+	for (const { regex, pattern } of strategyPatterns) {
+		if (regex.test(description)) {
+			patterns.push(pattern);
+		}
+	}
 
-  return patterns;
+	return patterns;
 }
 
 /**
@@ -292,22 +292,22 @@ export function extractPatternsFromDescription(description: string): string[] {
  * @returns New pattern
  */
 export function createPattern(
-  content: string,
-  tags: string[] = [],
+	content: string,
+	tags: string[] = [],
 ): DecompositionPattern {
-  const now = new Date().toISOString();
-  return {
-    id: `pattern-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    content,
-    kind: "pattern",
-    is_negative: false,
-    success_count: 0,
-    failure_count: 0,
-    created_at: now,
-    updated_at: now,
-    tags,
-    example_beads: [],
-  };
+	const now = new Date().toISOString();
+	return {
+		id: `pattern-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+		content,
+		kind: "pattern",
+		is_negative: false,
+		success_count: 0,
+		failure_count: 0,
+		created_at: now,
+		updated_at: now,
+		tags,
+		example_cells: [],
+	};
 }
 
 /**
@@ -317,24 +317,24 @@ export function createPattern(
  * @returns Formatted string for prompt inclusion
  */
 export function formatAntiPatternsForPrompt(
-  patterns: DecompositionPattern[],
+	patterns: DecompositionPattern[],
 ): string {
-  const antiPatterns = patterns.filter((p) => p.kind === "anti_pattern");
+	const antiPatterns = patterns.filter((p) => p.kind === "anti_pattern");
 
-  if (antiPatterns.length === 0) {
-    return "";
-  }
+	if (antiPatterns.length === 0) {
+		return "";
+	}
 
-  const lines = [
-    "## Anti-Patterns to Avoid",
-    "",
-    "Based on past failures, avoid these decomposition strategies:",
-    "",
-    ...antiPatterns.map((p) => `- ${p.content}`),
-    "",
-  ];
+	const lines = [
+		"## Anti-Patterns to Avoid",
+		"",
+		"Based on past failures, avoid these decomposition strategies:",
+		"",
+		...antiPatterns.map((p) => `- ${p.content}`),
+		"",
+	];
 
-  return lines.join("\n");
+	return lines.join("\n");
 }
 
 /**
@@ -347,34 +347,34 @@ export function formatAntiPatternsForPrompt(
  * @returns Formatted string of successful patterns for prompt injection
  */
 export function formatSuccessfulPatternsForPrompt(
-  patterns: DecompositionPattern[],
-  minSuccessRate = 0.7,
+	patterns: DecompositionPattern[],
+	minSuccessRate = 0.7,
 ): string {
-  const successful = patterns.filter((p) => {
-    if (p.kind === "anti_pattern") return false;
-    const total = p.success_count + p.failure_count;
-    if (total < 2) return false;
-    return p.success_count / total >= minSuccessRate;
-  });
+	const successful = patterns.filter((p) => {
+		if (p.kind === "anti_pattern") return false;
+		const total = p.success_count + p.failure_count;
+		if (total < 2) return false;
+		return p.success_count / total >= minSuccessRate;
+	});
 
-  if (successful.length === 0) {
-    return "";
-  }
+	if (successful.length === 0) {
+		return "";
+	}
 
-  const lines = [
-    "## Successful Patterns",
-    "",
-    "These decomposition strategies have worked well in the past:",
-    "",
-    ...successful.map((p) => {
-      const total = p.success_count + p.failure_count;
-      const rate = Math.round((p.success_count / total) * 100);
-      return `- ${p.content} (${rate}% success rate)`;
-    }),
-    "",
-  ];
+	const lines = [
+		"## Successful Patterns",
+		"",
+		"These decomposition strategies have worked well in the past:",
+		"",
+		...successful.map((p) => {
+			const total = p.success_count + p.failure_count;
+			const rate = Math.round((p.success_count / total) * 100);
+			return `- ${p.content} (${rate}% success rate)`;
+		}),
+		"",
+	];
 
-  return lines.join("\n");
+	return lines.join("\n");
 }
 
 // ============================================================================
@@ -385,56 +385,56 @@ export function formatSuccessfulPatternsForPrompt(
  * Storage interface for decomposition patterns
  */
 export interface PatternStorage {
-  /** Store or update a pattern */
-  store(pattern: DecompositionPattern): Promise<void>;
-  /** Get a pattern by ID */
-  get(id: string): Promise<DecompositionPattern | null>;
-  /** Get all patterns */
-  getAll(): Promise<DecompositionPattern[]>;
-  /** Get all anti-patterns */
-  getAntiPatterns(): Promise<DecompositionPattern[]>;
-  /** Get patterns by tag */
-  getByTag(tag: string): Promise<DecompositionPattern[]>;
-  /** Find patterns matching content */
-  findByContent(content: string): Promise<DecompositionPattern[]>;
+	/** Store or update a pattern */
+	store(pattern: DecompositionPattern): Promise<void>;
+	/** Get a pattern by ID */
+	get(id: string): Promise<DecompositionPattern | null>;
+	/** Get all patterns */
+	getAll(): Promise<DecompositionPattern[]>;
+	/** Get all anti-patterns */
+	getAntiPatterns(): Promise<DecompositionPattern[]>;
+	/** Get patterns by tag */
+	getByTag(tag: string): Promise<DecompositionPattern[]>;
+	/** Find patterns matching content */
+	findByContent(content: string): Promise<DecompositionPattern[]>;
 }
 
 /**
  * In-memory pattern storage (for testing and short-lived sessions)
  */
 export class InMemoryPatternStorage implements PatternStorage {
-  private patterns: Map<string, DecompositionPattern> = new Map();
+	private patterns: Map<string, DecompositionPattern> = new Map();
 
-  async store(pattern: DecompositionPattern): Promise<void> {
-    this.patterns.set(pattern.id, pattern);
-  }
+	async store(pattern: DecompositionPattern): Promise<void> {
+		this.patterns.set(pattern.id, pattern);
+	}
 
-  async get(id: string): Promise<DecompositionPattern | null> {
-    return this.patterns.get(id) ?? null;
-  }
+	async get(id: string): Promise<DecompositionPattern | null> {
+		return this.patterns.get(id) ?? null;
+	}
 
-  async getAll(): Promise<DecompositionPattern[]> {
-    return Array.from(this.patterns.values());
-  }
+	async getAll(): Promise<DecompositionPattern[]> {
+		return Array.from(this.patterns.values());
+	}
 
-  async getAntiPatterns(): Promise<DecompositionPattern[]> {
-    return Array.from(this.patterns.values()).filter(
-      (p) => p.kind === "anti_pattern",
-    );
-  }
+	async getAntiPatterns(): Promise<DecompositionPattern[]> {
+		return Array.from(this.patterns.values()).filter(
+			(p) => p.kind === "anti_pattern",
+		);
+	}
 
-  async getByTag(tag: string): Promise<DecompositionPattern[]> {
-    return Array.from(this.patterns.values()).filter((p) =>
-      p.tags.includes(tag),
-    );
-  }
+	async getByTag(tag: string): Promise<DecompositionPattern[]> {
+		return Array.from(this.patterns.values()).filter((p) =>
+			p.tags.includes(tag),
+		);
+	}
 
-  async findByContent(content: string): Promise<DecompositionPattern[]> {
-    const lower = content.toLowerCase();
-    return Array.from(this.patterns.values()).filter((p) =>
-      p.content.toLowerCase().includes(lower),
-    );
-  }
+	async findByContent(content: string): Promise<DecompositionPattern[]> {
+		const lower = content.toLowerCase();
+		return Array.from(this.patterns.values()).filter((p) =>
+			p.content.toLowerCase().includes(lower),
+		);
+	}
 }
 
 // ============================================================================
@@ -442,7 +442,7 @@ export class InMemoryPatternStorage implements PatternStorage {
 // ============================================================================
 
 export const antiPatternSchemas = {
-  PatternKindSchema,
-  DecompositionPatternSchema,
-  PatternInversionResultSchema,
+	PatternKindSchema,
+	DecompositionPatternSchema,
+	PatternInversionResultSchema,
 };

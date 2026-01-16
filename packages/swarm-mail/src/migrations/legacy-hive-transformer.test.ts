@@ -29,12 +29,12 @@
 
 import { describe, expect, it } from "bun:test";
 import {
-	transformIssue,
-	transformEvent,
-	transformDependency,
-	type LegacyIssue,
-	type LegacyEvent,
 	type LegacyDependency,
+	type LegacyEvent,
+	type LegacyIssue,
+	transformDependency,
+	transformEvent,
+	transformIssue,
 } from "./legacy-hive-transformer.js";
 
 describe("transformIssue", () => {
@@ -53,11 +53,18 @@ describe("transformIssue", () => {
 			close_reason: null,
 		};
 
-		const result = transformIssue(legacyIssue, "/Users/joel/Code/joelhooks/opencode-swarm-plugin");
+		const result = transformIssue(
+			legacyIssue,
+			"/Users/joel/Code/joelhooks/opencode-swarm-plugin",
+		);
 
 		// ISO8601 "2025-12-15T10:30:00.000Z" → epoch ms
-		expect(result.created_at).toBe(new Date("2025-12-15T10:30:00.000Z").getTime());
-		expect(result.updated_at).toBe(new Date("2025-12-15T11:00:00.000Z").getTime());
+		expect(result.created_at).toBe(
+			new Date("2025-12-15T10:30:00.000Z").getTime(),
+		);
+		expect(result.updated_at).toBe(
+			new Date("2025-12-15T11:00:00.000Z").getTime(),
+		);
 		expect(result.closed_at).toBeNull();
 	});
 
@@ -76,9 +83,14 @@ describe("transformIssue", () => {
 			close_reason: null,
 		};
 
-		const result = transformIssue(legacyIssue, "/Users/joel/Code/joelhooks/opencode-swarm-plugin");
+		const result = transformIssue(
+			legacyIssue,
+			"/Users/joel/Code/joelhooks/opencode-swarm-plugin",
+		);
 
-		expect(result.project_key).toBe("/Users/joel/Code/joelhooks/opencode-swarm-plugin");
+		expect(result.project_key).toBe(
+			"/Users/joel/Code/joelhooks/opencode-swarm-plugin",
+		);
 	});
 
 	it("should preserve original ID with bd-lf2p4u-* format", () => {
@@ -96,7 +108,10 @@ describe("transformIssue", () => {
 			close_reason: "Fixed",
 		};
 
-		const result = transformIssue(legacyIssue, "/Users/joel/Code/joelhooks/opencode-swarm-plugin");
+		const result = transformIssue(
+			legacyIssue,
+			"/Users/joel/Code/joelhooks/opencode-swarm-plugin",
+		);
 
 		expect(result.id).toBe("bd-lf2p4u-xyz789");
 	});
@@ -116,9 +131,14 @@ describe("transformIssue", () => {
 			close_reason: "Done",
 		};
 
-		const result = transformIssue(legacyIssue, "/Users/joel/Code/joelhooks/opencode-swarm-plugin");
+		const result = transformIssue(
+			legacyIssue,
+			"/Users/joel/Code/joelhooks/opencode-swarm-plugin",
+		);
 
-		expect(result.closed_at).toBe(new Date("2025-12-15T12:00:00.000Z").getTime());
+		expect(result.closed_at).toBe(
+			new Date("2025-12-15T12:00:00.000Z").getTime(),
+		);
 		expect(result.closed_reason).toBe("Done");
 	});
 
@@ -137,13 +157,22 @@ describe("transformIssue", () => {
 			close_reason: null,
 		};
 
-		const result = transformIssue(legacyIssue, "/Users/joel/Code/joelhooks/opencode-swarm-plugin");
+		const result = transformIssue(
+			legacyIssue,
+			"/Users/joel/Code/joelhooks/opencode-swarm-plugin",
+		);
 
 		expect(result.parent_id).toBe("bd-lf2p4u-epic1");
 	});
 
 	it("should handle all valid issue types", () => {
-		const types: Array<LegacyIssue["type"]> = ["task", "bug", "feature", "epic", "chore"];
+		const types: Array<LegacyIssue["type"]> = [
+			"task",
+			"bug",
+			"feature",
+			"epic",
+			"chore",
+		];
 
 		for (const type of types) {
 			const legacyIssue: LegacyIssue = {
@@ -160,13 +189,21 @@ describe("transformIssue", () => {
 				close_reason: null,
 			};
 
-			const result = transformIssue(legacyIssue, "/Users/joel/Code/joelhooks/opencode-swarm-plugin");
+			const result = transformIssue(
+				legacyIssue,
+				"/Users/joel/Code/joelhooks/opencode-swarm-plugin",
+			);
 			expect(result.type).toBe(type);
 		}
 	});
 
 	it("should handle all valid status values", () => {
-		const statuses: Array<LegacyIssue["status"]> = ["open", "in_progress", "blocked", "closed"];
+		const statuses: Array<LegacyIssue["status"]> = [
+			"open",
+			"in_progress",
+			"blocked",
+			"closed",
+		];
 
 		for (const status of statuses) {
 			const legacyIssue: LegacyIssue = {
@@ -183,7 +220,10 @@ describe("transformIssue", () => {
 				close_reason: null,
 			};
 
-			const result = transformIssue(legacyIssue, "/Users/joel/Code/joelhooks/opencode-swarm-plugin");
+			const result = transformIssue(
+				legacyIssue,
+				"/Users/joel/Code/joelhooks/opencode-swarm-plugin",
+			);
 			expect(result.status).toBe(status);
 		}
 	});
@@ -203,7 +243,10 @@ describe("transformIssue", () => {
 			close_reason: null,
 		};
 
-		const result = transformIssue(legacyIssue, "/Users/joel/Code/joelhooks/opencode-swarm-plugin");
+		const result = transformIssue(
+			legacyIssue,
+			"/Users/joel/Code/joelhooks/opencode-swarm-plugin",
+		);
 
 		expect(result.created_by).toBe("HistoricalImport");
 	});
@@ -221,7 +264,9 @@ describe("transformEvent", () => {
 
 		const result = transformEvent(legacyEvent);
 
-		expect(result.created_at).toBe(new Date("2025-12-15T10:30:00.000Z").getTime());
+		expect(result.created_at).toBe(
+			new Date("2025-12-15T10:30:00.000Z").getTime(),
+		);
 	});
 
 	it("should map issue_id to cell_id", () => {
@@ -308,7 +353,9 @@ describe("transformDependency", () => {
 
 		const result = transformDependency(legacyDep);
 
-		expect(result.created_at).toBe(new Date("2025-12-15T10:30:00.000Z").getTime());
+		expect(result.created_at).toBe(
+			new Date("2025-12-15T10:30:00.000Z").getTime(),
+		);
 	});
 
 	it("should preserve relationship type", () => {

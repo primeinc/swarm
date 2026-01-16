@@ -25,29 +25,94 @@ describe("Analytics Queries 6-10 Integration", () => {
 		// Seed test events using query (not exec with params)
 		const events = [
 			// Task lifecycle events for task-duration
-			{ type: "task_started", data: { bead_id: "task-1", agent_name: "AgentA" }, timestamp: 1000 },
-			{ type: "task_completed", data: { bead_id: "task-1", agent_name: "AgentA", files_touched: ["src/a.ts", "src/b.ts"] }, timestamp: 5000 },
-			{ type: "task_started", data: { bead_id: "task-2", agent_name: "AgentB" }, timestamp: 2000 },
-			{ type: "task_completed", data: { bead_id: "task-2", agent_name: "AgentB", files_touched: ["src/c.ts"] }, timestamp: 10000 },
+			{
+				type: "task_started",
+				data: { bead_id: "task-1", agent_name: "AgentA" },
+				timestamp: 1000,
+			},
+			{
+				type: "task_completed",
+				data: {
+					bead_id: "task-1",
+					agent_name: "AgentA",
+					files_touched: ["src/a.ts", "src/b.ts"],
+				},
+				timestamp: 5000,
+			},
+			{
+				type: "task_started",
+				data: { bead_id: "task-2", agent_name: "AgentB" },
+				timestamp: 2000,
+			},
+			{
+				type: "task_completed",
+				data: {
+					bead_id: "task-2",
+					agent_name: "AgentB",
+					files_touched: ["src/c.ts"],
+				},
+				timestamp: 10000,
+			},
 			// Checkpoint events
-			{ type: "checkpoint_created", data: { agent_name: "AgentA", checkpoint_id: "cp-1" }, timestamp: 3000 },
-			{ type: "checkpoint_created", data: { agent_name: "AgentA", checkpoint_id: "cp-2" }, timestamp: 6000 },
-			{ type: "checkpoint_created", data: { agent_name: "AgentB", checkpoint_id: "cp-3" }, timestamp: 9000 },
+			{
+				type: "checkpoint_created",
+				data: { agent_name: "AgentA", checkpoint_id: "cp-1" },
+				timestamp: 3000,
+			},
+			{
+				type: "checkpoint_created",
+				data: { agent_name: "AgentA", checkpoint_id: "cp-2" },
+				timestamp: 6000,
+			},
+			{
+				type: "checkpoint_created",
+				data: { agent_name: "AgentB", checkpoint_id: "cp-3" },
+				timestamp: 9000,
+			},
 			// Recovery events
-			{ type: "deferred_resolved", data: { deferred_id: "def-1" }, timestamp: 4000 },
-			{ type: "deferred_resolved", data: { deferred_id: "def-2" }, timestamp: 7000 },
-			{ type: "deferred_rejected", data: { deferred_id: "def-3" }, timestamp: 8000 },
+			{
+				type: "deferred_resolved",
+				data: { deferred_id: "def-1" },
+				timestamp: 4000,
+			},
+			{
+				type: "deferred_resolved",
+				data: { deferred_id: "def-2" },
+				timestamp: 7000,
+			},
+			{
+				type: "deferred_rejected",
+				data: { deferred_id: "def-3" },
+				timestamp: 8000,
+			},
 			// Review feedback
-			{ type: "review_feedback", data: { status: "approved", task_id: "task-1" }, timestamp: 11000 },
-			{ type: "review_feedback", data: { status: "approved", task_id: "task-2" }, timestamp: 12000 },
-			{ type: "review_feedback", data: { status: "needs_changes", task_id: "task-3" }, timestamp: 13000 },
+			{
+				type: "review_feedback",
+				data: { status: "approved", task_id: "task-1" },
+				timestamp: 11000,
+			},
+			{
+				type: "review_feedback",
+				data: { status: "approved", task_id: "task-2" },
+				timestamp: 12000,
+			},
+			{
+				type: "review_feedback",
+				data: { status: "needs_changes", task_id: "task-3" },
+				timestamp: 13000,
+			},
 		];
 
 		// Insert using query with parameters
 		for (const event of events) {
 			await db.query(
 				"INSERT INTO events (type, project_key, timestamp, data) VALUES (?, ?, ?, ?)",
-				[event.type, testProjectPath, event.timestamp, JSON.stringify(event.data)],
+				[
+					event.type,
+					testProjectPath,
+					event.timestamp,
+					JSON.stringify(event.data),
+				],
 			);
 		}
 	});
@@ -61,7 +126,7 @@ describe("Analytics Queries 6-10 Integration", () => {
 		const result = await db.query(scopeViolations.sql);
 
 		expect(result.rows.length).toBeGreaterThan(0);
-		
+
 		// Should have columns we expect
 		const firstRow = result.rows[0];
 		expect(firstRow).toHaveProperty("agent");
@@ -72,7 +137,9 @@ describe("Analytics Queries 6-10 Integration", () => {
 	test("scopeViolations with filter - should filter by project_key", async () => {
 		const db = await swarmMail.getDatabase();
 		if (scopeViolations.buildQuery) {
-			const filtered = scopeViolations.buildQuery({ project_key: testProjectPath });
+			const filtered = scopeViolations.buildQuery({
+				project_key: testProjectPath,
+			});
 			const result = await db.query(
 				filtered.sql,
 				Object.values(filtered.parameters || {}),
@@ -87,13 +154,13 @@ describe("Analytics Queries 6-10 Integration", () => {
 		const result = await db.query(taskDuration.sql);
 
 		expect(result.rows.length).toBe(1); // Single row with aggregates
-		
+
 		const row = result.rows[0];
 		expect(row).toHaveProperty("p50_ms");
 		expect(row).toHaveProperty("p95_ms");
 		expect(row).toHaveProperty("p99_ms");
 		expect(row).toHaveProperty("total_tasks");
-		
+
 		// Should have 2 completed tasks
 		expect(row.total_tasks).toBe(2);
 	});
@@ -103,13 +170,13 @@ describe("Analytics Queries 6-10 Integration", () => {
 		const result = await db.query(checkpointFrequency.sql);
 
 		expect(result.rows.length).toBe(2); // 2 agents created checkpoints
-		
+
 		const agentA = result.rows.find((r) => r.agent === "AgentA");
 		expect(agentA).toBeDefined();
 		if (agentA) {
 			expect(agentA.checkpoint_count).toBe(2);
 		}
-		
+
 		const agentB = result.rows.find((r) => r.agent === "AgentB");
 		expect(agentB).toBeDefined();
 		if (agentB) {
@@ -122,18 +189,18 @@ describe("Analytics Queries 6-10 Integration", () => {
 		const result = await db.query(recoverySuccess.sql);
 
 		expect(result.rows.length).toBe(1); // Single row with aggregates
-		
+
 		const row = result.rows[0];
 		expect(row).toHaveProperty("resolved_count");
 		expect(row).toHaveProperty("rejected_count");
 		expect(row).toHaveProperty("total_count");
 		expect(row).toHaveProperty("success_rate_pct");
-		
+
 		// 2 resolved, 1 rejected
 		expect(row.resolved_count).toBe(2);
 		expect(row.rejected_count).toBe(1);
 		expect(row.total_count).toBe(3);
-		
+
 		// Success rate should be 66.67% (2/3)
 		expect(row.success_rate_pct).toBeCloseTo(66.67, 1);
 	});
@@ -143,13 +210,13 @@ describe("Analytics Queries 6-10 Integration", () => {
 		const result = await db.query(humanFeedback.sql);
 
 		expect(result.rows.length).toBe(2); // 2 distinct statuses
-		
+
 		const approved = result.rows.find((r) => r.status === "approved");
 		expect(approved).toBeDefined();
 		if (approved) {
 			expect(approved.count).toBe(2);
 		}
-		
+
 		const needsChanges = result.rows.find((r) => r.status === "needs_changes");
 		expect(needsChanges).toBeDefined();
 		if (needsChanges) {
@@ -160,7 +227,9 @@ describe("Analytics Queries 6-10 Integration", () => {
 	test("humanFeedback with filter - should filter by project_key", async () => {
 		const db = await swarmMail.getDatabase();
 		if (humanFeedback.buildQuery) {
-			const filtered = humanFeedback.buildQuery({ project_key: testProjectPath });
+			const filtered = humanFeedback.buildQuery({
+				project_key: testProjectPath,
+			});
 			const result = await db.query(
 				filtered.sql,
 				Object.values(filtered.parameters || {}),

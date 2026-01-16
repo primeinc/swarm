@@ -6,7 +6,12 @@
  */
 
 import { describe, expect, test } from "bun:test";
-import { formatCSV, formatJSON, formatJSONL, formatTable } from "./formatters.js";
+import {
+	formatCSV,
+	formatJSON,
+	formatJSONL,
+	formatTable,
+} from "./formatters.js";
 import { QueryBuilder } from "./query-builder.js";
 import type { AnalyticsQuery, QueryResult } from "./types.js";
 
@@ -186,7 +191,7 @@ describe("formatCSV", () => {
 		const result: QueryResult = {
 			columns: ["text", "quoted"],
 			rows: [
-				{ text: 'hello, world', quoted: 'says "hi"' },
+				{ text: "hello, world", quoted: 'says "hi"' },
 				{ text: "simple", quoted: "no special chars" },
 			],
 			rowCount: 2,

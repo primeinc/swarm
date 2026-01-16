@@ -12,23 +12,23 @@
  * All state changes go through events. Projections compute current state.
  */
 
-import { and, eq, gte, gt, inArray, lte, sql } from "drizzle-orm";
+import { and, eq, gt, gte, inArray, lte, sql } from "drizzle-orm";
 import type { SwarmDb } from "../db/client.js";
-import type {
-  AgentEvent,
-  AgentRegisteredEvent,
-  FileReservedEvent,
-  MessageSentEvent,
-} from "./events.js";
 import {
-  agentsTable,
-  evalRecordsTable,
-  eventsTable,
-  messageRecipientsTable,
-  messagesTable,
-  reservationsTable,
-  swarmContextsTable,
+	agentsTable,
+	evalRecordsTable,
+	eventsTable,
+	messageRecipientsTable,
+	messagesTable,
+	reservationsTable,
+	swarmContextsTable,
 } from "../db/schema/streams.js";
+import type {
+	AgentEvent,
+	AgentRegisteredEvent,
+	FileReservedEvent,
+	MessageSentEvent,
+} from "./events.js";
 
 // ============================================================================
 // Event Store Operations
@@ -42,34 +42,36 @@ import {
  * @returns Event with id and sequence
  */
 export async function appendEventDrizzle(
-  db: SwarmDb,
-  event: AgentEvent,
+	db: SwarmDb,
+	event: AgentEvent,
 ): Promise<AgentEvent & { id: number; sequence: number }> {
-  const { type, project_key, timestamp, ...rest } = event;
+	const { type, project_key, timestamp, ...rest } = event;
 
-  // Insert event
-  const result = await db
-    .insert(eventsTable)
-    .values({
-      type,
-      project_key,
-      timestamp,
-      data: JSON.stringify(rest),
-      // sequence omitted - auto-assigned by database (SERIAL in PGlite, trigger in LibSQL)
-    })
-    .returning({ id: eventsTable.id, sequence: eventsTable.sequence });
+	// Insert event
+	const result = await db
+		.insert(eventsTable)
+		.values({
+			type,
+			project_key,
+			timestamp,
+			data: JSON.stringify(rest),
+			// sequence omitted - auto-assigned by database (SERIAL in PGlite, trigger in LibSQL)
+		})
+		.returning({ id: eventsTable.id, sequence: eventsTable.sequence });
 
-  const row = result[0];
-  if (!row || row.sequence === null || row.sequence === undefined) {
-    throw new Error("Failed to insert event - no row returned or sequence is null");
-  }
+	const row = result[0];
+	if (!row || row.sequence === null || row.sequence === undefined) {
+		throw new Error(
+			"Failed to insert event - no row returned or sequence is null",
+		);
+	}
 
-  const { id, sequence } = row;
+	const { id, sequence } = row;
 
-  // Update materialized views based on event type
-  await updateMaterializedViewsDrizzle(db, { ...event, id, sequence });
+	// Update materialized views based on event type
+	await updateMaterializedViewsDrizzle(db, { ...event, id, sequence });
 
-  return { ...event, id, sequence };
+	return { ...event, id, sequence };
 }
 
 /**
@@ -80,67 +82,67 @@ export async function appendEventDrizzle(
  * @returns Array of events with id and sequence
  */
 export async function readEventsDrizzle(
-  db: SwarmDb,
-  options: {
-    projectKey?: string;
-    types?: AgentEvent["type"][];
-    since?: number;
-    until?: number;
-    afterSequence?: number;
-    limit?: number;
-    offset?: number;
-  } = {},
+	db: SwarmDb,
+	options: {
+		projectKey?: string;
+		types?: AgentEvent["type"][];
+		since?: number;
+		until?: number;
+		afterSequence?: number;
+		limit?: number;
+		offset?: number;
+	} = {},
 ): Promise<Array<AgentEvent & { id: number; sequence: number }>> {
-  const conditions = [];
+	const conditions = [];
 
-  if (options.projectKey) {
-    conditions.push(eq(eventsTable.project_key, options.projectKey));
-  }
+	if (options.projectKey) {
+		conditions.push(eq(eventsTable.project_key, options.projectKey));
+	}
 
-  if (options.types && options.types.length > 0) {
-    conditions.push(inArray(eventsTable.type, options.types));
-  }
+	if (options.types && options.types.length > 0) {
+		conditions.push(inArray(eventsTable.type, options.types));
+	}
 
-  if (options.since !== undefined) {
-    conditions.push(gte(eventsTable.timestamp, options.since));
-  }
+	if (options.since !== undefined) {
+		conditions.push(gte(eventsTable.timestamp, options.since));
+	}
 
-  if (options.until !== undefined) {
-    conditions.push(lte(eventsTable.timestamp, options.until));
-  }
+	if (options.until !== undefined) {
+		conditions.push(lte(eventsTable.timestamp, options.until));
+	}
 
-  if (options.afterSequence !== undefined) {
-    conditions.push(gt(eventsTable.sequence, options.afterSequence));
-  }
+	if (options.afterSequence !== undefined) {
+		conditions.push(gt(eventsTable.sequence, options.afterSequence));
+	}
 
-  let query = db
-    .select()
-    .from(eventsTable)
-    .where(conditions.length > 0 ? and(...conditions) : undefined)
-    .orderBy(eventsTable.sequence)
-    .$dynamic();
+	let query = db
+		.select()
+		.from(eventsTable)
+		.where(conditions.length > 0 ? and(...conditions) : undefined)
+		.orderBy(eventsTable.sequence)
+		.$dynamic();
 
-  if (options.limit) {
-    query = query.limit(options.limit);
-  }
+	if (options.limit) {
+		query = query.limit(options.limit);
+	}
 
-  if (options.offset) {
-    query = query.offset(options.offset);
-  }
+	if (options.offset) {
+		query = query.offset(options.offset);
+	}
 
-  const rows = await query;
+	const rows = await query;
 
-  return rows.map((row) => {
-    const data = typeof row.data === "string" ? JSON.parse(row.data) : row.data;
-    return {
-      id: row.id,
-      type: row.type as AgentEvent["type"],
-      project_key: row.project_key,
-      timestamp: row.timestamp,
-      sequence: row.sequence ?? 0,
-      ...data,
-    } as AgentEvent & { id: number; sequence: number };
-  });
+	return rows.map((row) => {
+		const data = typeof row.data === "string" ? JSON.parse(row.data) : row.data;
+		return {
+			id: row.id,
+			type: row.type as AgentEvent["type"],
+			project_key: row.project_key,
+			timestamp: row.timestamp,
+			sequence: row.sequence ?? 0,
+			...data,
+		} as AgentEvent & { id: number; sequence: number };
+	});
 }
 
 /**
@@ -151,19 +153,19 @@ export async function readEventsDrizzle(
  * @returns Latest sequence number (0 if no events)
  */
 export async function getLatestSequenceDrizzle(
-  db: SwarmDb,
-  projectKey?: string,
+	db: SwarmDb,
+	projectKey?: string,
 ): Promise<number> {
-  const condition = projectKey
-    ? eq(eventsTable.project_key, projectKey)
-    : undefined;
+	const condition = projectKey
+		? eq(eventsTable.project_key, projectKey)
+		: undefined;
 
-  const result = await db
-    .select({ seq: sql<number>`MAX(${eventsTable.sequence})` })
-    .from(eventsTable)
-    .where(condition);
+	const result = await db
+		.select({ seq: sql<number>`MAX(${eventsTable.sequence})` })
+		.from(eventsTable)
+		.where(condition);
 
-  return result[0]?.seq ?? 0;
+	return result[0]?.seq ?? 0;
 }
 
 // ============================================================================
@@ -174,390 +176,390 @@ export async function getLatestSequenceDrizzle(
  * Update materialized views based on event type using Drizzle
  */
 async function updateMaterializedViewsDrizzle(
-  db: SwarmDb,
-  event: AgentEvent & { id: number; sequence: number },
+	db: SwarmDb,
+	event: AgentEvent & { id: number; sequence: number },
 ): Promise<void> {
-  try {
-    switch (event.type) {
-      case "agent_registered":
-        await handleAgentRegisteredDrizzle(
-          db,
-          event as AgentRegisteredEvent & { id: number; sequence: number },
-        );
-        break;
+	try {
+		switch (event.type) {
+			case "agent_registered":
+				await handleAgentRegisteredDrizzle(
+					db,
+					event as AgentRegisteredEvent & { id: number; sequence: number },
+				);
+				break;
 
-      case "agent_active":
-        await db
-          .update(agentsTable)
-          .set({ last_active_at: event.timestamp })
-          .where(
-            and(
-              eq(agentsTable.project_key, event.project_key),
-              eq(agentsTable.name, event.agent_name),
-            ),
-          );
-        break;
+			case "agent_active":
+				await db
+					.update(agentsTable)
+					.set({ last_active_at: event.timestamp })
+					.where(
+						and(
+							eq(agentsTable.project_key, event.project_key),
+							eq(agentsTable.name, event.agent_name),
+						),
+					);
+				break;
 
-      case "message_sent":
-        await handleMessageSentDrizzle(
-          db,
-          event as MessageSentEvent & { id: number; sequence: number },
-        );
-        break;
+			case "message_sent":
+				await handleMessageSentDrizzle(
+					db,
+					event as MessageSentEvent & { id: number; sequence: number },
+				);
+				break;
 
-      case "message_read":
-        await db
-          .update(messageRecipientsTable)
-          .set({ read_at: event.timestamp })
-          .where(
-            and(
-              eq(messageRecipientsTable.message_id, event.message_id),
-              eq(messageRecipientsTable.agent_name, event.agent_name),
-            ),
-          );
-        break;
+			case "message_read":
+				await db
+					.update(messageRecipientsTable)
+					.set({ read_at: event.timestamp })
+					.where(
+						and(
+							eq(messageRecipientsTable.message_id, event.message_id),
+							eq(messageRecipientsTable.agent_name, event.agent_name),
+						),
+					);
+				break;
 
-      case "message_acked":
-        await db
-          .update(messageRecipientsTable)
-          .set({ acked_at: event.timestamp })
-          .where(
-            and(
-              eq(messageRecipientsTable.message_id, event.message_id),
-              eq(messageRecipientsTable.agent_name, event.agent_name),
-            ),
-          );
-        break;
+			case "message_acked":
+				await db
+					.update(messageRecipientsTable)
+					.set({ acked_at: event.timestamp })
+					.where(
+						and(
+							eq(messageRecipientsTable.message_id, event.message_id),
+							eq(messageRecipientsTable.agent_name, event.agent_name),
+						),
+					);
+				break;
 
-      case "file_reserved":
-        await handleFileReservedDrizzle(
-          db,
-          event as FileReservedEvent & { id: number; sequence: number },
-        );
-        break;
+			case "file_reserved":
+				await handleFileReservedDrizzle(
+					db,
+					event as FileReservedEvent & { id: number; sequence: number },
+				);
+				break;
 
-      case "file_released":
-        await handleFileReleasedDrizzle(db, event);
-        break;
+			case "file_released":
+				await handleFileReleasedDrizzle(db, event);
+				break;
 
-      // Task events don't need materialized views (query events directly)
-      case "task_started":
-      case "task_progress":
-      case "task_completed":
-      case "task_blocked":
-        // No-op for now
-        break;
+			// Task events don't need materialized views (query events directly)
+			case "task_started":
+			case "task_progress":
+			case "task_completed":
+			case "task_blocked":
+				// No-op for now
+				break;
 
-      // Eval capture events
-      case "decomposition_generated":
-        await handleDecompositionGeneratedDrizzle(db, event);
-        break;
+			// Eval capture events
+			case "decomposition_generated":
+				await handleDecompositionGeneratedDrizzle(db, event);
+				break;
 
-      case "subtask_outcome":
-        await handleSubtaskOutcomeDrizzle(db, event);
-        break;
+			case "subtask_outcome":
+				await handleSubtaskOutcomeDrizzle(db, event);
+				break;
 
-      case "human_feedback":
-        await handleHumanFeedbackDrizzle(db, event);
-        break;
+			case "human_feedback":
+				await handleHumanFeedbackDrizzle(db, event);
+				break;
 
-      // Swarm checkpoint events
-      case "swarm_checkpointed":
-        await handleSwarmCheckpointedDrizzle(db, event);
-        break;
+			// Swarm checkpoint events
+			case "swarm_checkpointed":
+				await handleSwarmCheckpointedDrizzle(db, event);
+				break;
 
-      case "swarm_recovered":
-        await handleSwarmRecoveredDrizzle(db, event);
-        break;
-    }
-  } catch (error) {
-    console.error("[SwarmMail] Failed to update materialized views", {
-      eventType: event.type,
-      eventId: event.id,
-      error,
-    });
-    throw error;
-  }
+			case "swarm_recovered":
+				await handleSwarmRecoveredDrizzle(db, event);
+				break;
+		}
+	} catch (error) {
+		console.error("[SwarmMail] Failed to update materialized views", {
+			eventType: event.type,
+			eventId: event.id,
+			error,
+		});
+		throw error;
+	}
 }
 
 async function handleAgentRegisteredDrizzle(
-  db: SwarmDb,
-  event: AgentRegisteredEvent & { id: number; sequence: number },
+	db: SwarmDb,
+	event: AgentRegisteredEvent & { id: number; sequence: number },
 ): Promise<void> {
-  await db
-    .insert(agentsTable)
-    .values({
-      project_key: event.project_key,
-      name: event.agent_name,
-      program: event.program,
-      model: event.model,
-      task_description: event.task_description || null,
-      registered_at: event.timestamp,
-      last_active_at: event.timestamp,
-    })
-    .onConflictDoUpdate({
-      target: [agentsTable.project_key, agentsTable.name],
-      set: {
-        program: event.program,
-        model: event.model,
-        task_description: event.task_description || null,
-        last_active_at: event.timestamp,
-      },
-    });
+	await db
+		.insert(agentsTable)
+		.values({
+			project_key: event.project_key,
+			name: event.agent_name,
+			program: event.program,
+			model: event.model,
+			task_description: event.task_description || null,
+			registered_at: event.timestamp,
+			last_active_at: event.timestamp,
+		})
+		.onConflictDoUpdate({
+			target: [agentsTable.project_key, agentsTable.name],
+			set: {
+				program: event.program,
+				model: event.model,
+				task_description: event.task_description || null,
+				last_active_at: event.timestamp,
+			},
+		});
 }
 
 async function handleMessageSentDrizzle(
-  db: SwarmDb,
-  event: MessageSentEvent & { id: number; sequence: number },
+	db: SwarmDb,
+	event: MessageSentEvent & { id: number; sequence: number },
 ): Promise<void> {
-  // Insert message
-  const result = await db
-    .insert(messagesTable)
-    .values({
-      project_key: event.project_key,
-      from_agent: event.from_agent,
-      subject: event.subject,
-      body: event.body,
-      thread_id: event.thread_id || null,
-      importance: event.importance,
-      ack_required: event.ack_required,
-      created_at: event.timestamp,
-    })
-    .returning({ id: messagesTable.id });
+	// Insert message
+	const result = await db
+		.insert(messagesTable)
+		.values({
+			project_key: event.project_key,
+			from_agent: event.from_agent,
+			subject: event.subject,
+			body: event.body,
+			thread_id: event.thread_id || null,
+			importance: event.importance,
+			ack_required: event.ack_required,
+			created_at: event.timestamp,
+		})
+		.returning({ id: messagesTable.id });
 
-  const messageId = result[0]?.id;
-  if (!messageId) {
-    throw new Error("Failed to insert message - no row returned");
-  }
+	const messageId = result[0]?.id;
+	if (!messageId) {
+		throw new Error("Failed to insert message - no row returned");
+	}
 
-  // Bulk insert recipients
-  if (event.to_agents.length > 0) {
-    await db
-      .insert(messageRecipientsTable)
-      .values(
-        event.to_agents.map((agentName) => ({
-          message_id: messageId,
-          agent_name: agentName,
-          read_at: null,
-          acked_at: null,
-        })),
-      )
-      .onConflictDoNothing();
-  }
+	// Bulk insert recipients
+	if (event.to_agents.length > 0) {
+		await db
+			.insert(messageRecipientsTable)
+			.values(
+				event.to_agents.map((agentName) => ({
+					message_id: messageId,
+					agent_name: agentName,
+					read_at: null,
+					acked_at: null,
+				})),
+			)
+			.onConflictDoNothing();
+	}
 }
 
 async function handleFileReservedDrizzle(
-  db: SwarmDb,
-  event: FileReservedEvent & { id: number; sequence: number },
+	db: SwarmDb,
+	event: FileReservedEvent & { id: number; sequence: number },
 ): Promise<void> {
-  // Delete existing active reservations first (idempotency)
-  if (event.paths.length > 0) {
-    await db
-      .delete(reservationsTable)
-      .where(
-        and(
-          eq(reservationsTable.project_key, event.project_key),
-          eq(reservationsTable.agent_name, event.agent_name),
-          inArray(reservationsTable.path_pattern, event.paths),
-          sql`${reservationsTable.released_at} IS NULL`,
-        ),
-      );
-  }
+	// Delete existing active reservations first (idempotency)
+	if (event.paths.length > 0) {
+		await db
+			.delete(reservationsTable)
+			.where(
+				and(
+					eq(reservationsTable.project_key, event.project_key),
+					eq(reservationsTable.agent_name, event.agent_name),
+					inArray(reservationsTable.path_pattern, event.paths),
+					sql`${reservationsTable.released_at} IS NULL`,
+				),
+			);
+	}
 
-  // Bulk insert reservations
-  if (event.paths.length > 0) {
-    await db.insert(reservationsTable).values(
-      event.paths.map((path) => ({
-        project_key: event.project_key,
-        agent_name: event.agent_name,
-        path_pattern: path,
-        exclusive: event.exclusive,
-        reason: event.reason || null,
-        created_at: event.timestamp,
-        expires_at: event.expires_at,
-        released_at: null,
-      })),
-    );
-  }
+	// Bulk insert reservations
+	if (event.paths.length > 0) {
+		await db.insert(reservationsTable).values(
+			event.paths.map((path) => ({
+				project_key: event.project_key,
+				agent_name: event.agent_name,
+				path_pattern: path,
+				exclusive: event.exclusive,
+				reason: event.reason || null,
+				created_at: event.timestamp,
+				expires_at: event.expires_at,
+				released_at: null,
+			})),
+		);
+	}
 }
 
 async function handleFileReleasedDrizzle(
-  db: SwarmDb,
-  event: AgentEvent & { id: number; sequence: number },
+	db: SwarmDb,
+	event: AgentEvent & { id: number; sequence: number },
 ): Promise<void> {
-  if (event.type !== "file_released") return;
+	if (event.type !== "file_released") return;
 
-  const targetAgent = event.target_agent ?? event.agent_name;
+	const targetAgent = event.target_agent ?? event.agent_name;
 
-  if (event.reservation_ids && event.reservation_ids.length > 0) {
-    // Release specific reservations
-    await db
-      .update(reservationsTable)
-      .set({ released_at: event.timestamp })
-      .where(inArray(reservationsTable.id, event.reservation_ids));
-  } else if (event.paths && event.paths.length > 0) {
-    // Release by path
-    await db
-      .update(reservationsTable)
-      .set({ released_at: event.timestamp })
-      .where(
-        and(
-          eq(reservationsTable.project_key, event.project_key),
-          eq(reservationsTable.agent_name, targetAgent),
-          inArray(reservationsTable.path_pattern, event.paths),
-          sql`${reservationsTable.released_at} IS NULL`,
-        ),
-      );
-  } else if (event.release_all) {
-    // Release all reservations in project
-    await db
-      .update(reservationsTable)
-      .set({ released_at: event.timestamp })
-      .where(
-        and(
-          eq(reservationsTable.project_key, event.project_key),
-          sql`${reservationsTable.released_at} IS NULL`,
-        ),
-      );
-  } else {
-    // Release all for agent
-    await db
-      .update(reservationsTable)
-      .set({ released_at: event.timestamp })
-      .where(
-        and(
-          eq(reservationsTable.project_key, event.project_key),
-          eq(reservationsTable.agent_name, targetAgent),
-          sql`${reservationsTable.released_at} IS NULL`,
-        ),
-      );
-  }
+	if (event.reservation_ids && event.reservation_ids.length > 0) {
+		// Release specific reservations
+		await db
+			.update(reservationsTable)
+			.set({ released_at: event.timestamp })
+			.where(inArray(reservationsTable.id, event.reservation_ids));
+	} else if (event.paths && event.paths.length > 0) {
+		// Release by path
+		await db
+			.update(reservationsTable)
+			.set({ released_at: event.timestamp })
+			.where(
+				and(
+					eq(reservationsTable.project_key, event.project_key),
+					eq(reservationsTable.agent_name, targetAgent),
+					inArray(reservationsTable.path_pattern, event.paths),
+					sql`${reservationsTable.released_at} IS NULL`,
+				),
+			);
+	} else if (event.release_all) {
+		// Release all reservations in project
+		await db
+			.update(reservationsTable)
+			.set({ released_at: event.timestamp })
+			.where(
+				and(
+					eq(reservationsTable.project_key, event.project_key),
+					sql`${reservationsTable.released_at} IS NULL`,
+				),
+			);
+	} else {
+		// Release all for agent
+		await db
+			.update(reservationsTable)
+			.set({ released_at: event.timestamp })
+			.where(
+				and(
+					eq(reservationsTable.project_key, event.project_key),
+					eq(reservationsTable.agent_name, targetAgent),
+					sql`${reservationsTable.released_at} IS NULL`,
+				),
+			);
+	}
 }
 
 // Placeholder implementations for eval and swarm checkpoint handlers
 async function handleDecompositionGeneratedDrizzle(
-  db: SwarmDb,
-  event: AgentEvent & { id: number; sequence: number },
+	db: SwarmDb,
+	event: AgentEvent & { id: number; sequence: number },
 ): Promise<void> {
-  if (event.type !== "decomposition_generated") return;
+	if (event.type !== "decomposition_generated") return;
 
-  await db
-    .insert(evalRecordsTable)
-    .values({
-      id: event.epic_id,
-      project_key: event.project_key,
-      task: event.task,
-      context: event.context || null,
-      strategy: event.strategy,
-      epic_title: event.epic_title,
-      subtasks: JSON.stringify(event.subtasks),
-      created_at: event.timestamp,
-      updated_at: event.timestamp,
-      outcomes: null,
-      overall_success: null,
-      total_duration_ms: null,
-      total_errors: null,
-      human_accepted: null,
-      human_modified: null,
-      human_notes: null,
-      file_overlap_count: null,
-      scope_accuracy: null,
-      time_balance_ratio: null,
-    })
-    .onConflictDoNothing();
+	await db
+		.insert(evalRecordsTable)
+		.values({
+			id: event.epic_id,
+			project_key: event.project_key,
+			task: event.task,
+			context: event.context || null,
+			strategy: event.strategy,
+			epic_title: event.epic_title,
+			subtasks: JSON.stringify(event.subtasks),
+			created_at: event.timestamp,
+			updated_at: event.timestamp,
+			outcomes: null,
+			overall_success: null,
+			total_duration_ms: null,
+			total_errors: null,
+			human_accepted: null,
+			human_modified: null,
+			human_notes: null,
+			file_overlap_count: null,
+			scope_accuracy: null,
+			time_balance_ratio: null,
+		})
+		.onConflictDoNothing();
 }
 
 async function handleSubtaskOutcomeDrizzle(
-  db: SwarmDb,
-  event: AgentEvent & { id: number; sequence: number },
+	db: SwarmDb,
+	event: AgentEvent & { id: number; sequence: number },
 ): Promise<void> {
-  if (event.type !== "subtask_outcome") return;
+	if (event.type !== "subtask_outcome") return;
 
-  // Fetch current record to compute metrics
-  const result = await db
-    .select({
-      outcomes: evalRecordsTable.outcomes,
-      subtasks: evalRecordsTable.subtasks,
-    })
-    .from(evalRecordsTable)
-    .where(eq(evalRecordsTable.id, event.epic_id));
+	// Fetch current record to compute metrics
+	const result = await db
+		.select({
+			outcomes: evalRecordsTable.outcomes,
+			subtasks: evalRecordsTable.subtasks,
+		})
+		.from(evalRecordsTable)
+		.where(eq(evalRecordsTable.id, event.epic_id));
 
-  if (!result[0]) {
-    console.warn(
-      `[SwarmMail] No eval_record found for epic_id ${event.epic_id}`,
-    );
-    return;
-  }
+	if (!result[0]) {
+		console.warn(
+			`[SwarmMail] No eval_record found for epic_id ${event.epic_id}`,
+		);
+		return;
+	}
 
-  const row = result[0];
-  
-  // Parse subtasks and outcomes (stored as JSON strings)
-  const subtasks = (
-    typeof row.subtasks === "string" ? JSON.parse(row.subtasks) : row.subtasks
-  ) as Array<{
-    title: string;
-    files: string[];
-  }>;
-  
-  const outcomes = row.outcomes
-    ? ((typeof row.outcomes === "string"
-        ? JSON.parse(row.outcomes)
-        : row.outcomes) as Array<{
-        bead_id: string;
-        planned_files: string[];
-        actual_files: string[];
-        duration_ms: number;
-        error_count: number;
-        retry_count: number;
-        success: boolean;
-      }>)
-    : [];
+	const row = result[0];
 
-  // Create new outcome
-  const newOutcome = {
-    bead_id: event.bead_id,
-    planned_files: event.planned_files,
-    actual_files: event.actual_files,
-    duration_ms: event.duration_ms,
-    error_count: event.error_count,
-    retry_count: event.retry_count,
-    success: event.success,
-  };
+	// Parse subtasks and outcomes (stored as JSON strings)
+	const subtasks = (
+		typeof row.subtasks === "string" ? JSON.parse(row.subtasks) : row.subtasks
+	) as Array<{
+		title: string;
+		files: string[];
+	}>;
 
-  // Append to outcomes array
-  const updatedOutcomes = [...outcomes, newOutcome];
+	const outcomes = row.outcomes
+		? ((typeof row.outcomes === "string"
+				? JSON.parse(row.outcomes)
+				: row.outcomes) as Array<{
+				bead_id: string;
+				planned_files: string[];
+				actual_files: string[];
+				duration_ms: number;
+				error_count: number;
+				retry_count: number;
+				success: boolean;
+			}>)
+		: [];
 
-  // Compute metrics
-  const fileOverlapCount = computeFileOverlapDrizzle(subtasks);
-  const scopeAccuracy = computeScopeAccuracyDrizzle(
-    event.planned_files,
-    event.actual_files,
-  );
-  const timeBalanceRatio = computeTimeBalanceRatioDrizzle(updatedOutcomes);
-  const overallSuccess = updatedOutcomes.every((o) => o.success);
-  const totalDurationMs = updatedOutcomes.reduce(
-    (sum, o) => sum + o.duration_ms,
-    0,
-  );
-  const totalErrors = updatedOutcomes.reduce(
-    (sum, o) => sum + o.error_count,
-    0,
-  );
+	// Create new outcome
+	const newOutcome = {
+		bead_id: event.bead_id,
+		planned_files: event.planned_files,
+		actual_files: event.actual_files,
+		duration_ms: event.duration_ms,
+		error_count: event.error_count,
+		retry_count: event.retry_count,
+		success: event.success,
+	};
 
-  // Update record
-  await db
-    .update(evalRecordsTable)
-    .set({
-      outcomes: JSON.stringify(updatedOutcomes),
-      file_overlap_count: fileOverlapCount,
-      scope_accuracy: scopeAccuracy,
-      time_balance_ratio: timeBalanceRatio,
-      overall_success: overallSuccess,
-      total_duration_ms: totalDurationMs,
-      total_errors: totalErrors,
-      updated_at: event.timestamp,
-    })
-    .where(eq(evalRecordsTable.id, event.epic_id));
+	// Append to outcomes array
+	const updatedOutcomes = [...outcomes, newOutcome];
+
+	// Compute metrics
+	const fileOverlapCount = computeFileOverlapDrizzle(subtasks);
+	const scopeAccuracy = computeScopeAccuracyDrizzle(
+		event.planned_files,
+		event.actual_files,
+	);
+	const timeBalanceRatio = computeTimeBalanceRatioDrizzle(updatedOutcomes);
+	const overallSuccess = updatedOutcomes.every((o) => o.success);
+	const totalDurationMs = updatedOutcomes.reduce(
+		(sum, o) => sum + o.duration_ms,
+		0,
+	);
+	const totalErrors = updatedOutcomes.reduce(
+		(sum, o) => sum + o.error_count,
+		0,
+	);
+
+	// Update record
+	await db
+		.update(evalRecordsTable)
+		.set({
+			outcomes: JSON.stringify(updatedOutcomes),
+			file_overlap_count: fileOverlapCount,
+			scope_accuracy: scopeAccuracy,
+			time_balance_ratio: timeBalanceRatio,
+			overall_success: overallSuccess,
+			total_duration_ms: totalDurationMs,
+			total_errors: totalErrors,
+			updated_at: event.timestamp,
+		})
+		.where(eq(evalRecordsTable.id, event.epic_id));
 }
 
 // ============================================================================
@@ -567,28 +569,33 @@ async function handleSubtaskOutcomeDrizzle(
 /**
  * Count files that appear in multiple subtasks
  */
-function computeFileOverlapDrizzle(subtasks: Array<{ files: string[] }>): number {
-  const fileCount = new Map<string, number>();
+function computeFileOverlapDrizzle(
+	subtasks: Array<{ files: string[] }>,
+): number {
+	const fileCount = new Map<string, number>();
 
-  for (const subtask of subtasks) {
-    for (const file of subtask.files) {
-      fileCount.set(file, (fileCount.get(file) || 0) + 1);
-    }
-  }
+	for (const subtask of subtasks) {
+		for (const file of subtask.files) {
+			fileCount.set(file, (fileCount.get(file) || 0) + 1);
+		}
+	}
 
-  return Array.from(fileCount.values()).filter((count) => count > 1).length;
+	return Array.from(fileCount.values()).filter((count) => count > 1).length;
 }
 
 /**
  * Compute scope accuracy: intersection(actual, planned) / planned.length
  */
-function computeScopeAccuracyDrizzle(planned: string[], actual: string[]): number {
-  if (planned.length === 0) return 1.0;
+function computeScopeAccuracyDrizzle(
+	planned: string[],
+	actual: string[],
+): number {
+	if (planned.length === 0) return 1.0;
 
-  const plannedSet = new Set(planned);
-  const intersection = actual.filter((file) => plannedSet.has(file));
+	const plannedSet = new Set(planned);
+	const intersection = actual.filter((file) => plannedSet.has(file));
 
-  return intersection.length / planned.length;
+	return intersection.length / planned.length;
 }
 
 /**
@@ -596,95 +603,95 @@ function computeScopeAccuracyDrizzle(planned: string[], actual: string[]): numbe
  * Lower is better (more balanced)
  */
 function computeTimeBalanceRatioDrizzle(
-  outcomes: Array<{ duration_ms: number }>,
+	outcomes: Array<{ duration_ms: number }>,
 ): number | null {
-  if (outcomes.length === 0) return null;
+	if (outcomes.length === 0) return null;
 
-  const durations = outcomes.map((o) => o.duration_ms);
-  const max = Math.max(...durations);
-  const min = Math.min(...durations);
+	const durations = outcomes.map((o) => o.duration_ms);
+	const max = Math.max(...durations);
+	const min = Math.min(...durations);
 
-  if (min === 0) return null;
+	if (min === 0) return null;
 
-  return max / min;
+	return max / min;
 }
 
 async function handleHumanFeedbackDrizzle(
-  db: SwarmDb,
-  event: AgentEvent & { id: number; sequence: number },
+	db: SwarmDb,
+	event: AgentEvent & { id: number; sequence: number },
 ): Promise<void> {
-  if (event.type !== "human_feedback") return;
+	if (event.type !== "human_feedback") return;
 
-  await db
-    .update(evalRecordsTable)
-    .set({
-      human_accepted: event.accepted,
-      human_modified: event.modified,
-      human_notes: event.notes || null,
-      updated_at: event.timestamp,
-    })
-    .where(eq(evalRecordsTable.id, event.epic_id));
+	await db
+		.update(evalRecordsTable)
+		.set({
+			human_accepted: event.accepted,
+			human_modified: event.modified,
+			human_notes: event.notes || null,
+			updated_at: event.timestamp,
+		})
+		.where(eq(evalRecordsTable.id, event.epic_id));
 }
 
 async function handleSwarmCheckpointedDrizzle(
-  db: SwarmDb,
-  event: AgentEvent & { id: number; sequence: number },
+	db: SwarmDb,
+	event: AgentEvent & { id: number; sequence: number },
 ): Promise<void> {
-  if (event.type !== "swarm_checkpointed") return;
+	if (event.type !== "swarm_checkpointed") return;
 
-  await db
-    .insert(swarmContextsTable)
-    .values({
-      id: event.bead_id,
-      project_key: event.project_key,
-      epic_id: event.epic_id,
-      bead_id: event.bead_id,
-      strategy: event.strategy,
-      files: JSON.stringify(event.files),
-      dependencies: JSON.stringify(event.dependencies),
-      directives: JSON.stringify(event.directives),
-      recovery: JSON.stringify(event.recovery),
-      created_at: event.timestamp,
-      checkpointed_at: event.timestamp,
-      updated_at: event.timestamp,
-      recovered_at: null,
-      recovered_from_checkpoint: null,
-    })
-    .onConflictDoUpdate({
-      target: swarmContextsTable.id,
-      set: {
-        project_key: event.project_key,
-        strategy: event.strategy,
-        files: JSON.stringify(event.files),
-        dependencies: JSON.stringify(event.dependencies),
-        directives: JSON.stringify(event.directives),
-        recovery: JSON.stringify(event.recovery),
-        checkpointed_at: event.timestamp,
-        updated_at: event.timestamp,
-      },
-    });
+	await db
+		.insert(swarmContextsTable)
+		.values({
+			id: event.bead_id,
+			project_key: event.project_key,
+			epic_id: event.epic_id,
+			bead_id: event.bead_id,
+			strategy: event.strategy,
+			files: JSON.stringify(event.files),
+			dependencies: JSON.stringify(event.dependencies),
+			directives: JSON.stringify(event.directives),
+			recovery: JSON.stringify(event.recovery),
+			created_at: event.timestamp,
+			checkpointed_at: event.timestamp,
+			updated_at: event.timestamp,
+			recovered_at: null,
+			recovered_from_checkpoint: null,
+		})
+		.onConflictDoUpdate({
+			target: swarmContextsTable.id,
+			set: {
+				project_key: event.project_key,
+				strategy: event.strategy,
+				files: JSON.stringify(event.files),
+				dependencies: JSON.stringify(event.dependencies),
+				directives: JSON.stringify(event.directives),
+				recovery: JSON.stringify(event.recovery),
+				checkpointed_at: event.timestamp,
+				updated_at: event.timestamp,
+			},
+		});
 }
 
 async function handleSwarmRecoveredDrizzle(
-  db: SwarmDb,
-  event: AgentEvent & { id: number; sequence: number },
+	db: SwarmDb,
+	event: AgentEvent & { id: number; sequence: number },
 ): Promise<void> {
-  if (event.type !== "swarm_recovered") return;
+	if (event.type !== "swarm_recovered") return;
 
-  await db
-    .update(swarmContextsTable)
-    .set({
-      recovered_at: event.timestamp,
-      recovered_from_checkpoint: event.recovered_from_checkpoint,
-      updated_at: event.timestamp,
-    })
-    .where(
-      and(
-        eq(swarmContextsTable.project_key, event.project_key),
-        eq(swarmContextsTable.epic_id, event.epic_id),
-        eq(swarmContextsTable.bead_id, event.bead_id),
-      ),
-    );
+	await db
+		.update(swarmContextsTable)
+		.set({
+			recovered_at: event.timestamp,
+			recovered_from_checkpoint: event.recovered_from_checkpoint,
+			updated_at: event.timestamp,
+		})
+		.where(
+			and(
+				eq(swarmContextsTable.project_key, event.project_key),
+				eq(swarmContextsTable.epic_id, event.epic_id),
+				eq(swarmContextsTable.bead_id, event.bead_id),
+			),
+		);
 }
 
 // ============================================================================
@@ -693,23 +700,26 @@ async function handleSwarmRecoveredDrizzle(
 
 /**
  * Utility: Get or create database adapter with schema initialization
- * 
+ *
  * CRITICAL: Uses the cached adapter from store.ts to ensure all callers
  * (appendEvent, sendSwarmMessage, getInbox) use the SAME database instance.
- * 
+ *
  * Fixes bug where sendSwarmMessage created a different adapter than the test,
  * causing empty inbox (messages written to adapter A, read from adapter B).
- * 
+ *
  * NOTE: Parameter order matches store-drizzle.ts convention (projectPath, dbOverride)
  * but delegates to store.ts which uses (dbOverride, projectPath). We swap them here.
- * 
+ *
  * @internal Exported for use by swarm-mail.ts to ensure adapter consistency
  */
-export async function getOrCreateAdapter(projectPath?: string, dbOverride?: any): Promise<any> {
-  const { getOrCreateAdapter: getCachedAdapter } = await import("./store.js");
-  
-  // CRITICAL: store.ts expects (dbOverride, projectPath) - swap parameter order!
-  return getCachedAdapter(dbOverride, projectPath);
+export async function getOrCreateAdapter(
+	projectPath?: string,
+	dbOverride?: any,
+): Promise<any> {
+	const { getOrCreateAdapter: getCachedAdapter } = await import("./store.js");
+
+	// CRITICAL: store.ts expects (dbOverride, projectPath) - swap parameter order!
+	return getCachedAdapter(dbOverride, projectPath);
 }
 
 /**
@@ -717,54 +727,54 @@ export async function getOrCreateAdapter(projectPath?: string, dbOverride?: any)
  * Gets database from adapter and converts to SwarmDb.
  */
 export async function appendEvent(
-  event: AgentEvent,
-  projectPath?: string,
-  dbOverride?: any,
+	event: AgentEvent,
+	projectPath?: string,
+	dbOverride?: any,
 ): Promise<AgentEvent & { id: number; sequence: number }> {
-  const { toDrizzleDb } = await import("../libsql.convenience.js");
-  
-  const db = await getOrCreateAdapter(projectPath, dbOverride);
-  const swarmDb = toDrizzleDb(db);
-  
-  return appendEventDrizzle(swarmDb, event);
+	const { toDrizzleDb } = await import("../libsql.convenience.js");
+
+	const db = await getOrCreateAdapter(projectPath, dbOverride);
+	const swarmDb = toDrizzleDb(db);
+
+	return appendEventDrizzle(swarmDb, event);
 }
 
 /**
  * Convenience wrapper for readEventsDrizzle
  */
 export async function readEvents(
-  options: {
-    projectKey?: string;
-    types?: AgentEvent["type"][];
-    since?: number;
-    until?: number;
-    afterSequence?: number;
-    limit?: number;
-    offset?: number;
-  } = {},
-  projectPath?: string,
-  dbOverride?: any,
+	options: {
+		projectKey?: string;
+		types?: AgentEvent["type"][];
+		since?: number;
+		until?: number;
+		afterSequence?: number;
+		limit?: number;
+		offset?: number;
+	} = {},
+	projectPath?: string,
+	dbOverride?: any,
 ): Promise<Array<AgentEvent & { id: number; sequence: number }>> {
-  const { toDrizzleDb } = await import("../libsql.convenience.js");
-  
-  const db = await getOrCreateAdapter(projectPath, dbOverride);
-  const swarmDb = toDrizzleDb(db);
-  
-  return readEventsDrizzle(swarmDb, options);
+	const { toDrizzleDb } = await import("../libsql.convenience.js");
+
+	const db = await getOrCreateAdapter(projectPath, dbOverride);
+	const swarmDb = toDrizzleDb(db);
+
+	return readEventsDrizzle(swarmDb, options);
 }
 
 /**
  * Convenience wrapper for getLatestSequenceDrizzle
  */
 export async function getLatestSequence(
-  projectKey?: string,
-  projectPath?: string,
-  dbOverride?: any,
+	projectKey?: string,
+	projectPath?: string,
+	dbOverride?: any,
 ): Promise<number> {
-  const { toDrizzleDb } = await import("../libsql.convenience.js");
-  
-  const db = await getOrCreateAdapter(projectPath, dbOverride);
-  const swarmDb = toDrizzleDb(db);
-  
-  return getLatestSequenceDrizzle(swarmDb, projectKey);
+	const { toDrizzleDb } = await import("../libsql.convenience.js");
+
+	const db = await getOrCreateAdapter(projectPath, dbOverride);
+	const swarmDb = toDrizzleDb(db);
+
+	return getLatestSequenceDrizzle(swarmDb, projectKey);
 }

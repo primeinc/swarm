@@ -1,5 +1,5 @@
 {
-  "name": "@swarmtools/evals",
+  "name": "swarm-evals",
   "version": "0.2.29",
   "description": "Evaluation suite for swarm-tools multi-agent coordination",
   "type": "module",
@@ -33,7 +33,7 @@
   "dependencies": {
     "evalite": "^1.0.0-beta.10",
     "ai": "6.0.0-beta.150",
-    "opencode-swarm-plugin": "workspace:*",
+    "swarm": "workspace:*",
     "swarm-mail": "workspace:*"
   },
   "devDependencies": {

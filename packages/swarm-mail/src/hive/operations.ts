@@ -11,15 +11,15 @@
  */
 
 import type {
-  HiveAdapter,
-  Cell,
-  QueryCellsOptions,
+	Cell,
+	HiveAdapter,
+	QueryCellsOptions,
 } from "../types/hive-adapter.js";
 import {
-  validateCreateBead,
-  validateUpdateBead,
-  type CreateCellOptions,
-  type UpdateCellOptions,
+	type CreateCellOptions,
+	type UpdateCellOptions,
+	validateCreateBead,
+	validateUpdateBead,
 } from "./validation.js";
 
 /**
@@ -28,26 +28,26 @@ import {
  * @throws {Error} If validation fails
  */
 export async function createCell(
-  adapter: HiveAdapter,
-  projectKey: string,
-  options: CreateCellOptions,
+	adapter: HiveAdapter,
+	projectKey: string,
+	options: CreateCellOptions,
 ): Promise<Cell> {
-  // Validate options
-  const validation = validateCreateBead(options);
-  if (!validation.valid) {
-    throw new Error(validation.errors.join(", "));
-  }
+	// Validate options
+	const validation = validateCreateBead(options);
+	if (!validation.valid) {
+		throw new Error(validation.errors.join(", "));
+	}
 
-  // Create bead via adapter
-  return adapter.createCell(projectKey, {
-    title: options.title,
-    type: options.type,
-    priority: options.priority ?? 2,
-    description: options.description,
-    parent_id: options.parent_id,
-    assignee: options.assignee,
-    created_by: options.created_by,
-  });
+	// Create bead via adapter
+	return adapter.createCell(projectKey, {
+		title: options.title,
+		type: options.type,
+		priority: options.priority ?? 2,
+		description: options.description,
+		parent_id: options.parent_id,
+		assignee: options.assignee,
+		created_by: options.created_by,
+	});
 }
 
 /**
@@ -56,11 +56,11 @@ export async function createCell(
  * @returns Cell or null if not found
  */
 export async function getCell(
-  adapter: HiveAdapter,
-  projectKey: string,
-  cellId: string,
+	adapter: HiveAdapter,
+	projectKey: string,
+	cellId: string,
 ): Promise<Cell | null> {
-  return adapter.getCell(projectKey, cellId);
+	return adapter.getCell(projectKey, cellId);
 }
 
 /**
@@ -69,19 +69,19 @@ export async function getCell(
  * @throws {Error} If validation fails or bead not found
  */
 export async function updateCell(
-  adapter: HiveAdapter,
-  projectKey: string,
-  cellId: string,
-  updates: UpdateCellOptions,
+	adapter: HiveAdapter,
+	projectKey: string,
+	cellId: string,
+	updates: UpdateCellOptions,
 ): Promise<Cell> {
-  // Validate updates
-  const validation = validateUpdateBead(updates);
-  if (!validation.valid) {
-    throw new Error(validation.errors.join(", "));
-  }
+	// Validate updates
+	const validation = validateUpdateBead(updates);
+	if (!validation.valid) {
+		throw new Error(validation.errors.join(", "));
+	}
 
-  // Update via adapter
-  return adapter.updateCell(projectKey, cellId, updates);
+	// Update via adapter
+	return adapter.updateCell(projectKey, cellId, updates);
 }
 
 /**
@@ -90,15 +90,15 @@ export async function updateCell(
  * @throws {Error} If bead not found
  */
 export async function closeCell(
-  adapter: HiveAdapter,
-  projectKey: string,
-  cellId: string,
-  reason: string,
-  closedBy?: string,
+	adapter: HiveAdapter,
+	projectKey: string,
+	cellId: string,
+	reason: string,
+	closedBy?: string,
 ): Promise<Cell> {
-  return adapter.closeCell(projectKey, cellId, reason, {
-    closed_by: closedBy,
-  });
+	return adapter.closeCell(projectKey, cellId, reason, {
+		closed_by: closedBy,
+	});
 }
 
 /**
@@ -107,14 +107,14 @@ export async function closeCell(
  * @throws {Error} If bead not found or invalid transition
  */
 export async function reopenCell(
-  adapter: HiveAdapter,
-  projectKey: string,
-  cellId: string,
-  reopenedBy?: string,
+	adapter: HiveAdapter,
+	projectKey: string,
+	cellId: string,
+	reopenedBy?: string,
 ): Promise<Cell> {
-  return adapter.reopenCell(projectKey, cellId, {
-    reopened_by: reopenedBy,
-  });
+	return adapter.reopenCell(projectKey, cellId, {
+		reopened_by: reopenedBy,
+	});
 }
 
 /**
@@ -123,16 +123,16 @@ export async function reopenCell(
  * @throws {Error} If bead not found
  */
 export async function deleteCell(
-  adapter: HiveAdapter,
-  projectKey: string,
-  cellId: string,
-  reason: string,
-  deletedBy?: string,
+	adapter: HiveAdapter,
+	projectKey: string,
+	cellId: string,
+	reason: string,
+	deletedBy?: string,
 ): Promise<void> {
-  await adapter.deleteCell(projectKey, cellId, {
-    reason,
-    deleted_by: deletedBy,
-  });
+	await adapter.deleteCell(projectKey, cellId, {
+		reason,
+		deleted_by: deletedBy,
+	});
 }
 
 /**
@@ -141,23 +141,23 @@ export async function deleteCell(
  * Simple text search across bead titles with optional filters.
  */
 export async function searchBeads(
-  adapter: HiveAdapter,
-  projectKey: string,
-  query: string,
-  filter?: QueryCellsOptions,
+	adapter: HiveAdapter,
+	projectKey: string,
+	query: string,
+	filter?: QueryCellsOptions,
 ): Promise<Cell[]> {
-  // Get all beads matching filter
-  const allBeads = await adapter.queryCells(projectKey, filter);
+	// Get all beads matching filter
+	const allBeads = await adapter.queryCells(projectKey, filter);
 
-  // Filter by query string if provided
-  if (!query || query.trim().length === 0) {
-    return allBeads;
-  }
+	// Filter by query string if provided
+	if (!query || query.trim().length === 0) {
+		return allBeads;
+	}
 
-  const lowerQuery = query.toLowerCase();
-  return allBeads.filter(
-    (bead) =>
-      bead.title.toLowerCase().includes(lowerQuery) ||
-      bead.description?.toLowerCase().includes(lowerQuery),
-  );
+	const lowerQuery = query.toLowerCase();
+	return allBeads.filter(
+		(bead) =>
+			bead.title.toLowerCase().includes(lowerQuery) ||
+			bead.description?.toLowerCase().includes(lowerQuery),
+	);
 }

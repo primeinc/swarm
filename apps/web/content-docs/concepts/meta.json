@@ -1,5 +1,11 @@
 {
-  "title": "Concepts",
-  "description": "Deep dives into core concepts",
-  "pages": ["index", "event-sourcing", "actor-model", "learning-systems", "patterns"]
+	"title": "Concepts",
+	"description": "Deep dives into core concepts",
+	"pages": [
+		"index",
+		"event-sourcing",
+		"actor-model",
+		"learning-systems",
+		"patterns"
+	]
 }

@@ -13,21 +13,26 @@ import { existsSync } from "node:fs";
 import { mkdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createClient, type Client } from "@libsql/client";
+import { type Client, createClient } from "@libsql/client";
 import { convertPlaceholders, type DatabaseAdapter } from "../libsql.js";
 import { createHiveAdapter } from "./adapter.js";
 import { FlushManager } from "./flush-manager.js";
 import { parseJSONL } from "./jsonl.js";
-import { beadsMigrationLibSQL, cellsViewMigrationLibSQL } from "./migrations.js";
+import {
+	beadsMigrationLibSQL,
+	cellsViewMigrationLibSQL,
+} from "./migrations.js";
 
 /**
  * Wrap libSQL client with DatabaseAdapter interface
  * Uses executeMultiple for exec() to handle multi-statement migrations
- * 
+ *
  * IMPORTANT: Includes getClient() method so toDrizzleDb() recognizes this
  * as a LibSQL adapter (not PGlite).
  */
-function wrapLibSQL(client: Client): DatabaseAdapter & { getClient: () => Client } {
+function wrapLibSQL(
+	client: Client,
+): DatabaseAdapter & { getClient: () => Client } {
 	return {
 		query: async <T>(sql: string, params?: unknown[]) => {
 			const converted = convertPlaceholders(sql, params);
@@ -64,8 +69,8 @@ describe("Full Hive Session Flow", () => {
 		client = createClient({ url: ":memory:" });
 		db = wrapLibSQL(client);
 
-	// Create base schema (events table, schema_version) - required before migrations
-	await client.execute(`
+		// Create base schema (events table, schema_version) - required before migrations
+		await client.execute(`
       CREATE TABLE IF NOT EXISTS events (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         sequence INTEGER,

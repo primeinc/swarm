@@ -16,9 +16,9 @@
  * @module memory/entity-extraction
  */
 
+import type { Client } from "@libsql/client";
 import { generateText, Output } from "ai";
 import { z } from "zod";
-import type { Client } from "@libsql/client";
 
 // ============================================================================
 // Types
@@ -27,36 +27,36 @@ import type { Client } from "@libsql/client";
 export type EntityType = "person" | "project" | "technology" | "concept";
 
 export interface Entity {
-  id: string;
-  name: string;
-  entityType: EntityType;
-  canonicalName?: string;
-  createdAt: Date;
-  updatedAt: Date;
+	id: string;
+	name: string;
+	entityType: EntityType;
+	canonicalName?: string;
+	createdAt: Date;
+	updatedAt: Date;
 }
 
 export interface Relationship {
-  id: string;
-  subjectId: string;
-  predicate: string;
-  objectId: string;
-  memoryId?: string;
-  confidence: number;
-  createdAt: Date;
+	id: string;
+	subjectId: string;
+	predicate: string;
+	objectId: string;
+	memoryId?: string;
+	confidence: number;
+	createdAt: Date;
 }
 
 /** Result from LLM extraction (before DB storage) */
 export interface ExtractionResult {
-  entities: Array<{
-    name: string;
-    entityType: EntityType;
-  }>;
-  relationships: Array<{
-    subjectName: string;
-    predicate: string;
-    objectName: string;
-    confidence: number;
-  }>;
+	entities: Array<{
+		name: string;
+		entityType: EntityType;
+	}>;
+	relationships: Array<{
+		subjectName: string;
+		predicate: string;
+		objectName: string;
+		confidence: number;
+	}>;
 }
 
 // ============================================================================
@@ -64,38 +64,38 @@ export interface ExtractionResult {
 // ============================================================================
 
 const EntitySchema = z.object({
-  name: z.string().describe("Name of the entity (e.g., 'Joel', 'TypeScript')"),
-  entityType: z
-    .enum(["person", "project", "technology", "concept"])
-    .describe(
-      "Type of entity: person (people), project (software projects), technology (languages/frameworks), concept (abstract ideas)"
-    ),
+	name: z.string().describe("Name of the entity (e.g., 'Joel', 'TypeScript')"),
+	entityType: z
+		.enum(["person", "project", "technology", "concept"])
+		.describe(
+			"Type of entity: person (people), project (software projects), technology (languages/frameworks), concept (abstract ideas)",
+		),
 });
 
 const RelationshipSchema = z.object({
-  subjectName: z.string().describe("Subject entity name"),
-  predicate: z
-    .string()
-    .describe(
-      "Relationship verb (e.g., 'prefers', 'uses', 'built', 'works-on')"
-    ),
-  objectName: z.string().describe("Object entity name"),
-  confidence: z
-    .number()
-    .min(0)
-    .max(1)
-    .describe("Confidence score 0-1 for this relationship"),
+	subjectName: z.string().describe("Subject entity name"),
+	predicate: z
+		.string()
+		.describe(
+			"Relationship verb (e.g., 'prefers', 'uses', 'built', 'works-on')",
+		),
+	objectName: z.string().describe("Object entity name"),
+	confidence: z
+		.number()
+		.min(0)
+		.max(1)
+		.describe("Confidence score 0-1 for this relationship"),
 });
 
 const ExtractionSchema = z.object({
-  entities: z
-    .array(EntitySchema)
-    .describe("Named entities found in the content"),
-  relationships: z
-    .array(RelationshipSchema)
-    .describe(
-      "Relationships between entities as subject-predicate-object triples"
-    ),
+	entities: z
+		.array(EntitySchema)
+		.describe("Named entities found in the content"),
+	relationships: z
+		.array(RelationshipSchema)
+		.describe(
+			"Relationships between entities as subject-predicate-object triples",
+		),
 });
 
 // ============================================================================
@@ -122,39 +122,39 @@ const ExtractionSchema = z.object({
  * ```
  */
 export async function extractEntitiesAndRelationships(
-  content: string,
-  config: { model: string; apiKey?: string }
+	content: string,
+	config: { model: string; apiKey?: string },
 ): Promise<ExtractionResult> {
-  try {
-    // AI Gateway reads AI_GATEWAY_API_KEY from env automatically
-    // Only pass headers if explicitly provided (for testing)
-    const headers = config.apiKey
-      ? { Authorization: `Bearer ${config.apiKey}` }
-      : undefined;
+	try {
+		// AI Gateway reads AI_GATEWAY_API_KEY from env automatically
+		// Only pass headers if explicitly provided (for testing)
+		const headers = config.apiKey
+			? { Authorization: `Bearer ${config.apiKey}` }
+			: undefined;
 
-    const { output } = await generateText({
-      model: config.model,
-      prompt: `Extract named entities and relationships from the following text.
+		const { output } = await generateText({
+			model: config.model,
+			prompt: `Extract named entities and relationships from the following text.
 
 Entities should be people, projects, technologies, or concepts mentioned.
 Relationships should be clear subject-predicate-object triples.
 
 Text: ${content}`,
-      output: Output.object({
-        schema: ExtractionSchema,
-      }),
-      ...(headers && { headers }),
-    });
+			output: Output.object({
+				schema: ExtractionSchema,
+			}),
+			...(headers && { headers }),
+		});
 
-    return output as ExtractionResult;
-  } catch (error) {
-    // Graceful degradation: log error but return empty structure
-    console.error("Entity extraction failed:", error);
-    return {
-      entities: [],
-      relationships: [],
-    };
-  }
+		return output as ExtractionResult;
+	} catch (error) {
+		// Graceful degradation: log error but return empty structure
+		console.error("Entity extraction failed:", error);
+		return {
+			entities: [],
+			relationships: [],
+		};
+	}
 }
 
 // ============================================================================
@@ -172,71 +172,78 @@ Text: ${content}`,
  * @returns Stored entities with IDs and timestamps
  */
 export async function storeEntities(
-  entities: Array<Omit<Entity, "id" | "createdAt" | "updatedAt">>,
-  db: Client
+	entities: Array<Omit<Entity, "id" | "createdAt" | "updatedAt">>,
+	db: Client,
 ): Promise<Entity[]> {
-  const seen = new Map<string, Entity>(); // Dedupe in-memory first
+	const seen = new Map<string, Entity>(); // Dedupe in-memory first
 
-  for (const entity of entities) {
-    // Dedupe key: lowercase name + type
-    const dedupeKey = `${entity.name.toLowerCase()}:${entity.entityType}`;
-    
-    // Skip if already processed in this batch
-    if (seen.has(dedupeKey)) {
-      continue;
-    }
+	for (const entity of entities) {
+		// Dedupe key: lowercase name + type
+		const dedupeKey = `${entity.name.toLowerCase()}:${entity.entityType}`;
 
-    // Check if entity already exists in database (case-insensitive)
-    const existing = await db.execute(
-      `
+		// Skip if already processed in this batch
+		if (seen.has(dedupeKey)) {
+			continue;
+		}
+
+		// Check if entity already exists in database (case-insensitive)
+		const existing = await db.execute(
+			`
       SELECT id, name, entity_type, canonical_name, created_at, updated_at
       FROM entities
       WHERE LOWER(name) = LOWER(?) AND entity_type = ?
     `,
-      [entity.name, entity.entityType]
-    );
+			[entity.name, entity.entityType],
+		);
 
-    let storedEntity: Entity;
+		let storedEntity: Entity;
 
-    if (existing.rows.length > 0) {
-      // Return existing entity
-      const row = existing.rows[0];
-      storedEntity = {
-        id: row.id as string,
-        name: row.name as string,
-        entityType: row.entity_type as EntityType,
-        canonicalName: (row.canonical_name as string | null) ?? undefined,
-        createdAt: new Date(row.created_at as string),
-        updatedAt: new Date(row.updated_at as string),
-      };
-    } else {
-      // Insert new entity
-      const id = `ent-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-      const now = new Date().toISOString();
+		if (existing.rows.length > 0) {
+			// Return existing entity
+			const row = existing.rows[0];
+			storedEntity = {
+				id: row.id as string,
+				name: row.name as string,
+				entityType: row.entity_type as EntityType,
+				canonicalName: (row.canonical_name as string | null) ?? undefined,
+				createdAt: new Date(row.created_at as string),
+				updatedAt: new Date(row.updated_at as string),
+			};
+		} else {
+			// Insert new entity
+			const id = `ent-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+			const now = new Date().toISOString();
 
-      await db.execute(
-        `
+			await db.execute(
+				`
         INSERT INTO entities (id, name, entity_type, canonical_name, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?)
       `,
-        [id, entity.name, entity.entityType, entity.canonicalName ?? null, now, now]
-      );
+				[
+					id,
+					entity.name,
+					entity.entityType,
+					entity.canonicalName ?? null,
+					now,
+					now,
+				],
+			);
 
-      storedEntity = {
-        id,
-        name: entity.name,
-        entityType: entity.entityType,
-        canonicalName: entity.canonicalName,
-        createdAt: new Date(now),
-        updatedAt: new Date(now),
-      };
-    }
+			storedEntity = {
+				id,
+				name: entity.name,
+				entityType: entity.entityType,
+				canonicalName: entity.canonicalName,
+				createdAt: new Date(now),
+				updatedAt: new Date(now),
+			};
+		}
 
-    seen.set(dedupeKey, storedEntity);
-  }
+		seen.set(dedupeKey, storedEntity);
+	}
 
-  // Return only unique entities
-  return Array.from(seen.values());
+	// Return only unique entities
+	return Array.from(seen.values());
 }
 
 /**
@@ -251,74 +258,82 @@ export async function storeEntities(
  * @returns Stored relationships with IDs and timestamps
  */
 export async function storeRelationships(
-  relationships: Array<Omit<Relationship, "id" | "createdAt">>,
-  memoryId: string,
-  db: Client
+	relationships: Array<Omit<Relationship, "id" | "createdAt">>,
+	memoryId: string,
+	db: Client,
 ): Promise<Relationship[]> {
-  const seen = new Map<string, Relationship>(); // Dedupe in-memory
+	const seen = new Map<string, Relationship>(); // Dedupe in-memory
 
-  for (const rel of relationships) {
-    // Dedupe key: subject+predicate+object triple
-    const dedupeKey = `${rel.subjectId}:${rel.predicate}:${rel.objectId}`;
-    
-    // Skip if already processed in this batch
-    if (seen.has(dedupeKey)) {
-      continue;
-    }
+	for (const rel of relationships) {
+		// Dedupe key: subject+predicate+object triple
+		const dedupeKey = `${rel.subjectId}:${rel.predicate}:${rel.objectId}`;
 
-    // Check if relationship already exists in database
-    const existing = await db.execute(
-      `
+		// Skip if already processed in this batch
+		if (seen.has(dedupeKey)) {
+			continue;
+		}
+
+		// Check if relationship already exists in database
+		const existing = await db.execute(
+			`
       SELECT id, subject_id, predicate, object_id, memory_id, confidence, created_at
       FROM relationships
       WHERE subject_id = ? AND predicate = ? AND object_id = ?
     `,
-      [rel.subjectId, rel.predicate, rel.objectId]
-    );
+			[rel.subjectId, rel.predicate, rel.objectId],
+		);
 
-    let storedRelationship: Relationship;
+		let storedRelationship: Relationship;
 
-    if (existing.rows.length > 0) {
-      // Return existing relationship
-      const row = existing.rows[0];
-      storedRelationship = {
-        id: row.id as string,
-        subjectId: row.subject_id as string,
-        predicate: row.predicate as string,
-        objectId: row.object_id as string,
-        memoryId: (row.memory_id as string | null) ?? undefined,
-        confidence: row.confidence as number,
-        createdAt: new Date(row.created_at as string),
-      };
-    } else {
-      // Insert new relationship
-      const id = `rel-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-      const now = new Date().toISOString();
+		if (existing.rows.length > 0) {
+			// Return existing relationship
+			const row = existing.rows[0];
+			storedRelationship = {
+				id: row.id as string,
+				subjectId: row.subject_id as string,
+				predicate: row.predicate as string,
+				objectId: row.object_id as string,
+				memoryId: (row.memory_id as string | null) ?? undefined,
+				confidence: row.confidence as number,
+				createdAt: new Date(row.created_at as string),
+			};
+		} else {
+			// Insert new relationship
+			const id = `rel-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+			const now = new Date().toISOString();
 
-      await db.execute(
-        `
+			await db.execute(
+				`
         INSERT INTO relationships (id, subject_id, predicate, object_id, memory_id, confidence, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?)
       `,
-        [id, rel.subjectId, rel.predicate, rel.objectId, memoryId, rel.confidence, now]
-      );
+				[
+					id,
+					rel.subjectId,
+					rel.predicate,
+					rel.objectId,
+					memoryId,
+					rel.confidence,
+					now,
+				],
+			);
 
-      storedRelationship = {
-        id,
-        subjectId: rel.subjectId,
-        predicate: rel.predicate,
-        objectId: rel.objectId,
-        memoryId,
-        confidence: rel.confidence,
-        createdAt: new Date(now),
-      };
-    }
+			storedRelationship = {
+				id,
+				subjectId: rel.subjectId,
+				predicate: rel.predicate,
+				objectId: rel.objectId,
+				memoryId,
+				confidence: rel.confidence,
+				createdAt: new Date(now),
+			};
+		}
 
-    seen.set(dedupeKey, storedRelationship);
-  }
+		seen.set(dedupeKey, storedRelationship);
+	}
 
-  // Return only unique relationships
-  return Array.from(seen.values());
+	// Return only unique relationships
+	return Array.from(seen.values());
 }
 
 /**
@@ -332,20 +347,20 @@ export async function storeRelationships(
  * @param db - libSQL client
  */
 export async function linkMemoryToEntities(
-  memoryId: string,
-  entityIds: string[],
-  db: Client
+	memoryId: string,
+	entityIds: string[],
+	db: Client,
 ): Promise<void> {
-  for (const entityId of entityIds) {
-    // Use INSERT OR IGNORE to make idempotent
-    await db.execute(
-      `
+	for (const entityId of entityIds) {
+		// Use INSERT OR IGNORE to make idempotent
+		await db.execute(
+			`
       INSERT OR IGNORE INTO memory_entities (memory_id, entity_id)
       VALUES (?, ?)
     `,
-      [memoryId, entityId]
-    );
-  }
+			[memoryId, entityId],
+		);
+	}
 }
 
 // ============================================================================
@@ -360,27 +375,27 @@ export async function linkMemoryToEntities(
  * @returns Entities of specified type
  */
 export async function getEntitiesByType(
-  entityType: EntityType,
-  db: Client
+	entityType: EntityType,
+	db: Client,
 ): Promise<Entity[]> {
-  const result = await db.execute(
-    `
+	const result = await db.execute(
+		`
     SELECT id, name, entity_type, canonical_name, created_at, updated_at
     FROM entities
     WHERE entity_type = ?
     ORDER BY name
   `,
-    [entityType]
-  );
+		[entityType],
+	);
 
-  return result.rows.map((row) => ({
-    id: row.id as string,
-    name: row.name as string,
-    entityType: row.entity_type as EntityType,
-    canonicalName: (row.canonical_name as string | null) ?? undefined,
-    createdAt: new Date(row.created_at as string),
-    updatedAt: new Date(row.updated_at as string),
-  }));
+	return result.rows.map((row) => ({
+		id: row.id as string,
+		name: row.name as string,
+		entityType: row.entity_type as EntityType,
+		canonicalName: (row.canonical_name as string | null) ?? undefined,
+		createdAt: new Date(row.created_at as string),
+		updatedAt: new Date(row.updated_at as string),
+	}));
 }
 
 /**
@@ -392,46 +407,46 @@ export async function getEntitiesByType(
  * @returns Relationships involving the entity
  */
 export async function getRelationshipsForEntity(
-  entityId: string,
-  db: Client,
-  direction: "subject" | "object" | "both" = "both"
+	entityId: string,
+	db: Client,
+	direction: "subject" | "object" | "both" = "both",
 ): Promise<Relationship[]> {
-  let query: string;
-  let params: string[];
+	let query: string;
+	let params: string[];
 
-  if (direction === "subject") {
-    query = `
+	if (direction === "subject") {
+		query = `
       SELECT id, subject_id, predicate, object_id, memory_id, confidence, created_at
       FROM relationships
       WHERE subject_id = ?
     `;
-    params = [entityId];
-  } else if (direction === "object") {
-    query = `
+		params = [entityId];
+	} else if (direction === "object") {
+		query = `
       SELECT id, subject_id, predicate, object_id, memory_id, confidence, created_at
       FROM relationships
       WHERE object_id = ?
     `;
-    params = [entityId];
-  } else {
-    // both
-    query = `
+		params = [entityId];
+	} else {
+		// both
+		query = `
       SELECT id, subject_id, predicate, object_id, memory_id, confidence, created_at
       FROM relationships
       WHERE subject_id = ? OR object_id = ?
     `;
-    params = [entityId, entityId];
-  }
+		params = [entityId, entityId];
+	}
 
-  const result = await db.execute(query, params);
+	const result = await db.execute(query, params);
 
-  return result.rows.map((row) => ({
-    id: row.id as string,
-    subjectId: row.subject_id as string,
-    predicate: row.predicate as string,
-    objectId: row.object_id as string,
-    memoryId: (row.memory_id as string | null) ?? undefined,
-    confidence: row.confidence as number,
-    createdAt: new Date(row.created_at as string),
-  }));
+	return result.rows.map((row) => ({
+		id: row.id as string,
+		subjectId: row.subject_id as string,
+		predicate: row.predicate as string,
+		objectId: row.object_id as string,
+		memoryId: (row.memory_id as string | null) ?? undefined,
+		confidence: row.confidence as number,
+		createdAt: new Date(row.created_at as string),
+	}));
 }

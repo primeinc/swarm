@@ -40,9 +40,10 @@
  *
  * @module migrations
  */
-import type { DatabaseAdapter } from "../types/database.js";
+
 import { hiveMigrations } from "../hive/migrations.js";
 import { memoryMigrations } from "../memory/migrations.js";
+import type { DatabaseAdapter } from "../types/database.js";
 
 // ============================================================================
 // Types
@@ -52,20 +53,20 @@ import { memoryMigrations } from "../memory/migrations.js";
  * A database migration definition.
  */
 export interface Migration {
-  /** Unique version number (must be sequential) */
-  version: number;
-  /** Human-readable migration description */
-  description: string;
-  /** SQL to apply the migration */
-  up: string;
-  /** SQL to rollback the migration (best effort) */
-  down: string;
+	/** Unique version number (must be sequential) */
+	version: number;
+	/** Human-readable migration description */
+	description: string;
+	/** SQL to apply the migration */
+	up: string;
+	/** SQL to rollback the migration (best effort) */
+	down: string;
 }
 
 interface SchemaVersion {
-  version: number;
-  applied_at: number;
-  description: string | null;
+	version: number;
+	applied_at: number;
+	description: string | null;
 }
 
 // ============================================================================
@@ -73,10 +74,10 @@ interface SchemaVersion {
 // ============================================================================
 
 export const migrations: Migration[] = [
-  {
-    version: 0,
-    description: "Create core event store tables",
-    up: `
+	{
+		version: 0,
+		description: "Create core event store tables",
+		up: `
       -- Events table: The source of truth (append-only)
       CREATE TABLE IF NOT EXISTS events (
         id SERIAL PRIMARY KEY,
@@ -167,7 +168,7 @@ export const migrations: Migration[] = [
       CREATE INDEX IF NOT EXISTS idx_locks_expires ON locks(expires_at);
       CREATE INDEX IF NOT EXISTS idx_locks_holder ON locks(holder);
     `,
-    down: `
+		down: `
       DROP INDEX IF EXISTS idx_locks_holder;
       DROP INDEX IF EXISTS idx_locks_expires;
       DROP TABLE IF EXISTS locks;
@@ -189,11 +190,11 @@ export const migrations: Migration[] = [
       DROP INDEX IF EXISTS idx_events_project_key;
       DROP TABLE IF EXISTS events;
     `,
-  },
-  {
-    version: 1,
-    description: "Add cursors table for DurableCursor",
-    up: `
+	},
+	{
+		version: 1,
+		description: "Add cursors table for DurableCursor",
+		up: `
       CREATE TABLE IF NOT EXISTS cursors (
         id SERIAL PRIMARY KEY,
         stream TEXT NOT NULL,
@@ -205,12 +206,12 @@ export const migrations: Migration[] = [
       CREATE INDEX IF NOT EXISTS idx_cursors_checkpoint ON cursors(checkpoint);
       CREATE INDEX IF NOT EXISTS idx_cursors_stream ON cursors(stream);
     `,
-    down: `DROP TABLE IF EXISTS cursors;`,
-  },
-  {
-    version: 2,
-    description: "Add deferred table for DurableDeferred",
-    up: `
+		down: `DROP TABLE IF EXISTS cursors;`,
+	},
+	{
+		version: 2,
+		description: "Add deferred table for DurableDeferred",
+		up: `
       CREATE TABLE IF NOT EXISTS deferred (
         id SERIAL PRIMARY KEY,
         url TEXT NOT NULL UNIQUE,
@@ -224,12 +225,12 @@ export const migrations: Migration[] = [
       CREATE INDEX IF NOT EXISTS idx_deferred_expires ON deferred(expires_at);
       CREATE INDEX IF NOT EXISTS idx_deferred_resolved ON deferred(resolved);
     `,
-    down: `DROP TABLE IF EXISTS deferred;`,
-  },
-  {
-    version: 3,
-    description: "Add eval_records table for learning system",
-    up: `
+		down: `DROP TABLE IF EXISTS deferred;`,
+	},
+	{
+		version: 3,
+		description: "Add eval_records table for learning system",
+		up: `
       CREATE TABLE IF NOT EXISTS eval_records (
         id TEXT PRIMARY KEY,
         project_key TEXT NOT NULL,
@@ -254,12 +255,12 @@ export const migrations: Migration[] = [
       CREATE INDEX IF NOT EXISTS idx_eval_records_project ON eval_records(project_key);
       CREATE INDEX IF NOT EXISTS idx_eval_records_strategy ON eval_records(strategy);
     `,
-    down: `DROP TABLE IF EXISTS eval_records;`,
-  },
-  {
-    version: 4,
-    description: "Add swarm_contexts table for context recovery",
-    up: `
+		down: `DROP TABLE IF EXISTS eval_records;`,
+	},
+	{
+		version: 4,
+		description: "Add swarm_contexts table for context recovery",
+		up: `
       CREATE TABLE IF NOT EXISTS swarm_contexts (
         id TEXT PRIMARY KEY,
         epic_id TEXT NOT NULL,
@@ -275,12 +276,13 @@ export const migrations: Migration[] = [
       CREATE INDEX IF NOT EXISTS idx_swarm_contexts_epic ON swarm_contexts(epic_id);
       CREATE INDEX IF NOT EXISTS idx_swarm_contexts_bead ON swarm_contexts(bead_id);
     `,
-    down: `DROP TABLE IF EXISTS swarm_contexts;`,
-  },
-  {
-    version: 5,
-    description: "Add project_key and checkpointed_at to swarm_contexts, change primary key",
-    up: `
+		down: `DROP TABLE IF EXISTS swarm_contexts;`,
+	},
+	{
+		version: 5,
+		description:
+			"Add project_key and checkpointed_at to swarm_contexts, change primary key",
+		up: `
       -- Add new columns
       ALTER TABLE swarm_contexts ADD COLUMN IF NOT EXISTS project_key TEXT;
       ALTER TABLE swarm_contexts ADD COLUMN IF NOT EXISTS checkpointed_at BIGINT;
@@ -299,7 +301,7 @@ export const migrations: Migration[] = [
       DROP INDEX IF EXISTS idx_swarm_contexts_bead;
       CREATE UNIQUE INDEX IF NOT EXISTS idx_swarm_contexts_unique ON swarm_contexts(project_key, epic_id, bead_id);
     `,
-    down: `
+		down: `
       DROP INDEX IF EXISTS idx_swarm_contexts_unique;
       DROP INDEX IF EXISTS idx_swarm_contexts_project;
       ALTER TABLE swarm_contexts DROP COLUMN IF EXISTS project_key;
@@ -311,11 +313,12 @@ export const migrations: Migration[] = [
       CREATE INDEX IF NOT EXISTS idx_swarm_contexts_epic ON swarm_contexts(epic_id);
       CREATE INDEX IF NOT EXISTS idx_swarm_contexts_bead ON swarm_contexts(bead_id);
     `,
-  },
-  {
-    version: 6,
-    description: "Add core event store tables (events, agents, messages, reservations)",
-    up: `
+	},
+	{
+		version: 6,
+		description:
+			"Add core event store tables (events, agents, messages, reservations)",
+		up: `
       -- Events table: append-only event log
       CREATE TABLE IF NOT EXISTS events (
         id SERIAL PRIMARY KEY,
@@ -388,18 +391,18 @@ export const migrations: Migration[] = [
       CREATE INDEX IF NOT EXISTS idx_reservations_agent ON reservations(agent_name);
       CREATE INDEX IF NOT EXISTS idx_reservations_expires ON reservations(expires_at);
     `,
-    down: `
+		down: `
       DROP TABLE IF EXISTS message_recipients;
       DROP TABLE IF EXISTS messages;
       DROP TABLE IF EXISTS reservations;
       DROP TABLE IF EXISTS agents;
       DROP TABLE IF EXISTS events;
     `,
-  },
-  // Hive migrations (v7-v8)
-  ...hiveMigrations,
-  // Memory migrations (v9+)
-  ...memoryMigrations,
+	},
+	// Hive migrations (v7-v8)
+	...hiveMigrations,
+	// Memory migrations (v9+)
+	...memoryMigrations,
 ];
 
 // ============================================================================
@@ -410,7 +413,7 @@ export const migrations: Migration[] = [
  * Initialize schema_version table if it doesn't exist
  */
 async function ensureVersionTable(db: DatabaseAdapter): Promise<void> {
-  await db.exec(`
+	await db.exec(`
     CREATE TABLE IF NOT EXISTS schema_version (
       version INTEGER PRIMARY KEY,
       applied_at BIGINT NOT NULL,
@@ -425,38 +428,38 @@ async function ensureVersionTable(db: DatabaseAdapter): Promise<void> {
  * Returns -1 if no migrations have been applied (allows version 0 migrations)
  */
 export async function getCurrentVersion(db: DatabaseAdapter): Promise<number> {
-  await ensureVersionTable(db);
+	await ensureVersionTable(db);
 
-  const result = await db.query<{ version: number }>(
-    `SELECT MAX(version) as version FROM schema_version`,
-  );
+	const result = await db.query<{ version: number }>(
+		`SELECT MAX(version) as version FROM schema_version`,
+	);
 
-  // Return -1 if no migrations applied (null from MAX on empty table)
-  // This allows version 0 migrations to be applied
-  return result.rows[0]?.version ?? -1;
+	// Return -1 if no migrations applied (null from MAX on empty table)
+	// This allows version 0 migrations to be applied
+	return result.rows[0]?.version ?? -1;
 }
 
 /**
  * Get all applied migrations
  */
 export async function getAppliedMigrations(
-  db: DatabaseAdapter,
+	db: DatabaseAdapter,
 ): Promise<SchemaVersion[]> {
-  await ensureVersionTable(db);
+	await ensureVersionTable(db);
 
-  const result = await db.query<{
-    version: number;
-    applied_at: string;
-    description: string | null;
-  }>(
-    `SELECT version, applied_at, description FROM schema_version ORDER BY version ASC`,
-  );
+	const result = await db.query<{
+		version: number;
+		applied_at: string;
+		description: string | null;
+	}>(
+		`SELECT version, applied_at, description FROM schema_version ORDER BY version ASC`,
+	);
 
-  return result.rows.map((row) => ({
-    version: row.version,
-    applied_at: parseInt(row.applied_at as string),
-    description: row.description,
-  }));
+	return result.rows.map((row) => ({
+		version: row.version,
+		applied_at: parseInt(row.applied_at as string),
+		description: row.description,
+	}));
 }
 
 /**
@@ -466,59 +469,59 @@ export async function getAppliedMigrations(
  * Only runs migrations that haven't been applied yet.
  */
 export async function runMigrations(db: DatabaseAdapter): Promise<{
-  applied: number[];
-  current: number;
+	applied: number[];
+	current: number;
 }> {
-  await ensureVersionTable(db);
+	await ensureVersionTable(db);
 
-  const currentVersion = await getCurrentVersion(db);
-  const applied: number[] = [];
+	const currentVersion = await getCurrentVersion(db);
+	const applied: number[] = [];
 
-  // Find migrations that need to be applied
-  // currentVersion is -1 when no migrations applied, so version 0 will be included
-  const pendingMigrations = migrations.filter(
-    (m) => m.version > currentVersion,
-  );
+	// Find migrations that need to be applied
+	// currentVersion is -1 when no migrations applied, so version 0 will be included
+	const pendingMigrations = migrations.filter(
+		(m) => m.version > currentVersion,
+	);
 
-  if (pendingMigrations.length === 0) {
-    return { applied: [], current: currentVersion };
-  }
+	if (pendingMigrations.length === 0) {
+		return { applied: [], current: currentVersion };
+	}
 
-  // Sort by version to ensure correct order
-  pendingMigrations.sort((a, b) => a.version - b.version);
+	// Sort by version to ensure correct order
+	pendingMigrations.sort((a, b) => a.version - b.version);
 
-  // Apply each migration in a transaction
-  for (const migration of pendingMigrations) {
-    await db.exec("BEGIN");
-    try {
-      // Run the migration SQL
-      await db.exec(migration.up);
+	// Apply each migration in a transaction
+	for (const migration of pendingMigrations) {
+		await db.exec("BEGIN");
+		try {
+			// Run the migration SQL
+			await db.exec(migration.up);
 
-      // Record the migration
-      await db.query(
-        `INSERT INTO schema_version (version, applied_at, description)
+			// Record the migration
+			await db.query(
+				`INSERT INTO schema_version (version, applied_at, description)
          VALUES ($1, $2, $3)`,
-        [migration.version, Date.now(), migration.description],
-      );
+				[migration.version, Date.now(), migration.description],
+			);
 
-      await db.exec("COMMIT");
-      applied.push(migration.version);
+			await db.exec("COMMIT");
+			applied.push(migration.version);
 
-      console.log(
-        `[migrations] Applied migration ${migration.version}: ${migration.description}`,
-      );
-    } catch (error) {
-      await db.exec("ROLLBACK");
-      const err = error as Error;
-      console.error(
-        `[migrations] Failed to apply migration ${migration.version}: ${err.message}`,
-      );
-      throw new Error(`Migration ${migration.version} failed: ${err.message}`);
-    }
-  }
+			console.log(
+				`[migrations] Applied migration ${migration.version}: ${migration.description}`,
+			);
+		} catch (error) {
+			await db.exec("ROLLBACK");
+			const err = error as Error;
+			console.error(
+				`[migrations] Failed to apply migration ${migration.version}: ${err.message}`,
+			);
+			throw new Error(`Migration ${migration.version} failed: ${err.message}`);
+		}
+	}
 
-  const finalVersion = await getCurrentVersion(db);
-  return { applied, current: finalVersion };
+	const finalVersion = await getCurrentVersion(db);
+	return { applied, current: finalVersion };
 }
 
 /**
@@ -528,80 +531,82 @@ export async function runMigrations(db: DatabaseAdapter): Promise<{
  * Only use for testing or emergency recovery.
  */
 export async function rollbackTo(
-  db: DatabaseAdapter,
-  targetVersion: number,
+	db: DatabaseAdapter,
+	targetVersion: number,
 ): Promise<{
-  rolledBack: number[];
-  current: number;
+	rolledBack: number[];
+	current: number;
 }> {
-  const currentVersion = await getCurrentVersion(db);
-  const rolledBack: number[] = [];
+	const currentVersion = await getCurrentVersion(db);
+	const rolledBack: number[] = [];
 
-  if (targetVersion >= currentVersion) {
-    return { rolledBack: [], current: currentVersion };
-  }
+	if (targetVersion >= currentVersion) {
+		return { rolledBack: [], current: currentVersion };
+	}
 
-  // Find migrations to rollback (in reverse order)
-  const migrationsToRollback = migrations
-    .filter((m) => m.version > targetVersion && m.version <= currentVersion)
-    .sort((a, b) => b.version - a.version); // Descending order
+	// Find migrations to rollback (in reverse order)
+	const migrationsToRollback = migrations
+		.filter((m) => m.version > targetVersion && m.version <= currentVersion)
+		.sort((a, b) => b.version - a.version); // Descending order
 
-  for (const migration of migrationsToRollback) {
-    await db.exec("BEGIN");
-    try {
-      // Run the down migration
-      await db.exec(migration.down);
+	for (const migration of migrationsToRollback) {
+		await db.exec("BEGIN");
+		try {
+			// Run the down migration
+			await db.exec(migration.down);
 
-      // Remove from version table
-      await db.query(`DELETE FROM schema_version WHERE version = $1`, [
-        migration.version,
-      ]);
+			// Remove from version table
+			await db.query(`DELETE FROM schema_version WHERE version = $1`, [
+				migration.version,
+			]);
 
-      await db.exec("COMMIT");
-      rolledBack.push(migration.version);
+			await db.exec("COMMIT");
+			rolledBack.push(migration.version);
 
-      console.log(
-        `[migrations] Rolled back migration ${migration.version}: ${migration.description}`,
-      );
-    } catch (error) {
-      await db.exec("ROLLBACK");
-      const err = error as Error;
-      console.error(
-        `[migrations] Failed to rollback migration ${migration.version}: ${err.message}`,
-      );
-      throw new Error(
-        `Rollback of migration ${migration.version} failed: ${err.message}`,
-      );
-    }
-  }
+			console.log(
+				`[migrations] Rolled back migration ${migration.version}: ${migration.description}`,
+			);
+		} catch (error) {
+			await db.exec("ROLLBACK");
+			const err = error as Error;
+			console.error(
+				`[migrations] Failed to rollback migration ${migration.version}: ${err.message}`,
+			);
+			throw new Error(
+				`Rollback of migration ${migration.version} failed: ${err.message}`,
+			);
+		}
+	}
 
-  const finalVersion = await getCurrentVersion(db);
-  return { rolledBack, current: finalVersion };
+	const finalVersion = await getCurrentVersion(db);
+	return { rolledBack, current: finalVersion };
 }
 
 /**
  * Check if a specific migration has been applied
  */
 export async function isMigrationApplied(
-  db: DatabaseAdapter,
-  version: number,
+	db: DatabaseAdapter,
+	version: number,
 ): Promise<boolean> {
-  await ensureVersionTable(db);
+	await ensureVersionTable(db);
 
-  const result = await db.query<{ count: string }>(
-    `SELECT COUNT(*) as count FROM schema_version WHERE version = $1`,
-    [version],
-  );
+	const result = await db.query<{ count: string }>(
+		`SELECT COUNT(*) as count FROM schema_version WHERE version = $1`,
+		[version],
+	);
 
-  return parseInt(result.rows[0]?.count || "0") > 0;
+	return parseInt(result.rows[0]?.count || "0") > 0;
 }
 
 /**
  * Get pending migrations (not yet applied)
  */
-export async function getPendingMigrations(db: DatabaseAdapter): Promise<Migration[]> {
-  const currentVersion = await getCurrentVersion(db);
-  return migrations
-    .filter((m) => m.version > currentVersion)
-    .sort((a, b) => a.version - b.version);
+export async function getPendingMigrations(
+	db: DatabaseAdapter,
+): Promise<Migration[]> {
+	const currentVersion = await getCurrentVersion(db);
+	return migrations
+		.filter((m) => m.version > currentVersion)
+		.sort((a, b) => a.version - b.version);
 }

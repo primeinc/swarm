@@ -1,5 +1,5 @@
 {
-  "name": "@primeinc/cross-path",
+  "name": "swarm-cross-path",
   "version": "1.0.3",
   "description": "Cross-platform path normalization for consistent identifiers across Windows, WSL, and Linux",
   "type": "module",
@@ -11,7 +11,10 @@
       "types": "./dist/index.d.ts"
     }
   },
-  "files": ["dist", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"

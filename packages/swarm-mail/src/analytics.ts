@@ -22,7 +22,8 @@ export interface AnalyticsQuery {
 export const ANALYTICS_QUERIES: AnalyticsQuery[] = [
 	{
 		name: "latency",
-		description: "Task Duration by Strategy - Average and P95 task completion times",
+		description:
+			"Task Duration by Strategy - Average and P95 task completion times",
 		sql: `
 			SELECT 
 				json_extract(data, '$.strategy') as strategy,

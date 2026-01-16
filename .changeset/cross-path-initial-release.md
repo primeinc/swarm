@@ -1,8 +1,8 @@
 ---
-"@primeinc/cross-path": minor
+"swarm-cross-path": minor
 ---
 
-Initial release of @primeinc/cross-path - cross-platform path normalization
+Initial release of swarm-cross-path - cross-platform path normalization
 
 **Features:**
 - Cross-platform path normalization (Windows, WSL, Git Bash, POSIX)

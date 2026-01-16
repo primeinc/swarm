@@ -286,9 +286,7 @@ describe("LibSQLAdapter", () => {
 		test("sets busy_timeout to 5000ms on new connections", async () => {
 			// Query PRAGMA to verify timeout is set
 			// libSQL returns the column as "timeout", not "busy_timeout"
-			const result = await db.query<{ timeout: number }>(
-				"PRAGMA busy_timeout",
-			);
+			const result = await db.query<{ timeout: number }>("PRAGMA busy_timeout");
 			expect(result.rows).toHaveLength(1);
 			expect(result.rows[0]?.timeout).toBe(5000);
 		});

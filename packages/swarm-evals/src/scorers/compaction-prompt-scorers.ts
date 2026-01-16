@@ -13,17 +13,17 @@
  */
 
 import { createScorer } from "evalite";
-import type { CompactionPrompt } from "opencode-swarm-plugin/compaction-prompt-scoring";
+import type { CompactionPrompt } from "swarm/compaction-prompt-scoring";
 import {
 	scoreActionability,
 	scoreCoordinatorIdentity,
 	scoreEpicIdSpecificity,
 	scoreForbiddenToolsPresent,
 	scorePostCompactionDiscipline,
-} from "opencode-swarm-plugin/compaction-prompt-scoring";
+} from "swarm/compaction-prompt-scoring";
 
 // Re-export types for convenience
-export type { CompactionPrompt, ScorerResult } from "opencode-swarm-plugin/compaction-prompt-scoring";
+export type { CompactionPrompt, ScorerResult } from "swarm/compaction-prompt-scoring";
 
 // Re-export pure functions for direct use
 export {
@@ -32,7 +32,7 @@ export {
 	scoreEpicIdSpecificity,
 	scoreForbiddenToolsPresent,
 	scorePostCompactionDiscipline,
-} from "opencode-swarm-plugin/compaction-prompt-scoring";
+} from "swarm/compaction-prompt-scoring";
 
 /**
  * Epic ID Specificity Scorer

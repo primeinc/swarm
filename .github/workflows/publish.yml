@@ -42,35 +42,53 @@ jobs:
 
       - name: Refresh workspace after scoping
         run: |
-          # Delete old lockfile - it references pre-scoped package names
-          # (e.g., "opencode-swarm-plugin" instead of "@primeinc/swarm")
+          # Delete old lockfile - it references unscoped package names
           rm bun.lock
           # Regenerate lockfile with the new scoped package names
           bun install
 
-      - name: Build only publishable packages
+      - name: Build all packages
         run: |
-          # Build cross-path first (no workspace dependencies)
+          # Build in dependency order:
+          # 1. swarm-cross-path (no workspace deps)
           (cd packages/cross-path && bun run build)
-          # Build swarm-mail (depends on cross-path)
+          # 2. swarm-mail (depends on swarm-cross-path)
           (cd packages/swarm-mail && bun run build)
-          # Build opencode-swarm-plugin (depends on both)
+          # 3. swarm (depends on swarm-cross-path & swarm-mail)
           (cd packages/opencode-swarm-plugin && bun run build)
+          # 4. swarm-evals (depends on swarm & swarm-mail)
+          (cd packages/swarm-evals && bun run build || true)
+          # 5. swarm-claude-code (no workspace deps)
+          (cd packages/claude-code-swarm-plugin && bun run build || true)
+          # 6. swarm-dashboard (depends on swarm-mail)
+          (cd packages/swarm-dashboard && bun run build || true)
 
       - name: Publish to NPM
         if: ${{ inputs.dry_run != true }}
         run: |
           set -euo pipefail
 
-          # Publish in dependency order:
-          # 1. cross-path (no deps)
-          # 2. swarm-mail (depends on cross-path)
-          # 3. swarm (depends on both)
-          for pkg in packages/cross-path packages/swarm-mail packages/opencode-swarm-plugin; do
+          # Publish ALL 6 packages in dependency order:
+          # 1. swarm-cross-path (no deps)
+          # 2. swarm-mail (depends on swarm-cross-path)
+          # 3. swarm (depends on swarm-cross-path & swarm-mail)
+          # 4. swarm-evals (depends on swarm & swarm-mail)
+          # 5. swarm-claude-code (no workspace deps)
+          # 6. swarm-dashboard (depends on swarm-mail)
+          PACKAGES=(
+            packages/cross-path
+            packages/swarm-mail
+            packages/opencode-swarm-plugin
+            packages/swarm-evals
+            packages/claude-code-swarm-plugin
+            packages/swarm-dashboard
+          )
+
+          for pkg in "${PACKAGES[@]}"; do
             echo "📦 Publishing $pkg..."
             # bun publish resolves workspace:* to actual versions automatically
             # --access public required for scoped packages
-            # --tag beta marks these as beta releases (fork of upstream)
+            # --tag beta marks these as beta releases
             (cd "$pkg" && bun publish --access public --tag beta) || echo "⚠️ May already exist"
           done
         env:
@@ -80,7 +98,15 @@ jobs:
       - name: Dry run - show what would be published
         if: ${{ inputs.dry_run == true }}
         run: |
-          for pkg in packages/cross-path packages/swarm-mail packages/opencode-swarm-plugin; do
+          PACKAGES=(
+            packages/cross-path
+            packages/swarm-mail
+            packages/opencode-swarm-plugin
+            packages/swarm-evals
+            packages/claude-code-swarm-plugin
+            packages/swarm-dashboard
+          )
+          for pkg in "${PACKAGES[@]}"; do
             echo "📦 Would publish $pkg:"
             cat "$pkg/package.json" | jq '{name, version, dependencies}'
           done

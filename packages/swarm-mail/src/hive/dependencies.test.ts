@@ -17,242 +17,412 @@ import type { HiveAdapter } from "../types/hive-adapter.js";
 import { createHiveAdapter } from "./adapter.js";
 
 describe("Dependencies", () => {
-  let db: DatabaseAdapter;
-  let beads: HiveAdapter;
-  const projectKey = "/test/project";
+	let db: DatabaseAdapter;
+	let beads: HiveAdapter;
+	const projectKey = "/test/project";
 
-  beforeEach(async () => {
-    // Use libSQL test helper - schema already includes all tables
-    const { adapter } = await createTestLibSQLDb();
-    db = adapter;
-    
-    // Create beads adapter (no migrations needed - schema already set up)
-    beads = createHiveAdapter(db, projectKey);
-  });
+	beforeEach(async () => {
+		// Use libSQL test helper - schema already includes all tables
+		const { adapter } = await createTestLibSQLDb();
+		db = adapter;
 
-  describe("addDependency", () => {
-    test("adds a blocks dependency", async () => {
-      const bead1 = await beads.createCell(projectKey, { title: "Task 1", type: "task", priority: 2 });
-      const bead2 = await beads.createCell(projectKey, { title: "Task 2", type: "task", priority: 2 });
+		// Create beads adapter (no migrations needed - schema already set up)
+		beads = createHiveAdapter(db, projectKey);
+	});
 
-      const dep = await beads.addDependency(projectKey, bead1.id, bead2.id, "blocks");
+	describe("addDependency", () => {
+		test("adds a blocks dependency", async () => {
+			const bead1 = await beads.createCell(projectKey, {
+				title: "Task 1",
+				type: "task",
+				priority: 2,
+			});
+			const bead2 = await beads.createCell(projectKey, {
+				title: "Task 2",
+				type: "task",
+				priority: 2,
+			});
 
-      expect(dep.cell_id).toBe(bead1.id);
-      expect(dep.depends_on_id).toBe(bead2.id);
-      expect(dep.relationship).toBe("blocks");
-    });
+			const dep = await beads.addDependency(
+				projectKey,
+				bead1.id,
+				bead2.id,
+				"blocks",
+			);
 
-    test("prevents self-dependency", async () => {
-      const bead = await beads.createCell(projectKey, { title: "Task", type: "task", priority: 2 });
+			expect(dep.cell_id).toBe(bead1.id);
+			expect(dep.depends_on_id).toBe(bead2.id);
+			expect(dep.relationship).toBe("blocks");
+		});
 
-      await expect(
-        beads.addDependency(projectKey, bead.id, bead.id, "blocks")
-      ).rejects.toThrow(/cannot depend on itself/i);
-    });
+		test("prevents self-dependency", async () => {
+			const bead = await beads.createCell(projectKey, {
+				title: "Task",
+				type: "task",
+				priority: 2,
+			});
 
-    test("prevents direct cycle", async () => {
-      const bead1 = await beads.createCell(projectKey, { title: "Task 1", type: "task", priority: 2 });
-      const bead2 = await beads.createCell(projectKey, { title: "Task 2", type: "task", priority: 2 });
+			await expect(
+				beads.addDependency(projectKey, bead.id, bead.id, "blocks"),
+			).rejects.toThrow(/cannot depend on itself/i);
+		});
 
-      // Add A -> B
-      await beads.addDependency(projectKey, bead1.id, bead2.id, "blocks");
+		test("prevents direct cycle", async () => {
+			const bead1 = await beads.createCell(projectKey, {
+				title: "Task 1",
+				type: "task",
+				priority: 2,
+			});
+			const bead2 = await beads.createCell(projectKey, {
+				title: "Task 2",
+				type: "task",
+				priority: 2,
+			});
 
-      // Try to add B -> A (cycle)
-      await expect(
-        beads.addDependency(projectKey, bead2.id, bead1.id, "blocks")
-      ).rejects.toThrow(/cycle/i);
-    });
+			// Add A -> B
+			await beads.addDependency(projectKey, bead1.id, bead2.id, "blocks");
 
-    test("prevents transitive cycle", async () => {
-      const bead1 = await beads.createCell(projectKey, { title: "Task 1", type: "task", priority: 2 });
-      const bead2 = await beads.createCell(projectKey, { title: "Task 2", type: "task", priority: 2 });
-      const bead3 = await beads.createCell(projectKey, { title: "Task 3", type: "task", priority: 2 });
+			// Try to add B -> A (cycle)
+			await expect(
+				beads.addDependency(projectKey, bead2.id, bead1.id, "blocks"),
+			).rejects.toThrow(/cycle/i);
+		});
 
-      // Add A -> B -> C
-      await beads.addDependency(projectKey, bead1.id, bead2.id, "blocks");
-      await beads.addDependency(projectKey, bead2.id, bead3.id, "blocks");
+		test("prevents transitive cycle", async () => {
+			const bead1 = await beads.createCell(projectKey, {
+				title: "Task 1",
+				type: "task",
+				priority: 2,
+			});
+			const bead2 = await beads.createCell(projectKey, {
+				title: "Task 2",
+				type: "task",
+				priority: 2,
+			});
+			const bead3 = await beads.createCell(projectKey, {
+				title: "Task 3",
+				type: "task",
+				priority: 2,
+			});
 
-      // Try to add C -> A (cycle)
-      await expect(
-        beads.addDependency(projectKey, bead3.id, bead1.id, "blocks")
-      ).rejects.toThrow(/cycle/i);
-    });
+			// Add A -> B -> C
+			await beads.addDependency(projectKey, bead1.id, bead2.id, "blocks");
+			await beads.addDependency(projectKey, bead2.id, bead3.id, "blocks");
 
-    test("allows related dependencies (non-blocking)", async () => {
-      const bead1 = await beads.createCell(projectKey, { title: "Task 1", type: "task", priority: 2 });
-      const bead2 = await beads.createCell(projectKey, { title: "Task 2", type: "task", priority: 2 });
+			// Try to add C -> A (cycle)
+			await expect(
+				beads.addDependency(projectKey, bead3.id, bead1.id, "blocks"),
+			).rejects.toThrow(/cycle/i);
+		});
 
-      const dep = await beads.addDependency(projectKey, bead1.id, bead2.id, "related");
+		test("allows related dependencies (non-blocking)", async () => {
+			const bead1 = await beads.createCell(projectKey, {
+				title: "Task 1",
+				type: "task",
+				priority: 2,
+			});
+			const bead2 = await beads.createCell(projectKey, {
+				title: "Task 2",
+				type: "task",
+				priority: 2,
+			});
 
-      expect(dep.relationship).toBe("related");
-    });
+			const dep = await beads.addDependency(
+				projectKey,
+				bead1.id,
+				bead2.id,
+				"related",
+			);
 
-    test("allows multiple dependency types between same beads", async () => {
-      const bead1 = await beads.createCell(projectKey, { title: "Task 1", type: "task", priority: 2 });
-      const bead2 = await beads.createCell(projectKey, { title: "Task 2", type: "task", priority: 2 });
+			expect(dep.relationship).toBe("related");
+		});
 
-      await beads.addDependency(projectKey, bead1.id, bead2.id, "blocks");
-      await beads.addDependency(projectKey, bead1.id, bead2.id, "related");
+		test("allows multiple dependency types between same beads", async () => {
+			const bead1 = await beads.createCell(projectKey, {
+				title: "Task 1",
+				type: "task",
+				priority: 2,
+			});
+			const bead2 = await beads.createCell(projectKey, {
+				title: "Task 2",
+				type: "task",
+				priority: 2,
+			});
 
-      const deps = await beads.getDependencies(projectKey, bead1.id);
-      expect(deps).toHaveLength(2);
-    });
-  });
+			await beads.addDependency(projectKey, bead1.id, bead2.id, "blocks");
+			await beads.addDependency(projectKey, bead1.id, bead2.id, "related");
 
-  describe("removeDependency", () => {
-    test("removes a dependency", async () => {
-      const bead1 = await beads.createCell(projectKey, { title: "Task 1", type: "task", priority: 2 });
-      const bead2 = await beads.createCell(projectKey, { title: "Task 2", type: "task", priority: 2 });
+			const deps = await beads.getDependencies(projectKey, bead1.id);
+			expect(deps).toHaveLength(2);
+		});
+	});
 
-      await beads.addDependency(projectKey, bead1.id, bead2.id, "blocks");
-      await beads.removeDependency(projectKey, bead1.id, bead2.id, "blocks");
+	describe("removeDependency", () => {
+		test("removes a dependency", async () => {
+			const bead1 = await beads.createCell(projectKey, {
+				title: "Task 1",
+				type: "task",
+				priority: 2,
+			});
+			const bead2 = await beads.createCell(projectKey, {
+				title: "Task 2",
+				type: "task",
+				priority: 2,
+			});
 
-      const deps = await beads.getDependencies(projectKey, bead1.id);
-      expect(deps).toHaveLength(0);
-    });
+			await beads.addDependency(projectKey, bead1.id, bead2.id, "blocks");
+			await beads.removeDependency(projectKey, bead1.id, bead2.id, "blocks");
 
-    test("removes specific relationship type only", async () => {
-      const bead1 = await beads.createCell(projectKey, { title: "Task 1", type: "task", priority: 2 });
-      const bead2 = await beads.createCell(projectKey, { title: "Task 2", type: "task", priority: 2 });
+			const deps = await beads.getDependencies(projectKey, bead1.id);
+			expect(deps).toHaveLength(0);
+		});
 
-      await beads.addDependency(projectKey, bead1.id, bead2.id, "blocks");
-      await beads.addDependency(projectKey, bead1.id, bead2.id, "related");
+		test("removes specific relationship type only", async () => {
+			const bead1 = await beads.createCell(projectKey, {
+				title: "Task 1",
+				type: "task",
+				priority: 2,
+			});
+			const bead2 = await beads.createCell(projectKey, {
+				title: "Task 2",
+				type: "task",
+				priority: 2,
+			});
 
-      await beads.removeDependency(projectKey, bead1.id, bead2.id, "blocks");
+			await beads.addDependency(projectKey, bead1.id, bead2.id, "blocks");
+			await beads.addDependency(projectKey, bead1.id, bead2.id, "related");
 
-      const deps = await beads.getDependencies(projectKey, bead1.id);
-      expect(deps).toHaveLength(1);
-      expect(deps[0].relationship).toBe("related");
-    });
-  });
+			await beads.removeDependency(projectKey, bead1.id, bead2.id, "blocks");
 
-  describe("getDependencies", () => {
-    test("returns dependencies for a bead", async () => {
-      const bead1 = await beads.createCell(projectKey, { title: "Task 1", type: "task", priority: 2 });
-      const bead2 = await beads.createCell(projectKey, { title: "Task 2", type: "task", priority: 2 });
-      const bead3 = await beads.createCell(projectKey, { title: "Task 3", type: "task", priority: 2 });
+			const deps = await beads.getDependencies(projectKey, bead1.id);
+			expect(deps).toHaveLength(1);
+			expect(deps[0].relationship).toBe("related");
+		});
+	});
 
-      await beads.addDependency(projectKey, bead1.id, bead2.id, "blocks");
-      await beads.addDependency(projectKey, bead1.id, bead3.id, "related");
+	describe("getDependencies", () => {
+		test("returns dependencies for a bead", async () => {
+			const bead1 = await beads.createCell(projectKey, {
+				title: "Task 1",
+				type: "task",
+				priority: 2,
+			});
+			const bead2 = await beads.createCell(projectKey, {
+				title: "Task 2",
+				type: "task",
+				priority: 2,
+			});
+			const bead3 = await beads.createCell(projectKey, {
+				title: "Task 3",
+				type: "task",
+				priority: 2,
+			});
 
-      const deps = await beads.getDependencies(projectKey, bead1.id);
-      expect(deps).toHaveLength(2);
-      expect(deps.map(d => d.depends_on_id).sort()).toEqual([bead2.id, bead3.id].sort());
-    });
+			await beads.addDependency(projectKey, bead1.id, bead2.id, "blocks");
+			await beads.addDependency(projectKey, bead1.id, bead3.id, "related");
 
-    test("returns empty array when no dependencies", async () => {
-      const bead = await beads.createCell(projectKey, { title: "Task", type: "task", priority: 2 });
+			const deps = await beads.getDependencies(projectKey, bead1.id);
+			expect(deps).toHaveLength(2);
+			expect(deps.map((d) => d.depends_on_id).sort()).toEqual(
+				[bead2.id, bead3.id].sort(),
+			);
+		});
 
-      const deps = await beads.getDependencies(projectKey, bead.id);
-      expect(deps).toHaveLength(0);
-    });
-  });
+		test("returns empty array when no dependencies", async () => {
+			const bead = await beads.createCell(projectKey, {
+				title: "Task",
+				type: "task",
+				priority: 2,
+			});
 
-  describe("getDependents", () => {
-    test("returns beads that depend on this bead", async () => {
-      const bead1 = await beads.createCell(projectKey, { title: "Task 1", type: "task", priority: 2 });
-      const bead2 = await beads.createCell(projectKey, { title: "Task 2", type: "task", priority: 2 });
-      const bead3 = await beads.createCell(projectKey, { title: "Task 3", type: "task", priority: 2 });
+			const deps = await beads.getDependencies(projectKey, bead.id);
+			expect(deps).toHaveLength(0);
+		});
+	});
 
-      // bead2 and bead3 both depend on bead1
-      await beads.addDependency(projectKey, bead2.id, bead1.id, "blocks");
-      await beads.addDependency(projectKey, bead3.id, bead1.id, "blocks");
+	describe("getDependents", () => {
+		test("returns beads that depend on this bead", async () => {
+			const bead1 = await beads.createCell(projectKey, {
+				title: "Task 1",
+				type: "task",
+				priority: 2,
+			});
+			const bead2 = await beads.createCell(projectKey, {
+				title: "Task 2",
+				type: "task",
+				priority: 2,
+			});
+			const bead3 = await beads.createCell(projectKey, {
+				title: "Task 3",
+				type: "task",
+				priority: 2,
+			});
 
-      const dependents = await beads.getDependents(projectKey, bead1.id);
-      expect(dependents).toHaveLength(2);
-      expect(dependents.map(d => d.cell_id).sort()).toEqual([bead2.id, bead3.id].sort());
-    });
-  });
+			// bead2 and bead3 both depend on bead1
+			await beads.addDependency(projectKey, bead2.id, bead1.id, "blocks");
+			await beads.addDependency(projectKey, bead3.id, bead1.id, "blocks");
 
-  describe("isBlocked", () => {
-    test("returns false when no blocking dependencies", async () => {
-      const bead = await beads.createCell(projectKey, { title: "Task", type: "task", priority: 2 });
+			const dependents = await beads.getDependents(projectKey, bead1.id);
+			expect(dependents).toHaveLength(2);
+			expect(dependents.map((d) => d.cell_id).sort()).toEqual(
+				[bead2.id, bead3.id].sort(),
+			);
+		});
+	});
 
-      const blocked = await beads.isBlocked(projectKey, bead.id);
-      expect(blocked).toBe(false);
-    });
+	describe("isBlocked", () => {
+		test("returns false when no blocking dependencies", async () => {
+			const bead = await beads.createCell(projectKey, {
+				title: "Task",
+				type: "task",
+				priority: 2,
+			});
 
-    test("returns true when bead has open blocking dependency", async () => {
-      const blocker = await beads.createCell(projectKey, { title: "Blocker", type: "task", priority: 2 });
-      const blocked = await beads.createCell(projectKey, { title: "Blocked", type: "task", priority: 2 });
+			const blocked = await beads.isBlocked(projectKey, bead.id);
+			expect(blocked).toBe(false);
+		});
 
-      await beads.addDependency(projectKey, blocked.id, blocker.id, "blocks");
+		test("returns true when bead has open blocking dependency", async () => {
+			const blocker = await beads.createCell(projectKey, {
+				title: "Blocker",
+				type: "task",
+				priority: 2,
+			});
+			const blocked = await beads.createCell(projectKey, {
+				title: "Blocked",
+				type: "task",
+				priority: 2,
+			});
 
-      const isBlocked = await beads.isBlocked(projectKey, blocked.id);
-      expect(isBlocked).toBe(true);
-    });
+			await beads.addDependency(projectKey, blocked.id, blocker.id, "blocks");
 
-    test("returns false when blocking dependency is closed", async () => {
-      const blocker = await beads.createCell(projectKey, { title: "Blocker", type: "task", priority: 2 });
-      const blocked = await beads.createCell(projectKey, { title: "Blocked", type: "task", priority: 2 });
+			const isBlocked = await beads.isBlocked(projectKey, blocked.id);
+			expect(isBlocked).toBe(true);
+		});
 
-      await beads.addDependency(projectKey, blocked.id, blocker.id, "blocks");
-      await beads.closeCell(projectKey, blocker.id, "Done");
+		test("returns false when blocking dependency is closed", async () => {
+			const blocker = await beads.createCell(projectKey, {
+				title: "Blocker",
+				type: "task",
+				priority: 2,
+			});
+			const blocked = await beads.createCell(projectKey, {
+				title: "Blocked",
+				type: "task",
+				priority: 2,
+			});
 
-      // Need to rebuild blocked cache after status change
-      await beads.rebuildBlockedCache(projectKey);
+			await beads.addDependency(projectKey, blocked.id, blocker.id, "blocks");
+			await beads.closeCell(projectKey, blocker.id, "Done");
 
-      const isBlocked = await beads.isBlocked(projectKey, blocked.id);
-      expect(isBlocked).toBe(false);
-    });
+			// Need to rebuild blocked cache after status change
+			await beads.rebuildBlockedCache(projectKey);
 
-    test("returns false for non-blocking dependency types", async () => {
-      const bead1 = await beads.createCell(projectKey, { title: "Task 1", type: "task", priority: 2 });
-      const bead2 = await beads.createCell(projectKey, { title: "Task 2", type: "task", priority: 2 });
+			const isBlocked = await beads.isBlocked(projectKey, blocked.id);
+			expect(isBlocked).toBe(false);
+		});
 
-      await beads.addDependency(projectKey, bead2.id, bead1.id, "related");
+		test("returns false for non-blocking dependency types", async () => {
+			const bead1 = await beads.createCell(projectKey, {
+				title: "Task 1",
+				type: "task",
+				priority: 2,
+			});
+			const bead2 = await beads.createCell(projectKey, {
+				title: "Task 2",
+				type: "task",
+				priority: 2,
+			});
 
-      const isBlocked = await beads.isBlocked(projectKey, bead2.id);
-      expect(isBlocked).toBe(false);
-    });
-  });
+			await beads.addDependency(projectKey, bead2.id, bead1.id, "related");
 
-  describe("getBlockers", () => {
-    test("returns blocker IDs for a bead", async () => {
-      const blocker1 = await beads.createCell(projectKey, { title: "Blocker 1", type: "task", priority: 2 });
-      const blocker2 = await beads.createCell(projectKey, { title: "Blocker 2", type: "task", priority: 2 });
-      const blocked = await beads.createCell(projectKey, { title: "Blocked", type: "task", priority: 2 });
+			const isBlocked = await beads.isBlocked(projectKey, bead2.id);
+			expect(isBlocked).toBe(false);
+		});
+	});
 
-      await beads.addDependency(projectKey, blocked.id, blocker1.id, "blocks");
-      await beads.addDependency(projectKey, blocked.id, blocker2.id, "blocks");
+	describe("getBlockers", () => {
+		test("returns blocker IDs for a bead", async () => {
+			const blocker1 = await beads.createCell(projectKey, {
+				title: "Blocker 1",
+				type: "task",
+				priority: 2,
+			});
+			const blocker2 = await beads.createCell(projectKey, {
+				title: "Blocker 2",
+				type: "task",
+				priority: 2,
+			});
+			const blocked = await beads.createCell(projectKey, {
+				title: "Blocked",
+				type: "task",
+				priority: 2,
+			});
 
-      const blockers = await beads.getBlockers(projectKey, blocked.id);
-      expect(blockers.sort()).toEqual([blocker1.id, blocker2.id].sort());
-    });
+			await beads.addDependency(projectKey, blocked.id, blocker1.id, "blocks");
+			await beads.addDependency(projectKey, blocked.id, blocker2.id, "blocks");
 
-    test("includes transitive blockers", async () => {
-      const blocker1 = await beads.createCell(projectKey, { title: "Blocker 1", type: "task", priority: 2 });
-      const blocker2 = await beads.createCell(projectKey, { title: "Blocker 2", type: "task", priority: 2 });
-      const blocked = await beads.createCell(projectKey, { title: "Blocked", type: "task", priority: 2 });
+			const blockers = await beads.getBlockers(projectKey, blocked.id);
+			expect(blockers.sort()).toEqual([blocker1.id, blocker2.id].sort());
+		});
 
-      // blocker2 blocks blocker1, blocker1 blocks blocked
-      await beads.addDependency(projectKey, blocker1.id, blocker2.id, "blocks");
-      await beads.addDependency(projectKey, blocked.id, blocker1.id, "blocks");
+		test("includes transitive blockers", async () => {
+			const blocker1 = await beads.createCell(projectKey, {
+				title: "Blocker 1",
+				type: "task",
+				priority: 2,
+			});
+			const blocker2 = await beads.createCell(projectKey, {
+				title: "Blocker 2",
+				type: "task",
+				priority: 2,
+			});
+			const blocked = await beads.createCell(projectKey, {
+				title: "Blocked",
+				type: "task",
+				priority: 2,
+			});
 
-      const blockers = await beads.getBlockers(projectKey, blocked.id);
-      // Should include both direct (blocker1) and transitive (blocker2)
-      expect(blockers.sort()).toEqual([blocker1.id, blocker2.id].sort());
-    });
-  });
+			// blocker2 blocks blocker1, blocker1 blocks blocked
+			await beads.addDependency(projectKey, blocker1.id, blocker2.id, "blocks");
+			await beads.addDependency(projectKey, blocked.id, blocker1.id, "blocks");
 
-  describe("rebuildBlockedCache", () => {
-    test("rebuilds blocked cache for all beads", async () => {
-      const blocker = await beads.createCell(projectKey, { title: "Blocker", type: "task", priority: 2 });
-      const blocked1 = await beads.createCell(projectKey, { title: "Blocked 1", type: "task", priority: 2 });
-      const blocked2 = await beads.createCell(projectKey, { title: "Blocked 2", type: "task", priority: 2 });
+			const blockers = await beads.getBlockers(projectKey, blocked.id);
+			// Should include both direct (blocker1) and transitive (blocker2)
+			expect(blockers.sort()).toEqual([blocker1.id, blocker2.id].sort());
+		});
+	});
 
-      await beads.addDependency(projectKey, blocked1.id, blocker.id, "blocks");
-      await beads.addDependency(projectKey, blocked2.id, blocker.id, "blocks");
+	describe("rebuildBlockedCache", () => {
+		test("rebuilds blocked cache for all beads", async () => {
+			const blocker = await beads.createCell(projectKey, {
+				title: "Blocker",
+				type: "task",
+				priority: 2,
+			});
+			const blocked1 = await beads.createCell(projectKey, {
+				title: "Blocked 1",
+				type: "task",
+				priority: 2,
+			});
+			const blocked2 = await beads.createCell(projectKey, {
+				title: "Blocked 2",
+				type: "task",
+				priority: 2,
+			});
 
-      // Close blocker
-      await beads.closeCell(projectKey, blocker.id, "Done");
+			await beads.addDependency(projectKey, blocked1.id, blocker.id, "blocks");
+			await beads.addDependency(projectKey, blocked2.id, blocker.id, "blocks");
 
-      // Rebuild cache
-      await beads.rebuildBlockedCache(projectKey);
+			// Close blocker
+			await beads.closeCell(projectKey, blocker.id, "Done");
 
-      // Both should now be unblocked
-      expect(await beads.isBlocked(projectKey, blocked1.id)).toBe(false);
-      expect(await beads.isBlocked(projectKey, blocked2.id)).toBe(false);
-    });
-  });
+			// Rebuild cache
+			await beads.rebuildBlockedCache(projectKey);
+
+			// Both should now be unblocked
+			expect(await beads.isBlocked(projectKey, blocked1.id)).toBe(false);
+			expect(await beads.isBlocked(projectKey, blocked2.id)).toBe(false);
+		});
+	});
 });

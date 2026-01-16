@@ -41,8 +41,8 @@ import type { Client } from "@libsql/client";
 import { createClient } from "@libsql/client";
 import type { SwarmDb } from "./db/client.js";
 import { createDrizzleClient } from "./db/drizzle.js";
-import type { DatabaseAdapter, QueryResult } from "./types/database.js";
 import { convertPlaceholders } from "./libsql.js";
+import type { DatabaseAdapter, QueryResult } from "./types/database.js";
 
 /** Embedding dimension for mxbai-embed-large */
 const EMBEDDING_DIM = 1024;
@@ -131,17 +131,17 @@ export function createTestDatabaseAdapter(client: Client): DatabaseAdapter {
  * ```
  */
 export async function createTestLibSQLDb(): Promise<{
-  client: Client;
-  db: SwarmDb;
-  adapter: DatabaseAdapter;
+	client: Client;
+	db: SwarmDb;
+	adapter: DatabaseAdapter;
 }> {
-  const client = createClient({ url: ":memory:" });
+	const client = createClient({ url: ":memory:" });
 
-  // ========================================================================
-  // Core Event Store Tables (streams)
-  // ========================================================================
+	// ========================================================================
+	// Core Event Store Tables (streams)
+	// ========================================================================
 
-  await client.execute(`
+	await client.execute(`
     CREATE TABLE IF NOT EXISTS events (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       sequence INTEGER,
@@ -153,21 +153,21 @@ export async function createTestLibSQLDb(): Promise<{
     )
   `);
 
-  await client.execute(`
+	await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_events_project ON events(project_key)
   `);
-  await client.execute(`
+	await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_events_type ON events(type)
   `);
-  await client.execute(`
+	await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_events_sequence ON events(sequence)
   `);
-  await client.execute(`
+	await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_events_timestamp ON events(timestamp)
   `);
-  
-  // Trigger to auto-populate sequence with id value when not provided
-  await client.execute(`
+
+	// Trigger to auto-populate sequence with id value when not provided
+	await client.execute(`
     CREATE TRIGGER IF NOT EXISTS events_sequence_trigger
     AFTER INSERT ON events
     WHEN NEW.sequence IS NULL
@@ -176,11 +176,11 @@ export async function createTestLibSQLDb(): Promise<{
     END
   `);
 
-  // ========================================================================
-  // Agents Table
-  // ========================================================================
+	// ========================================================================
+	// Agents Table
+	// ========================================================================
 
-  await client.execute(`
+	await client.execute(`
     CREATE TABLE IF NOT EXISTS agents (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       project_key TEXT NOT NULL,
@@ -194,15 +194,15 @@ export async function createTestLibSQLDb(): Promise<{
     )
   `);
 
-  await client.execute(`
+	await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_agents_project ON agents(project_key)
   `);
 
-  // ========================================================================
-  // Messages Table
-  // ========================================================================
+	// ========================================================================
+	// Messages Table
+	// ========================================================================
 
-  await client.execute(`
+	await client.execute(`
     CREATE TABLE IF NOT EXISTS messages (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       project_key TEXT NOT NULL,
@@ -216,21 +216,21 @@ export async function createTestLibSQLDb(): Promise<{
     )
   `);
 
-  await client.execute(`
+	await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_messages_project ON messages(project_key)
   `);
-  await client.execute(`
+	await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_messages_thread ON messages(thread_id)
   `);
-  await client.execute(`
+	await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_messages_from ON messages(from_agent)
   `);
 
-  // ========================================================================
-  // Message Recipients
-  // ========================================================================
+	// ========================================================================
+	// Message Recipients
+	// ========================================================================
 
-  await client.execute(`
+	await client.execute(`
     CREATE TABLE IF NOT EXISTS message_recipients (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       message_id INTEGER NOT NULL,
@@ -242,18 +242,18 @@ export async function createTestLibSQLDb(): Promise<{
     )
   `);
 
-  await client.execute(`
+	await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_message_recipients_agent ON message_recipients(agent_name)
   `);
-  await client.execute(`
+	await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_message_recipients_message ON message_recipients(message_id)
   `);
 
-  // ========================================================================
-  // Reservations Table
-  // ========================================================================
+	// ========================================================================
+	// Reservations Table
+	// ========================================================================
 
-  await client.execute(`
+	await client.execute(`
     CREATE TABLE IF NOT EXISTS reservations (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       project_key TEXT NOT NULL,
@@ -267,21 +267,21 @@ export async function createTestLibSQLDb(): Promise<{
     )
   `);
 
-  await client.execute(`
+	await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_reservations_project ON reservations(project_key)
   `);
-  await client.execute(`
+	await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_reservations_agent ON reservations(agent_name)
   `);
-  await client.execute(`
+	await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_reservations_expires ON reservations(expires_at)
   `);
 
-  // ========================================================================
-  // Locks Table
-  // ========================================================================
+	// ========================================================================
+	// Locks Table
+	// ========================================================================
 
-  await client.execute(`
+	await client.execute(`
     CREATE TABLE IF NOT EXISTS locks (
       resource TEXT PRIMARY KEY,
       holder TEXT NOT NULL,
@@ -291,18 +291,18 @@ export async function createTestLibSQLDb(): Promise<{
     )
   `);
 
-  await client.execute(`
+	await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_locks_expires ON locks(expires_at)
   `);
-  await client.execute(`
+	await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_locks_holder ON locks(holder)
   `);
 
-  // ========================================================================
-  // Cursors Table (DurableCursor)
-  // ========================================================================
+	// ========================================================================
+	// Cursors Table (DurableCursor)
+	// ========================================================================
 
-  await client.execute(`
+	await client.execute(`
     CREATE TABLE IF NOT EXISTS cursors (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       stream TEXT NOT NULL,
@@ -313,18 +313,18 @@ export async function createTestLibSQLDb(): Promise<{
     )
   `);
 
-  await client.execute(`
+	await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_cursors_checkpoint ON cursors(checkpoint)
   `);
-  await client.execute(`
+	await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_cursors_stream ON cursors(stream)
   `);
 
-  // ========================================================================
-  // Deferred Table (DurableDeferred)
-  // ========================================================================
+	// ========================================================================
+	// Deferred Table (DurableDeferred)
+	// ========================================================================
 
-  await client.execute(`
+	await client.execute(`
     CREATE TABLE IF NOT EXISTS deferred (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       url TEXT NOT NULL UNIQUE,
@@ -336,21 +336,21 @@ export async function createTestLibSQLDb(): Promise<{
     )
   `);
 
-  await client.execute(`
+	await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_deferred_url ON deferred(url)
   `);
-  await client.execute(`
+	await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_deferred_expires ON deferred(expires_at)
   `);
-  await client.execute(`
+	await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_deferred_resolved ON deferred(resolved)
   `);
 
-  // ========================================================================
-  // Beads/Hive Tables
-  // ========================================================================
+	// ========================================================================
+	// Beads/Hive Tables
+	// ========================================================================
 
-  await client.execute(`
+	await client.execute(`
     CREATE TABLE IF NOT EXISTS beads (
       id TEXT PRIMARY KEY,
       project_key TEXT NOT NULL,
@@ -374,26 +374,26 @@ export async function createTestLibSQLDb(): Promise<{
     )
   `);
 
-  await client.execute(`
+	await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_beads_project ON beads(project_key)
   `);
-  await client.execute(`
+	await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_beads_status ON beads(status)
   `);
-  await client.execute(`
+	await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_beads_type ON beads(type)
   `);
-  await client.execute(`
+	await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_beads_priority ON beads(priority)
   `);
-  await client.execute(`
+	await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_beads_parent ON beads(parent_id)
   `);
-  await client.execute(`
+	await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_beads_project_status ON beads(project_key, status)
   `);
 
-  await client.execute(`
+	await client.execute(`
     CREATE TABLE IF NOT EXISTS bead_dependencies (
       cell_id TEXT NOT NULL,
       depends_on_id TEXT NOT NULL,
@@ -406,14 +406,14 @@ export async function createTestLibSQLDb(): Promise<{
     )
   `);
 
-  await client.execute(`
+	await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_bead_deps_bead ON bead_dependencies(cell_id)
   `);
-  await client.execute(`
+	await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_bead_deps_depends_on ON bead_dependencies(depends_on_id)
   `);
 
-  await client.execute(`
+	await client.execute(`
     CREATE TABLE IF NOT EXISTS bead_labels (
       cell_id TEXT NOT NULL,
       label TEXT NOT NULL,
@@ -423,11 +423,11 @@ export async function createTestLibSQLDb(): Promise<{
     )
   `);
 
-  await client.execute(`
+	await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_bead_labels_label ON bead_labels(label)
   `);
 
-  await client.execute(`
+	await client.execute(`
     CREATE TABLE IF NOT EXISTS bead_comments (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       cell_id TEXT NOT NULL,
@@ -441,11 +441,11 @@ export async function createTestLibSQLDb(): Promise<{
     )
   `);
 
-  await client.execute(`
+	await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_bead_comments_bead ON bead_comments(cell_id)
   `);
 
-  await client.execute(`
+	await client.execute(`
     CREATE TABLE IF NOT EXISTS blocked_beads_cache (
       cell_id TEXT PRIMARY KEY,
       blocker_ids TEXT NOT NULL,
@@ -454,7 +454,7 @@ export async function createTestLibSQLDb(): Promise<{
     )
   `);
 
-  await client.execute(`
+	await client.execute(`
     CREATE TABLE IF NOT EXISTS dirty_beads (
       cell_id TEXT PRIMARY KEY,
       marked_at INTEGER NOT NULL,
@@ -462,19 +462,19 @@ export async function createTestLibSQLDb(): Promise<{
     )
   `);
 
-  // ========================================================================
-  // Cells View (beads → cells compatibility layer)
-  // ========================================================================
+	// ========================================================================
+	// Cells View (beads → cells compatibility layer)
+	// ========================================================================
 
-  await client.execute(`
+	await client.execute(`
     CREATE VIEW IF NOT EXISTS cells AS SELECT * FROM beads
   `);
 
-  await client.execute(`
+	await client.execute(`
     DROP TRIGGER IF EXISTS cells_insert
   `);
 
-  await client.execute(`
+	await client.execute(`
     CREATE TRIGGER cells_insert
       INSTEAD OF INSERT ON cells
       FOR EACH ROW
@@ -488,11 +488,11 @@ export async function createTestLibSQLDb(): Promise<{
     END
   `);
 
-  await client.execute(`
+	await client.execute(`
     DROP TRIGGER IF EXISTS cells_update
   `);
 
-  await client.execute(`
+	await client.execute(`
     CREATE TRIGGER cells_update
       INSTEAD OF UPDATE ON cells
       FOR EACH ROW
@@ -516,11 +516,11 @@ export async function createTestLibSQLDb(): Promise<{
     END
   `);
 
-  await client.execute(`
+	await client.execute(`
     DROP TRIGGER IF EXISTS cells_delete
   `);
 
-  await client.execute(`
+	await client.execute(`
     CREATE TRIGGER cells_delete
       INSTEAD OF DELETE ON cells
       FOR EACH ROW
@@ -529,11 +529,11 @@ export async function createTestLibSQLDb(): Promise<{
     END
   `);
 
-  // ========================================================================
-  // Learning System Tables
-  // ========================================================================
+	// ========================================================================
+	// Learning System Tables
+	// ========================================================================
 
-  await client.execute(`
+	await client.execute(`
     CREATE TABLE IF NOT EXISTS eval_records (
       id TEXT PRIMARY KEY,
       project_key TEXT NOT NULL,
@@ -557,14 +557,14 @@ export async function createTestLibSQLDb(): Promise<{
     )
   `);
 
-  await client.execute(`
+	await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_eval_records_project ON eval_records(project_key)
   `);
-  await client.execute(`
+	await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_eval_records_strategy ON eval_records(strategy)
   `);
 
-  await client.execute(`
+	await client.execute(`
     CREATE TABLE IF NOT EXISTS swarm_contexts (
       id TEXT,
       epic_id TEXT NOT NULL,
@@ -583,18 +583,18 @@ export async function createTestLibSQLDb(): Promise<{
     )
   `);
 
-  await client.execute(`
+	await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_swarm_contexts_project ON swarm_contexts(project_key)
   `);
-  await client.execute(`
+	await client.execute(`
     CREATE UNIQUE INDEX IF NOT EXISTS idx_swarm_contexts_unique ON swarm_contexts(project_key, epic_id, bead_id)
   `);
 
-  // ========================================================================
-  // Memory Tables (with vector support)
-  // ========================================================================
+	// ========================================================================
+	// Memory Tables (with vector support)
+	// ========================================================================
 
-  await client.execute(`
+	await client.execute(`
     CREATE TABLE IF NOT EXISTS memories (
       id TEXT PRIMARY KEY,
       content TEXT NOT NULL,
@@ -606,22 +606,22 @@ export async function createTestLibSQLDb(): Promise<{
     )
   `);
 
-  await client.execute(`
+	await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_memories_collection ON memories(collection)
   `);
 
-  await client.execute(`
+	await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_memories_embedding ON memories(libsql_vector_idx(embedding))
   `);
 
-  // FTS5 virtual table for full-text search
-  await client.execute(`
+	// FTS5 virtual table for full-text search
+	await client.execute(`
     CREATE VIRTUAL TABLE IF NOT EXISTS memories_fts 
     USING fts5(id UNINDEXED, content, content=memories, content_rowid=rowid)
   `);
 
-  // Triggers to keep FTS5 in sync
-  await client.execute(`
+	// Triggers to keep FTS5 in sync
+	await client.execute(`
     CREATE TRIGGER IF NOT EXISTS memories_fts_insert 
     AFTER INSERT ON memories 
     BEGIN
@@ -630,7 +630,7 @@ export async function createTestLibSQLDb(): Promise<{
     END
   `);
 
-  await client.execute(`
+	await client.execute(`
     CREATE TRIGGER IF NOT EXISTS memories_fts_update 
     AFTER UPDATE ON memories 
     BEGIN
@@ -640,7 +640,7 @@ export async function createTestLibSQLDb(): Promise<{
     END
   `);
 
-  await client.execute(`
+	await client.execute(`
     CREATE TRIGGER IF NOT EXISTS memories_fts_delete 
     AFTER DELETE ON memories 
     BEGIN
@@ -648,11 +648,11 @@ export async function createTestLibSQLDb(): Promise<{
     END
   `);
 
-  // ========================================================================
-  // Schema Version Table
-  // ========================================================================
+	// ========================================================================
+	// Schema Version Table
+	// ========================================================================
 
-  await client.execute(`
+	await client.execute(`
     CREATE TABLE IF NOT EXISTS schema_version (
       version INTEGER PRIMARY KEY,
       applied_at INTEGER NOT NULL,
@@ -660,11 +660,11 @@ export async function createTestLibSQLDb(): Promise<{
     )
   `);
 
-  // Wrap client with Drizzle
-  const db = createDrizzleClient(client);
+	// Wrap client with Drizzle
+	const db = createDrizzleClient(client);
 
-  // Create adapter with automatic $N → ? conversion for hive tests
-  const adapter = createTestDatabaseAdapter(client);
+	// Create adapter with automatic $N → ? conversion for hive tests
+	const adapter = createTestDatabaseAdapter(client);
 
-  return { client, db, adapter };
+	return { client, db, adapter };
 }

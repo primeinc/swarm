@@ -21,12 +21,12 @@ const MAX_DEPENDENCY_DEPTH = 100;
  * Only considers "blocks" relationship type.
  */
 export async function getOpenBlockersDrizzle(
-  db: SwarmDb,
-  projectKey: string,
-  cellId: string,
+	db: SwarmDb,
+	projectKey: string,
+	cellId: string,
 ): Promise<string[]> {
-  const result = await db.all<{ blocker_id: string }>(
-    sql`WITH RECURSIVE blockers AS (
+	const result = await db.all<{ blocker_id: string }>(
+		sql`WITH RECURSIVE blockers AS (
        -- Direct blockers
        SELECT depends_on_id as blocker_id, 1 as depth
        FROM bead_dependencies
@@ -44,9 +44,9 @@ export async function getOpenBlockersDrizzle(
      FROM blockers b
      JOIN beads bead ON b.blocker_id = bead.id
      WHERE bead.project_key = ${projectKey} AND bead.status != 'closed' AND bead.deleted_at IS NULL`,
-  );
+	);
 
-  return result.map((r) => r.blocker_id);
+	return result.map((r) => r.blocker_id);
 }
 
 /**
@@ -56,36 +56,36 @@ export async function getOpenBlockersDrizzle(
  * If no open blockers, removes from cache (bead is unblocked).
  */
 export async function rebuildBeadBlockedCacheDrizzle(
-  db: SwarmDb,
-  projectKey: string,
-  cellId: string,
+	db: SwarmDb,
+	projectKey: string,
+	cellId: string,
 ): Promise<void> {
-  const blockerIds = await getOpenBlockersDrizzle(db, projectKey, cellId);
+	const blockerIds = await getOpenBlockersDrizzle(db, projectKey, cellId);
 
-  if (blockerIds.length > 0) {
-    // Has open blockers - insert or update cache
-    // SQLite: serialize array as JSON string
-    const blockerIdsJson = JSON.stringify(blockerIds);
-    await db
-      .insert(blockedBeadsCache)
-      .values({
-        cell_id: cellId,
-        blocker_ids: blockerIdsJson,
-        updated_at: Date.now(),
-      })
-      .onConflictDoUpdate({
-        target: blockedBeadsCache.cell_id,
-        set: {
-          blocker_ids: blockerIdsJson,
-          updated_at: Date.now(),
-        },
-      });
-  } else {
-    // No open blockers - remove from cache
-    await db
-      .delete(blockedBeadsCache)
-      .where(eq(blockedBeadsCache.cell_id, cellId));
-  }
+	if (blockerIds.length > 0) {
+		// Has open blockers - insert or update cache
+		// SQLite: serialize array as JSON string
+		const blockerIdsJson = JSON.stringify(blockerIds);
+		await db
+			.insert(blockedBeadsCache)
+			.values({
+				cell_id: cellId,
+				blocker_ids: blockerIdsJson,
+				updated_at: Date.now(),
+			})
+			.onConflictDoUpdate({
+				target: blockedBeadsCache.cell_id,
+				set: {
+					blocker_ids: blockerIdsJson,
+					updated_at: Date.now(),
+				},
+			});
+	} else {
+		// No open blockers - remove from cache
+		await db
+			.delete(blockedBeadsCache)
+			.where(eq(blockedBeadsCache.cell_id, cellId));
+	}
 }
 
 /**
@@ -94,19 +94,19 @@ export async function rebuildBeadBlockedCacheDrizzle(
  * Rebuilds cache for the cell and all its dependents.
  */
 export async function invalidateBlockedCacheDrizzle(
-  db: SwarmDb,
-  projectKey: string,
-  cellId: string,
+	db: SwarmDb,
+	projectKey: string,
+	cellId: string,
 ): Promise<void> {
-  await rebuildBeadBlockedCacheDrizzle(db, projectKey, cellId);
+	await rebuildBeadBlockedCacheDrizzle(db, projectKey, cellId);
 
-  // Also invalidate dependents (beads that depend on this one)
-  const dependents = await db
-    .select({ cell_id: beadDependencies.cell_id })
-    .from(beadDependencies)
-    .where(eq(beadDependencies.depends_on_id, cellId));
+	// Also invalidate dependents (beads that depend on this one)
+	const dependents = await db
+		.select({ cell_id: beadDependencies.cell_id })
+		.from(beadDependencies)
+		.where(eq(beadDependencies.depends_on_id, cellId));
 
-  for (const row of dependents) {
-    await rebuildBeadBlockedCacheDrizzle(db, projectKey, row.cell_id);
-  }
+	for (const row of dependents) {
+		await rebuildBeadBlockedCacheDrizzle(db, projectKey, row.cell_id);
+	}
 }

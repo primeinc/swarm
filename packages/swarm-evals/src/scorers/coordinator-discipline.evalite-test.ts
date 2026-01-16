@@ -2,7 +2,7 @@
  * Tests for coordinator-discipline scorers
  */
 import { describe, expect, it } from "bun:test";
-import type { CoordinatorSession } from "opencode-swarm-plugin/eval-capture";
+import type { CoordinatorSession } from "swarm/eval-capture";
 import {
 	overallDiscipline,
 

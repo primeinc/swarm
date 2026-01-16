@@ -15,7 +15,7 @@
 import { evalite } from "evalite";
 import { createScorer } from "evalite";
 import { strategySelectionCases } from "./fixtures/strategy-selection.js";
-import { selectStrategy } from "opencode-swarm-plugin";
+import { selectStrategy } from "swarm";
 
 /**
  * Scorer: Validates correct strategy was selected

@@ -32,13 +32,13 @@ const MAX_DEPENDENCY_DEPTH = 100;
  * If yes, adding "cellId depends on dependsOnId" would complete a cycle.
  */
 export async function wouldCreateCycle(
-  db: DatabaseAdapter,
-  cellId: string,
-  dependsOnId: string,
+	db: DatabaseAdapter,
+	cellId: string,
+	dependsOnId: string,
 ): Promise<boolean> {
-  // SQLite-compatible: use COUNT instead of EXISTS which returns boolean
-  const result = await db.query<{ cycle_exists: number }>(
-    `WITH RECURSIVE paths AS (
+	// SQLite-compatible: use COUNT instead of EXISTS which returns boolean
+	const result = await db.query<{ cycle_exists: number }>(
+		`WITH RECURSIVE paths AS (
        -- Start from the target (what we want to depend on)
        SELECT
          cell_id,
@@ -59,10 +59,10 @@ export async function wouldCreateCycle(
        WHERE p.depth < $3
      )
      SELECT COUNT(*) as cycle_exists FROM paths WHERE depends_on_id = $1 LIMIT 1`,
-    [cellId, dependsOnId, MAX_DEPENDENCY_DEPTH],
-  );
+		[cellId, dependsOnId, MAX_DEPENDENCY_DEPTH],
+	);
 
-  return (result.rows[0]?.cycle_exists ?? 0) > 0;
+	return (result.rows[0]?.cycle_exists ?? 0) > 0;
 }
 
 /**
@@ -72,12 +72,12 @@ export async function wouldCreateCycle(
  * Only considers "blocks" relationship type.
  */
 export async function getOpenBlockers(
-  db: DatabaseAdapter,
-  projectKey: string,
-  cellId: string,
+	db: DatabaseAdapter,
+	projectKey: string,
+	cellId: string,
 ): Promise<string[]> {
-  const result = await db.query<{ blocker_id: string }>(
-    `WITH RECURSIVE blockers AS (
+	const result = await db.query<{ blocker_id: string }>(
+		`WITH RECURSIVE blockers AS (
        -- Direct blockers
        SELECT depends_on_id as blocker_id, 1 as depth
        FROM bead_dependencies
@@ -95,10 +95,10 @@ export async function getOpenBlockers(
      FROM blockers b
      JOIN beads bead ON b.blocker_id = bead.id
      WHERE bead.project_key = $2 AND bead.status != 'closed' AND bead.deleted_at IS NULL`,
-    [cellId, projectKey, MAX_DEPENDENCY_DEPTH],
-  );
+		[cellId, projectKey, MAX_DEPENDENCY_DEPTH],
+	);
 
-  return result.rows.map(r => r.blocker_id);
+	return result.rows.map((r) => r.blocker_id);
 }
 
 /**
@@ -108,30 +108,29 @@ export async function getOpenBlockers(
  * If no open blockers, removes from cache (bead is unblocked).
  */
 export async function rebuildBeadBlockedCache(
-  db: DatabaseAdapter,
-  projectKey: string,
-  cellId: string,
+	db: DatabaseAdapter,
+	projectKey: string,
+	cellId: string,
 ): Promise<void> {
-  const blockerIds = await getOpenBlockers(db, projectKey, cellId);
+	const blockerIds = await getOpenBlockers(db, projectKey, cellId);
 
-  if (blockerIds.length > 0) {
-    // Has open blockers - insert or update cache
-    // SQLite: serialize array as JSON string
-    const blockerIdsJson = JSON.stringify(blockerIds);
-    await db.query(
-      `INSERT INTO blocked_beads_cache (cell_id, blocker_ids, updated_at)
+	if (blockerIds.length > 0) {
+		// Has open blockers - insert or update cache
+		// SQLite: serialize array as JSON string
+		const blockerIdsJson = JSON.stringify(blockerIds);
+		await db.query(
+			`INSERT INTO blocked_beads_cache (cell_id, blocker_ids, updated_at)
        VALUES ($1, $2, $3)
        ON CONFLICT (cell_id) 
        DO UPDATE SET blocker_ids = $2, updated_at = $3`,
-      [cellId, blockerIdsJson, Date.now()],
-    );
-  } else {
-    // No open blockers - remove from cache
-    await db.query(
-      `DELETE FROM blocked_beads_cache WHERE cell_id = $1`,
-      [cellId],
-    );
-  }
+			[cellId, blockerIdsJson, Date.now()],
+		);
+	} else {
+		// No open blockers - remove from cache
+		await db.query(`DELETE FROM blocked_beads_cache WHERE cell_id = $1`, [
+			cellId,
+		]);
+	}
 }
 
 /**
@@ -140,21 +139,21 @@ export async function rebuildBeadBlockedCache(
  * Used after bulk operations or status changes that affect blocking.
  */
 export async function rebuildAllBlockedCaches(
-  db: DatabaseAdapter,
-  projectKey: string,
+	db: DatabaseAdapter,
+	projectKey: string,
 ): Promise<void> {
-  // Get all beads with blocking dependencies
-  const result = await db.query<{ id: string }>(
-    `SELECT DISTINCT b.id FROM beads b
+	// Get all beads with blocking dependencies
+	const result = await db.query<{ id: string }>(
+		`SELECT DISTINCT b.id FROM beads b
      JOIN bead_dependencies bd ON b.id = bd.cell_id
      WHERE b.project_key = $1 AND bd.relationship = 'blocks' AND b.deleted_at IS NULL`,
-    [projectKey],
-  );
+		[projectKey],
+	);
 
-  // Rebuild cache for each bead
-  for (const row of result.rows) {
-    await rebuildBeadBlockedCache(db, projectKey, row.id);
-  }
+	// Rebuild cache for each bead
+	for (const row of result.rows) {
+		await rebuildBeadBlockedCache(db, projectKey, row.id);
+	}
 }
 
 /**
@@ -164,19 +163,19 @@ export async function rebuildAllBlockedCaches(
  * In this simple implementation, we just rebuild immediately.
  */
 export async function invalidateBlockedCache(
-  db: DatabaseAdapter,
-  projectKey: string,
-  cellId: string,
+	db: DatabaseAdapter,
+	projectKey: string,
+	cellId: string,
 ): Promise<void> {
-  await rebuildBeadBlockedCache(db, projectKey, cellId);
-  
-  // Also invalidate dependents (beads that depend on this one)
-  const dependents = await db.query<{ cell_id: string }>(
-    `SELECT cell_id FROM bead_dependencies WHERE depends_on_id = $1`,
-    [cellId],
-  );
-  
-  for (const row of dependents.rows) {
-    await rebuildBeadBlockedCache(db, projectKey, row.cell_id);
-  }
+	await rebuildBeadBlockedCache(db, projectKey, cellId);
+
+	// Also invalidate dependents (beads that depend on this one)
+	const dependents = await db.query<{ cell_id: string }>(
+		`SELECT cell_id FROM bead_dependencies WHERE depends_on_id = $1`,
+		[cellId],
+	);
+
+	for (const row of dependents.rows) {
+		await rebuildBeadBlockedCache(db, projectKey, row.cell_id);
+	}
 }

@@ -11,16 +11,22 @@
  */
 
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { createClient, type Client } from "@libsql/client";
+import { type Client, createClient } from "@libsql/client";
 import { convertPlaceholders, type DatabaseAdapter } from "../libsql.js";
 import { createHiveAdapter } from "./adapter.js";
-import { beadsMigrationLibSQL, cellsViewMigrationLibSQL, sessionsMigrationLibSQL } from "./migrations.js";
+import {
+	beadsMigrationLibSQL,
+	cellsViewMigrationLibSQL,
+	sessionsMigrationLibSQL,
+} from "./migrations.js";
 
 /**
  * Wrap libSQL client with DatabaseAdapter interface
  * (Copied from session.integration.test.ts)
  */
-function wrapLibSQL(client: Client): DatabaseAdapter & { getClient: () => Client } {
+function wrapLibSQL(
+	client: Client,
+): DatabaseAdapter & { getClient: () => Client } {
 	return {
 		query: async <T>(sql: string, params?: unknown[]) => {
 			const converted = convertPlaceholders(sql, params);

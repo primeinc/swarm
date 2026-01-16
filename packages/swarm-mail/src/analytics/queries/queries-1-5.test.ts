@@ -6,6 +6,7 @@
  */
 
 import { describe, expect, test } from "bun:test";
+import type { AnalyticsQuery } from "../types.js";
 import {
 	agentActivity,
 	failedDecompositions,
@@ -13,7 +14,6 @@ import {
 	messageLatency,
 	strategySuccessRates,
 } from "./index.js";
-import type { AnalyticsQuery } from "../types.js";
 
 describe("Query 1: failed-decompositions", () => {
 	test("should have correct name and description", () => {

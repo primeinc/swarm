@@ -28,13 +28,13 @@ describe("scopeViolations", () => {
 
 	test("should query events for files touched outside scope", () => {
 		const sql = scopeViolations.sql.toLowerCase();
-		
+
 		// Should query events table
 		expect(sql).toContain("from events");
-		
+
 		// Should look for task completion events
 		expect(sql).toContain("task_completed");
-		
+
 		// Should extract data field (contains files_touched)
 		expect(sql).toContain("data");
 	});
@@ -58,14 +58,14 @@ describe("taskDuration", () => {
 
 	test("should calculate percentiles (p50, p95, p99)", () => {
 		const sql = taskDuration.sql.toLowerCase();
-		
+
 		// Should query events
 		expect(sql).toContain("from events");
-		
+
 		// Should calculate percentiles or use window functions
 		// libSQL doesn't have percentile_cont, so we use NTILE or ORDER BY + LIMIT
 		expect(sql).toMatch(/(ntile|row_number|percent_rank|order by)/);
-		
+
 		// Should look for task start and completion
 		expect(sql).toMatch(/(task_started|task_completed)/);
 	});
@@ -89,13 +89,13 @@ describe("checkpointFrequency", () => {
 
 	test("should count checkpoints per agent", () => {
 		const sql = checkpointFrequency.sql.toLowerCase();
-		
+
 		// Should query events
 		expect(sql).toContain("from events");
-		
+
 		// Should look for checkpoint events
 		expect(sql).toContain("checkpoint_created");
-		
+
 		// Should count by agent
 		expect(sql).toContain("count");
 		expect(sql).toMatch(/(group by|data)/);
@@ -103,7 +103,9 @@ describe("checkpointFrequency", () => {
 
 	test("should support optional project_key filter", () => {
 		if (checkpointFrequency.buildQuery) {
-			const query = checkpointFrequency.buildQuery({ project_key: "test-project" });
+			const query = checkpointFrequency.buildQuery({
+				project_key: "test-project",
+			});
 			expect(query.sql).toContain("?");
 			expect(query.parameters).toBeDefined();
 		}
@@ -120,13 +122,13 @@ describe("recoverySuccess", () => {
 
 	test("should calculate success rate for recovery events", () => {
 		const sql = recoverySuccess.sql.toLowerCase();
-		
+
 		// Should query events
 		expect(sql).toContain("from events");
-		
+
 		// Should look for deferred resolution events
 		expect(sql).toMatch(/(deferred_resolved|deferred_rejected)/);
-		
+
 		// Should calculate rate (percentage or count)
 		expect(sql).toMatch(/(count|sum|case when)/);
 	});
@@ -150,13 +152,13 @@ describe("humanFeedback", () => {
 
 	test("should count approvals vs rejections", () => {
 		const sql = humanFeedback.sql.toLowerCase();
-		
+
 		// Should query events
 		expect(sql).toContain("from events");
-		
+
 		// Should look for review feedback events
 		expect(sql).toContain("review_feedback");
-		
+
 		// Should count by status (approved vs needs_changes)
 		expect(sql).toMatch(/(count|sum|group by|case when)/);
 	});

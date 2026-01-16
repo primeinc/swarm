@@ -23,10 +23,11 @@
  */
 
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { existsSync, rmSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createSwarmMailAdapter } from "./adapter.js";
+import { DbFileOps } from "./db/file-ops.js";
 import { createLibSQLAdapter } from "./libsql.js";
 import { createLibSQLStreamsSchema } from "./streams/libsql-schema.js";
 import type { SwarmMailAdapter } from "./types/adapter.js";
@@ -57,13 +58,9 @@ describe("LibSQL Multi-Connection Safety (Daemon Mode Alternative)", () => {
 		await adapter1.close();
 		await adapter2.close();
 
-		// Cleanup test database (may fail on Windows due to EBUSY - that's OK)
-		try {
-			if (existsSync(testDbPath)) {
-				rmSync(testDbPath, { recursive: true, force: true });
-			}
-		} catch {
-			// Ignore EBUSY errors on Windows - OS will clean up temp files
+		// Cleanup test database with graceful retry pattern for Windows
+		if (existsSync(testDbPath)) {
+			await DbFileOps.remove(testDbPath);
 		}
 	});
 
@@ -88,8 +85,8 @@ describe("LibSQL Multi-Connection Safety (Daemon Mode Alternative)", () => {
 
 	test("message sent via adapter1 is visible in adapter2 inbox", async () => {
 		// Ensure both agents exist
-		await adapter1.registerAgent(projectKey, "sender", { ignoreDuplicates: true });
-		await adapter1.registerAgent(projectKey, "receiver", { ignoreDuplicates: true });
+		await adapter1.registerAgent(projectKey, "sender");
+		await adapter1.registerAgent(projectKey, "receiver");
 
 		// Send message via first connection
 		const sent = await adapter1.sendMessage(
@@ -102,7 +99,9 @@ describe("LibSQL Multi-Connection Safety (Daemon Mode Alternative)", () => {
 		expect(sent.subject).toBe("Test Subject");
 
 		// Check inbox via second connection
-		const inbox = await adapter2.getInbox(projectKey, "receiver", { limit: 10 });
+		const inbox = await adapter2.getInbox(projectKey, "receiver", {
+			limit: 10,
+		});
 		expect(inbox.length).toBeGreaterThan(0);
 
 		const message = inbox.find((m) => m.subject === "Test Subject");
@@ -119,7 +118,7 @@ describe("LibSQL Multi-Connection Safety (Daemon Mode Alternative)", () => {
 		// Lines affected: store.ts:199, 679, 703, 710
 		// Solution: Replace ANY($param) with IN clause or json_each()
 
-		await adapter1.registerAgent(projectKey, "worker-1", { ignoreDuplicates: true });
+		await adapter1.registerAgent(projectKey, "worker-1");
 
 		// Reserve files via first connection
 		const reserved = await adapter1.reserveFiles(
@@ -134,19 +133,21 @@ describe("LibSQL Multi-Connection Safety (Daemon Mode Alternative)", () => {
 		const reservations = await adapter2.getActiveReservations(projectKey);
 		expect(reservations.length).toBeGreaterThan(0);
 
-		const workerReservations = reservations.filter((r) => r.agent_name === "worker-1");
+		const workerReservations = reservations.filter(
+			(r) => r.agent_name === "worker-1",
+		);
 		expect(workerReservations.length).toBeGreaterThan(0);
 
 		// Should include our reserved paths
-		const allPaths = workerReservations.flatMap((r) => r.paths || []);
+		const allPaths = workerReservations.flatMap((r) => (r as any).paths || []);
 		expect(allPaths).toContain("src/test.ts");
 		expect(allPaths).toContain("src/util.ts");
 	});
 
 	test("concurrent writes do not corrupt database", async () => {
 		// Register test agents
-		await adapter1.registerAgent(projectKey, "concurrent-1", { ignoreDuplicates: true });
-		await adapter2.registerAgent(projectKey, "concurrent-2", { ignoreDuplicates: true });
+		await adapter1.registerAgent(projectKey, "concurrent-1");
+		await adapter2.registerAgent(projectKey, "concurrent-2");
 
 		// Perform concurrent writes
 		const [msg1, msg2] = await Promise.all([

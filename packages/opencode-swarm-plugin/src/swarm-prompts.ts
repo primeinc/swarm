@@ -1354,15 +1354,12 @@ export async function getPromptInsights(
 async function getCoordinatorInsights(project_key?: string): Promise<string> {
   try {
     // Import swarm-mail and swarm-insights modules
-    const { createLibSQLAdapter, createSwarmMailAdapter, getGlobalDbPath } = await import("swarm-mail");
+    // Use getSwarmMailLibSQL which uses cached adapter (no connection leak)
+    const { getSwarmMailLibSQL } = await import("swarm-mail");
     const { getStrategyInsights, getPatternInsights, formatInsightsForPrompt } = await import("./swarm-insights.js");
     
-    // Create libSQL database adapter using global DB path
-    const globalDbPath = getGlobalDbPath();
-    const dbAdapter = await createLibSQLAdapter({ url: `file:${globalDbPath}` });
-    
-    // Create swarm-mail adapter with database
-    const adapter = createSwarmMailAdapter(dbAdapter, project_key || "default");
+    // Use cached adapter via getSwarmMailLibSQL (singleton per project_key)
+    const adapter = await getSwarmMailLibSQL(project_key);
     
     // Query insights from the new data layer
     const [strategies, patterns] = await Promise.all([
@@ -1406,7 +1403,7 @@ async function getWorkerInsights(
 ): Promise<string> {
   try {
     // Import swarm-mail and swarm-insights modules
-    const { createLibSQLAdapter, createSwarmMailAdapter, getGlobalDbPath } = await import("swarm-mail");
+    const { getSwarmMailLibSQL } = await import("swarm-mail");
     const { getFileInsights, getFileFailureHistory, formatInsightsForPrompt, formatFileHistoryWarnings } = await import("./swarm-insights.js");
     const memoryAdapter = await getMemoryAdapter();
     
@@ -1424,15 +1421,16 @@ async function getWorkerInsights(
       return ""; // No context to query
     }
     
+    // Get cached adapter ONCE - shared by both insight queries
+    // This avoids creating 2 new connections per call (was leaking 4+ connections/agent-step)
+    const swarmMail = await getSwarmMailLibSQL();
+    
     // Query BOTH event store (via swarm-insights) AND semantic memory
     const [fileInsights, fileFailureHistory, memoryResult] = await Promise.all([
       // Get file-specific insights from event store
       (async () => {
         if (!files || files.length === 0) return [];
         try {
-          const globalDbPath = getGlobalDbPath();
-          const dbAdapter = await createLibSQLAdapter({ url: `file:${globalDbPath}` });
-          const swarmMail = createSwarmMailAdapter(dbAdapter, "default");
           return await getFileInsights(swarmMail, files);
         } catch (e) {
           console.warn("Failed to get file insights from event store:", e);
@@ -1444,9 +1442,6 @@ async function getWorkerInsights(
       (async () => {
         if (!files || files.length === 0) return [];
         try {
-          const globalDbPath = getGlobalDbPath();
-          const dbAdapter = await createLibSQLAdapter({ url: `file:${globalDbPath}` });
-          const swarmMail = createSwarmMailAdapter(dbAdapter, "default");
           return await getFileFailureHistory(swarmMail, files);
         } catch (e) {
           console.warn("Failed to get file failure history from event store:", e);

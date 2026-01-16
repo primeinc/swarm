@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { normalize } from "swarm-cross-path";
 
 /**
  * Detects if a path is inside a git worktree.
@@ -38,7 +39,7 @@ export function isWorktree(path: string): boolean {
  */
 export function getMainRepoPath(path: string): string {
 	if (!isWorktree(path)) {
-		return path;
+		return normalize(path);
 	}
 
 	const gitFilePath = join(path, ".git");
@@ -60,17 +61,20 @@ export function getMainRepoPath(path: string): string {
 	// 1: <name> -> worktrees, 2: worktrees -> .git, 3: .git -> main
 	const mainRepoPath = resolve(gitdirPath, "..", "..", "..");
 
-	return mainRepoPath;
+	return normalize(mainRepoPath);
 }
 
 /**
- * Resolves the database path, ensuring all worktrees use the main repo's DB.
+ * Resolves the database path to the main repository for consistent access across worktrees.
  *
- * @param path - Path to worktree or main repo
- * @param filename - Database filename (default: "swarm.db")
- * @returns Absolute path to database file in the main repository's .opencode directory
+ * @param path - Current path
+ * @param relativeDbPath - Path to database relative to repo root (default: .opencode/swarm.db)
+ * @returns Absolute path to the database in the main repository
  */
-export function resolveDbPath(path: string, filename = "swarm.db"): string {
-	const mainRepoPath = getMainRepoPath(path);
-	return join(mainRepoPath, ".opencode", filename);
+export function resolveDbPath(
+	path: string,
+	relativeDbPath = ".opencode/swarm.db",
+): string {
+	const mainPath = getMainRepoPath(path);
+	return normalize(join(mainPath, relativeDbPath));
 }

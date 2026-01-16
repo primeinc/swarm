@@ -966,7 +966,7 @@ describe("beads integration", () => {
       const { mkdirSync, rmSync, writeFileSync } = await import("node:fs");
       const { join } = await import("node:path");
       const { tmpdir } = await import("node:os");
-      const { normalize: normalizePath } = await import("@primeinc/cross-path");
+      const { normalize: normalizePath } = await import("swarm-cross-path");
 
       // Create temp project with .beads directory only
       const tempProject = join(tmpdir(), `hive-migration-test-${Date.now()}`);
