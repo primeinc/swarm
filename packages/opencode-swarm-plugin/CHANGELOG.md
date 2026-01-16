@@ -1,5 +1,33 @@
 # opencode-swarm-plugin
 
+## 0.57.13
+
+### Patch Changes
+
+- ## 🐝 Global Terminology Migration: Bead → Cell
+
+  The codebase has been systematically updated to use the "Hive/Cell" metaphor across all systems.
+
+  **What changed:**
+
+  - Renamed all occurrences of "bead" to "cell" in schemas, types, and logic.
+  - Updated `swarm` CLI to support `hive` command (aliased to `cells`).
+  - Database migration (Version 10) renames legacy tables (`bead_*` → `cell_*`) and columns.
+  - Standardized Epic hierarchy: Hive → Epic → Cell.
+
+  **Why it matters:**
+
+  - Provides a clearer, more scalable mental model for multi-agent coordination.
+  - Aligns with the "Hivemind" unified memory system architecture.
+  - Improves consistency between CLI, database, and internal logic.
+
+  "The swarm is the coordinator, the hive is the memory."
+
+- Updated dependencies
+- Updated dependencies [96aea82]
+  - swarm-mail@1.10.7
+  - swarm-cross-path@1.1.0
+
 ## 0.57.6
 
 ### Patch Changes
