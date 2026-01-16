@@ -1626,22 +1626,21 @@ import { appendEvent, readEvents } from "./store-drizzle.js";
 import { clearAdapterCache } from "./store.js";
 
 describe("appendEvent persistence to libSQL", () => {
+  // Use unique projectKey per test run to avoid pollution from previous runs
+  const testRunId = Date.now();
+
   afterEach(async () => {
-    // Clean up test database
+    // Clean up adapter cache
     clearAdapterCache();
-    try {
-      await rm(getDatabasePath("/tmp/test-persistence"), { force: true });
-    } catch {
-      // Ignore cleanup errors
-    }
   });
 
   it("appendEvent writes to libSQL and persists across calls", async () => {
     const projectPath = "/tmp/test-persistence";
-    
+    const projectKey = `test-project-persist-${testRunId}`;
+
     // Create and append an event
     const event = createEvent("agent_registered", {
-      project_key: "test-project",
+      project_key: projectKey,
       agent_name: "PersistenceTestAgent",
       program: "opencode",
       model: "claude-sonnet-4",
@@ -1658,8 +1657,8 @@ describe("appendEvent persistence to libSQL", () => {
 
     // Read back from database to verify persistence
     const readResult = await readEvents(
-      { 
-        projectKey: "test-project",
+      {
+        projectKey: projectKey,
         types: ["agent_registered"]
       },
       projectPath
@@ -1673,10 +1672,11 @@ describe("appendEvent persistence to libSQL", () => {
 
   it("verifies database is file-based, not in-memory", async () => {
     const projectPath = "/tmp/test-persistence";
-    
+    const projectKey = `test-project-filebased-${testRunId}`;
+
     // Append event
     const event = createEvent("agent_registered", {
-      project_key: "test-project",
+      project_key: projectKey,
       agent_name: "FilePersistenceAgent",
       program: "opencode",
       model: "claude-sonnet-4",
@@ -1689,7 +1689,7 @@ describe("appendEvent persistence to libSQL", () => {
 
     // Read from a fresh connection - should still see the event
     const readResult = await readEvents(
-      { projectKey: "test-project" },
+      { projectKey: projectKey },
       projectPath
     );
 
@@ -1699,13 +1699,14 @@ describe("appendEvent persistence to libSQL", () => {
 
   it("appendEvent uses Drizzle ORM, not raw SQL", async () => {
     const projectPath = "/tmp/test-persistence";
-    
+    const projectKey = `test-project-drizzle-${testRunId}`;
+
     // The appendEvent function in store-drizzle.ts uses:
     // db.insert(eventsTable).values(...).returning(...)
     // This is Drizzle's query builder, not raw SQL
     
     const event = createEvent("message_sent", {
-      project_key: "test-project",
+      project_key: projectKey,
       from_agent: "Agent1",
       to_agents: ["Agent2"],
       subject: "Test message",
@@ -1719,9 +1720,9 @@ describe("appendEvent persistence to libSQL", () => {
     // If Drizzle ORM is working, we should get id and sequence back
     expect(result.id).toBeTypeOf("number");
     expect(result.sequence).toBeTypeOf("number");
-    
+
     // Verify materialized views were updated (Drizzle's updateMaterializedViewsDrizzle)
-    const events = await readEvents({ projectKey: "test-project" }, projectPath);
+    const events = await readEvents({ projectKey: projectKey }, projectPath);
     expect(events).toHaveLength(1);
     expect(events[0]?.type).toBe("message_sent");
   });
@@ -1729,9 +1730,10 @@ describe("appendEvent persistence to libSQL", () => {
   it("verifies database path resolves correctly", async () => {
     // NEW BEHAVIOR: Database is always at global path ~/.config/swarm-tools/swarm.db
     const projectPath = "/tmp/test-persistence";
-    
+    const projectKey = `test-project-path-${testRunId}`;
+
     const event = createEvent("agent_registered", {
-      project_key: "test-project",
+      project_key: projectKey,
       agent_name: "PathTestAgent",
       program: "opencode",
       model: "claude-sonnet-4",
@@ -1746,16 +1748,17 @@ describe("appendEvent persistence to libSQL", () => {
 
   it("appendEvent increments sequence number", async () => {
     const projectPath = "/tmp/test-persistence";
-    
+    const projectKey = `test-project-sequence-${testRunId}`;
+
     const event1 = createEvent("agent_registered", {
-      project_key: "test-project",
+      project_key: projectKey,
       agent_name: "Agent1",
       program: "opencode",
       model: "claude-sonnet-4",
     });
 
     const event2 = createEvent("agent_registered", {
-      project_key: "test-project",
+      project_key: projectKey,
       agent_name: "Agent2",
       program: "opencode",
       model: "claude-sonnet-4",
@@ -1766,9 +1769,9 @@ describe("appendEvent persistence to libSQL", () => {
 
     // Sequence should increment
     expect(result2.sequence).toBe(result1.sequence + 1);
-    
+
     // Both events should be in database
-    const allEvents = await readEvents({ projectKey: "test-project" }, projectPath);
+    const allEvents = await readEvents({ projectKey: projectKey }, projectPath);
     expect(allEvents).toHaveLength(2);
   });
 });

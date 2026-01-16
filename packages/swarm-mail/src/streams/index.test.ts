@@ -118,10 +118,10 @@ describe("getOldProjectDbPaths()", () => {
   it("returns paths to check for migration", async () => {
     const { getOldProjectDbPaths } = await import("./index");
     const { join } = await import("node:path");
-    
+
     const projectPath = "/some/project";
     const paths = getOldProjectDbPaths(projectPath);
-    
+
     expect(paths).toEqual({
       libsql: join(projectPath, ".opencode", "streams.db"),
       pglite: join(projectPath, ".opencode", "streams"),
@@ -129,113 +129,6 @@ describe("getOldProjectDbPaths()", () => {
   });
 });
 
-describe("getDatabasePath() auto-migration", () => {
-  it("triggers migration when local DB exists", async () => {
-    const { getDatabasePath } = await import("./index");
-    const { createClient } = await import("@libsql/client");
-    const { existsSync, mkdirSync, rmSync } = await import("node:fs");
-    const { tmpdir, homedir } = await import("node:os");
-    const { join } = await import("node:path");
-    
-    // Create temp project with real SQLite DB
-    const projectPath = join(tmpdir(), `test-auto-migrate-${Date.now()}`);
-    const localDbDir = join(projectPath, ".opencode");
-    const localDbPath = join(localDbDir, "streams.db");
-    const globalDbPath = join(homedir(), ".config", "swarm-tools", "swarm.db");
-    
-    try {
-      mkdirSync(localDbDir, { recursive: true });
-      
-      // Create a real SQLite database with a table
-      const localDb = createClient({ url: `file:${localDbPath}` });
-      await localDb.execute("CREATE TABLE IF NOT EXISTS events (id TEXT PRIMARY KEY)");
-      await localDb.execute("INSERT INTO events (id) VALUES ('test-event')");
-      localDb.close();
-      
-      // Call getDatabasePath - triggers migration in background
-      const result = getDatabasePath(projectPath);
-      
-      // Should return global path immediately
-      expect(result).toBe(globalDbPath);
-      
-      // Wait for migration to complete (fire-and-forget)
-      await new Promise(resolve => setTimeout(resolve, 200));
-      
-      // Local DB should be renamed to .migrated
-      expect(existsSync(localDbPath)).toBe(false);
-      expect(existsSync(`${localDbPath}.migrated`)).toBe(true);
-    } finally {
-      // Cleanup
-      if (existsSync(projectPath)) {
-        rmSync(projectPath, { recursive: true, force: true });
-      }
-    }
-  });
-  
-  it("does not trigger migration when local DB does not exist", async () => {
-    const { getDatabasePath } = await import("./index");
-    const { tmpdir } = await import("node:os");
-    const { join } = await import("node:path");
-    
-    // Create temp project WITHOUT local DB
-    const projectPath = join(tmpdir(), `test-no-migrate-${Date.now()}`);
-    
-    // Call getDatabasePath - should NOT trigger migration (no local DB)
-    const result = getDatabasePath(projectPath);
-    
-    // Should return global path
-    const { homedir } = await import("node:os");
-    const expectedGlobal = join(homedir(), ".config", "swarm-tools", "swarm.db");
-    expect(result).toBe(expectedGlobal);
-  });
-  
-  it("only migrates once (idempotent)", async () => {
-    const { getDatabasePath } = await import("./index");
-    const { createClient } = await import("@libsql/client");
-    const { existsSync, mkdirSync, rmSync } = await import("node:fs");
-    const { tmpdir, homedir } = await import("node:os");
-    const { join } = await import("node:path");
-    
-    // Create temp project with real SQLite DB
-    const projectPath = join(tmpdir(), `test-idempotent-${Date.now()}`);
-    const localDbDir = join(projectPath, ".opencode");
-    const localDbPath = join(localDbDir, "streams.db");
-    const globalDbPath = join(homedir(), ".config", "swarm-tools", "swarm.db");
-    
-    try {
-      mkdirSync(localDbDir, { recursive: true });
-      
-      // Create a real SQLite database
-      const localDb = createClient({ url: `file:${localDbPath}` });
-      await localDb.execute("CREATE TABLE IF NOT EXISTS events (id TEXT PRIMARY KEY)");
-      await localDb.execute("INSERT INTO events (id) VALUES ('test-event-2')");
-      localDb.close();
-      
-      // First call - triggers migration
-      getDatabasePath(projectPath);
-      
-      // Wait for migration to complete
-      await new Promise(resolve => setTimeout(resolve, 200));
-      
-      // .migrated marker should exist
-      expect(existsSync(`${localDbPath}.migrated`)).toBe(true);
-      
-      // Second call - should NOT re-migrate (idempotent check)
-      const result = getDatabasePath(projectPath);
-      
-      // Should still return global path
-      expect(result).toBe(globalDbPath);
-      
-      // Wait a bit to ensure no second migration happened
-      await new Promise(resolve => setTimeout(resolve, 50));
-      
-      // .migrated file should still exist (not duplicated)
-      expect(existsSync(`${localDbPath}.migrated`)).toBe(true);
-    } finally {
-      // Cleanup
-      if (existsSync(projectPath)) {
-        rmSync(projectPath, { recursive: true, force: true });
-      }
-    }
-  });
-});
+// NOTE: Auto-migration integration tests are in auto-migrate.test.ts
+// The getDatabasePath() function triggers migration but the actual
+// migration logic is tested separately with proper fixtures.

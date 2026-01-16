@@ -36,6 +36,40 @@ import { join } from "node:path";
 import { createLibSQLAdapter } from "../libsql.js";
 import { migratePGliteToLibSQL } from "../migrate-pglite-to-libsql.js";
 import { createLibSQLStreamsSchema } from "./libsql-schema.js";
+import { log } from "../debug.js";
+
+/**
+ * Retry renameSync with exponential backoff for Windows file locking issues.
+ * Windows may not immediately release file handles after close().
+ */
+function renameSyncWithRetry(
+	oldPath: string,
+	newPath: string,
+	maxRetries = 5,
+	initialDelayMs = 50
+): void {
+	let lastError: unknown;
+	for (let attempt = 0; attempt < maxRetries; attempt++) {
+		try {
+			renameSync(oldPath, newPath);
+			return; // Success
+		} catch (err: unknown) {
+			lastError = err;
+			const isEBUSY = err instanceof Error &&
+				(err.message.includes("EBUSY") || (err as NodeJS.ErrnoException).code === "EBUSY");
+			if (!isEBUSY || attempt === maxRetries - 1) {
+				throw err; // Re-throw if not EBUSY or last attempt
+			}
+			// Exponential backoff: 50ms, 100ms, 200ms, 400ms, 800ms
+			const delay = initialDelayMs * Math.pow(2, attempt);
+			// Synchronous sleep using Atomics (works in Node.js)
+			const sharedBuffer = new SharedArrayBuffer(4);
+			const int32 = new Int32Array(sharedBuffer);
+			Atomics.wait(int32, 0, 0, delay);
+		}
+	}
+	throw lastError;
+}
 
 // ============================================================================
 // Types
@@ -752,7 +786,8 @@ export async function migrateLocalDbToGlobal(
 	globalDb.close();
 
 	// After successful migration, rename local DB to .migrated
-	renameSync(localDbPath, migratedPath);
+	// Use retry logic for Windows where file handles may not be immediately released
+	renameSyncWithRetry(localDbPath, migratedPath);
 
 	return stats;
 }
@@ -779,7 +814,8 @@ export function backupOldDb(path: string): string {
 	const timestamp = new Date().toISOString().replace(/:/g, "-"); // Windows-safe
 	const backupPath = `${path}.backup-${timestamp}`;
 
-	renameSync(path, backupPath);
+	// Use retry logic for Windows where file handles may not be immediately released
+	renameSyncWithRetry(path, backupPath);
 
 	return backupPath;
 }

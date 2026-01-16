@@ -18,6 +18,7 @@ export type {
 // Core normalization functions
 export {
   normalize,
+  normalizePaths,
   normalizeProjectKey,
   analyze,
 } from './normalize.js';

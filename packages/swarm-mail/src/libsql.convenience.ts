@@ -36,6 +36,7 @@ import { warnPGliteDeprecation } from "./pglite.js";
 import { createLibSQLStreamsSchema } from "./streams/libsql-schema.js";
 import type { SwarmMailAdapter } from "./types/adapter.js";
 import type { DatabaseAdapter } from "./types/database.js";
+import { normalizeProjectKey } from "@primeinc/cross-path";
 
 /**
  * Global singleton instances cache

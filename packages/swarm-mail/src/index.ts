@@ -15,7 +15,9 @@
  * ```
  */
 
-export const SWARM_MAIL_VERSION = "1.10.1";
+// Re-export version from version.ts which reads from package.json at runtime
+// This prevents version drift between package.json and the exported constant
+export { SWARM_MAIL_VERSION } from "./version";
 
 // ============================================================================
 // Debug Logging
@@ -51,10 +53,10 @@ export type { LibSQLConfig } from "./libsql";
 export { createLibSQLAdapter } from "./libsql";
 
 // ============================================================================
-// Path Normalization Utilities
+// Path Normalization Utilities (re-exported from @primeinc/cross-path)
 // ============================================================================
 
-export { normalizePath, normalizeProjectKey } from "./utils/normalize-path";
+export { normalize as normalizePath, normalizeProjectKey } from "@primeinc/cross-path";
 
 // LibSQL Convenience Layer
 export {

@@ -392,3 +392,21 @@ export function analyze(inputPath: string, options?: NormalizeOptions): PathInfo
     driveLetter,
   };
 }
+
+/**
+ * Normalize an array of paths.
+ * Convenience function for batch operations.
+ *
+ * @param paths - Array of paths to normalize
+ * @param options - Optional normalization options (applied to all paths)
+ * @returns Array of normalized canonical paths
+ *
+ * @example
+ * ```ts
+ * normalizePaths(['C:\\Users\\will', 'D:\\Projects']);
+ * // Returns: ['c:/users/will', 'd:/projects']
+ * ```
+ */
+export function normalizePaths(paths: string[], options?: NormalizeOptions): CanonicalPath[] {
+  return paths.map(p => normalize(p, options));
+}

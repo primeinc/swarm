@@ -57,9 +57,13 @@ describe("LibSQL Multi-Connection Safety (Daemon Mode Alternative)", () => {
 		await adapter1.close();
 		await adapter2.close();
 
-		// Cleanup test database
-		if (existsSync(testDbPath)) {
-			rmSync(testDbPath, { recursive: true, force: true });
+		// Cleanup test database (may fail on Windows due to EBUSY - that's OK)
+		try {
+			if (existsSync(testDbPath)) {
+				rmSync(testDbPath, { recursive: true, force: true });
+			}
+		} catch {
+			// Ignore EBUSY errors on Windows - OS will clean up temp files
 		}
 	});
 

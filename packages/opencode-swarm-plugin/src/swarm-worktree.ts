@@ -18,7 +18,7 @@ import { tool } from "@opencode-ai/plugin";
 import { z } from "zod";
 import { join, sep } from "node:path";
 import { existsSync } from "node:fs";
-import { normalizePath } from "./utils/normalize-path";
+import { normalize as normalizePath } from "@primeinc/cross-path";
 
 
 // ============================================================================

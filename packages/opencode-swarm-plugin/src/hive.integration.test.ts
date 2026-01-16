@@ -966,17 +966,17 @@ describe("beads integration", () => {
       const { mkdirSync, rmSync, writeFileSync } = await import("node:fs");
       const { join } = await import("node:path");
       const { tmpdir } = await import("node:os");
-      const { normalizePath } = await import("./utils/normalize-path");
-      
+      const { normalize: normalizePath } = await import("@primeinc/cross-path");
+
       // Create temp project with .beads directory only
       const tempProject = join(tmpdir(), `hive-migration-test-${Date.now()}`);
       const beadsDir = join(tempProject, ".beads");
-      
+
       mkdirSync(beadsDir, { recursive: true });
       writeFileSync(join(beadsDir, "issues.jsonl"), '{"id":"bd-test","title":"Test"}');
-      
+
       const result = checkBeadsMigrationNeeded(tempProject);
-      
+
       expect(result.needed).toBe(true);
       // Normalize both paths since checkBeadsMigrationNeeded returns normalized paths
       expect(normalizePath(result.beadsPath!)).toBe(normalizePath(beadsDir));
@@ -1110,16 +1110,13 @@ describe("beads integration", () => {
 
   describe("importJsonlToPGLite", () => {
     beforeEach(async () => {
-      // Clear adapter cache before each test to ensure isolated database per test
+      // Clear hive adapter cache before each test
+      // NOTE: We intentionally do NOT call closeSwarmMailLibSQL() here because:
+      // 1. All SwarmMailAdapters share a single global DatabaseAdapter (store.ts caches at "global")
+      // 2. Closing it here would break other test files running in parallel
+      // 3. The clearHiveAdapterCache() is sufficient for hive.ts layer isolation
       const { clearHiveAdapterCache } = await import("./hive");
-      const { closeSwarmMailLibSQL } = await import("swarm-mail");
       clearHiveAdapterCache();
-      // Close any open connections
-      try {
-        await closeSwarmMailLibSQL();
-      } catch {
-        // Ignore if not initialized
-      }
     });
 
     it("imports empty JSONL - no-op", async () => {

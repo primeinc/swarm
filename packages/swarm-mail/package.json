@@ -1,6 +1,6 @@
 {
   "name": "swarm-mail",
-  "version": "1.10.2",
+  "version": "1.10.3",
   "description": "Event sourcing primitives for multi-agent coordination. Local-first, no external servers.",
   "type": "module",
   "main": "./dist/index.js",
@@ -38,6 +38,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@primeinc/cross-path": "workspace:*",
     "@ai-sdk/anthropic": "^1.0.0",
     "@huggingface/transformers": "^3.8.1",
     "@libsql/client": "^0.15.15",

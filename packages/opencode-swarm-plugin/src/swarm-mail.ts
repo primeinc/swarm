@@ -32,7 +32,7 @@ import {
   type MailSessionState,
 } from "swarm-mail";
 import { isInCoordinatorContext } from "./planning-guardrails.js";
-import { normalizePath, normalizePaths } from "./utils/normalize-path.js";
+import { normalize as normalizePath, normalizePaths } from "@primeinc/cross-path";
 import {
   existsSync,
 
@@ -667,7 +667,7 @@ export const swarmmail_release = tool({
         // When releasing by paths, find the reservation IDs that match those paths
         const releasedIds = currentReservations
           .filter((r: { path_pattern: string }) =>
-            normalizedPaths.includes(r.path_pattern),
+            normalizedPaths.some(p => p === r.path_pattern),
           )
           .map((r: { id: number }) => r.id);
         state.reservations = state.reservations.filter(

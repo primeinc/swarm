@@ -26,7 +26,7 @@ import {
   resolvePartialId,
   findCellsByPartialId,
 } from "swarm-mail";
-import { normalizePath } from "./utils/normalize-path";
+import { normalize as normalizePath } from "@primeinc/cross-path";
 import {
   normalizeCreateArgs,
   normalizeUpdateArgs,
