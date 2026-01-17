@@ -1,6 +1,5 @@
 {
-	"name": "@swarmtools/web",
-	"private": true,
+	"name": "swarm-docs",
 	"scripts": {
 		"postinstall": "fumadocs-mdx && bun run scripts/normalize-paths.ts",
 		"dev": "next dev --turbopack --port 7976",
