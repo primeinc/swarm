@@ -1,5 +1,11 @@
 # claude-code-swarm-plugin
 
+## 0.58.3
+
+### Patch Changes
+
+- Fix: Improve CLI path resolution for global installs and remove redundant package.json copying.
+
 ## 0.58.2
 
 ### Patch Changes

@@ -116,13 +116,13 @@ import { session } from "./commands/session.js";
 import { tree } from "./commands/tree.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-// When running from bin/swarm.ts, go up one level to find package.json
-// When bundled to dist/bin/swarm.js, go up two levels
-const pkgPath = existsSync(join(__dirname, "..", "package.json"))
-	? join(__dirname, "..", "package.json")
-	: join(__dirname, "..", "..", "package.json");
+// PACKAGE_ROOT detection that works for both dev (bin/swarm.ts) and bundled (dist/bin/swarm.js)
+const PACKAGE_ROOT =
+	basename(__dirname) === "bin" && dirname(__dirname).endsWith("dist")
+		? resolve(__dirname, "..", "..") // dist/bin -> root
+		: resolve(__dirname, ".."); // bin -> root
+
 const VERSION: string = packageJson.version;
-const PACKAGE_ROOT = dirname(pkgPath);
 const CLAUDE_PLUGIN_NAME = "swarm";
 
 // ============================================================================

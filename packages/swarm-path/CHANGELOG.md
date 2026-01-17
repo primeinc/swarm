@@ -1,5 +1,11 @@
 # swarm-cross-path
 
+## 1.2.4
+
+### Patch Changes
+
+- Fix: Improve CLI path resolution for global installs and remove redundant package.json copying.
+
 ## 1.2.3
 
 ### Patch Changes

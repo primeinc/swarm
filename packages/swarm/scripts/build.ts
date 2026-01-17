@@ -230,10 +230,6 @@ async function main() {
 
 	syncClaudePluginRuntimeAssets(process.cwd());
 
-	// Copy package.json to dist so Bun global install can find it on Windows
-	console.log("📄 Copying package.json to dist...");
-	cpSync("./package.json", "./dist/package.json");
-
 	const duration = ((Date.now() - start) / 1000).toFixed(2);
 
 	console.log(`\n✨ Build complete in ${duration}s`);

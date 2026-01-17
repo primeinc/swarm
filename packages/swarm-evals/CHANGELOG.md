@@ -1,5 +1,15 @@
 # @swarmtools/evals
 
+## 0.2.35
+
+### Patch Changes
+
+- Fix: Improve CLI path resolution for global installs and remove redundant package.json copying.
+- Updated dependencies
+- Updated dependencies [4eab84a]
+  - swarm@0.57.18
+  - swarm-mail@1.10.12
+
 ## 0.2.34
 
 ### Patch Changes

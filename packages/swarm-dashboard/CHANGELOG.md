@@ -1,5 +1,14 @@
 # swarm-dashboard
 
+## 0.0.17
+
+### Patch Changes
+
+- Fix: Improve CLI path resolution for global installs and remove redundant package.json copying.
+- Updated dependencies
+- Updated dependencies [4eab84a]
+  - swarm-mail@1.10.12
+
 ## 0.0.16
 
 ### Patch Changes
