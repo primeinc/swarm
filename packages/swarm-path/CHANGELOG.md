@@ -1,5 +1,11 @@
 # swarm-cross-path
 
+## 1.2.1
+
+### Patch Changes
+
+- Fix: Resolve workspace:\* dependencies to actual versions during scoping and fix CI/CD build order.
+
 ## 1.2.0
 
 ### Minor Changes

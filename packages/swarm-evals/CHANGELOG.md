@@ -1,5 +1,13 @@
 # @swarmtools/evals
 
+## 0.2.32
+
+### Patch Changes
+
+- Updated dependencies []:
+  - swarm@0.57.15
+  - swarm-mail@1.10.9
+
 ## 0.2.31
 
 ### Patch Changes

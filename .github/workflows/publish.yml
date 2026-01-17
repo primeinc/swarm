@@ -37,31 +37,11 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Build all packages (unscoped)
+        run: bun turbo build
+
       - name: Scope packages for @${{ github.repository_owner }}
         run: bun scripts/scope-packages.ts ${{ github.repository_owner }}
-
-      - name: Refresh workspace after scoping
-        run: |
-          # Delete old lockfile - it references unscoped package names
-          rm bun.lock
-          # Regenerate lockfile with the new scoped package names
-          bun install
-
-      - name: Build all packages
-        run: |
-          # Build in dependency order:
-          # 1. swarm-path (no workspace deps)
-          (cd packages/swarm-path && bun run build)
-          # 2. swarm-mail (depends on swarm-path)
-          (cd packages/swarm-mail && bun run build)
-          # 3. swarm (depends on swarm-path & swarm-mail)
-          (cd packages/swarm && bun run build)
-          # 4. swarm-evals (depends on swarm & swarm-mail)
-          (cd packages/swarm-evals && bun run build || true)
-          # 5. swarm-claude-code (no workspace deps)
-          (cd packages/swarm-claude-code && bun run build || true)
-          # 6. swarm-dashboard (depends on swarm-mail)
-          (cd packages/swarm-dashboard && bun run build || true)
 
       - name: Publish to NPM
         if: ${{ inputs.dry_run != true }}
@@ -86,7 +66,6 @@ jobs:
 
           for pkg in "${PACKAGES[@]}"; do
             echo "📦 Publishing $pkg..."
-            # bun publish resolves workspace:* to actual versions automatically
             # --access public required for scoped packages
             # --tag beta marks these as beta releases
             (cd "$pkg" && bun publish --access public --tag beta) || echo "⚠️ May already exist"

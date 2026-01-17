@@ -45,6 +45,7 @@ const packageNameMappings: Record<string, string> = {
 function updateDependencies(
 	deps: Record<string, string> | undefined,
 	mappings: Record<string, string>,
+	versions: Record<string, string>,
 ): { updated: Record<string, string>; changes: string[] } | undefined {
 	if (!deps) return undefined;
 
@@ -54,8 +55,11 @@ function updateDependencies(
 	for (const [name, version] of Object.entries(deps)) {
 		const newName = mappings[name];
 		if (newName) {
-			updated[newName] = version;
-			changes.push(`${name} -> ${newName}`);
+			// Resolve workspace:* to actual version
+			const actualVersion =
+				version === "workspace:*" ? versions[name] : version;
+			updated[newName] = actualVersion || version;
+			changes.push(`${name} -> ${newName} (${updated[newName]})`);
 		} else {
 			updated[name] = version;
 		}
@@ -77,9 +81,17 @@ const packageDirs = readdirSync(packagesDir)
 	.filter((dir) => existsSync(join(dir, "package.json")));
 
 console.log(`Found ${packageDirs.length} packages\n`);
+
+// First pass: Collect all package versions
+const packageVersions: Record<string, string> = {};
+for (const dir of packageDirs) {
+	const pkg = JSON.parse(readFileSync(join(dir, "package.json"), "utf-8"));
+	packageVersions[pkg.name] = pkg.version;
+}
+
 console.log("=".repeat(60));
 
-// Process each package
+// Second pass: Process each package
 for (const dir of packageDirs) {
 	const pkgPath = join(dir, "package.json");
 	const pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
@@ -108,7 +120,11 @@ for (const dir of packageDirs) {
 	]) {
 		const deps = pkg[depType] as Record<string, string> | undefined;
 		if (deps) {
-			const result = updateDependencies(deps, packageNameMappings);
+			const result = updateDependencies(
+				deps,
+				packageNameMappings,
+				packageVersions,
+			);
 			if (result && result.changes.length > 0) {
 				pkg[depType] = result.updated;
 				changed = true;

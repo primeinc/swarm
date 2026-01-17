@@ -1,5 +1,12 @@
 # swarm-dashboard
 
+## 0.0.14
+
+### Patch Changes
+
+- Updated dependencies []:
+  - swarm-mail@1.10.9
+
 ## 0.0.13
 
 ### Patch Changes

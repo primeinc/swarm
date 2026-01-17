@@ -1,5 +1,15 @@
 # opencode-swarm-plugin
 
+## 0.57.15
+
+### Patch Changes
+
+- Fix: Resolve workspace:\* dependencies to actual versions during scoping and fix CI/CD build order.
+
+- Updated dependencies []:
+  - swarm-mail@1.10.9
+  - swarm-path@1.2.1
+
 ## 0.57.14
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
 	"name": "swarm",
-	"version": "0.57.14",
+	"version": "0.57.15",
 	"description": "Multi-agent swarm coordination for OpenCode with learning capabilities, cells integration, and Agent Mail",
 	"type": "module",
 	"main": "./dist/index.js",

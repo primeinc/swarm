@@ -1,5 +1,14 @@
 # swarm-mail
 
+## 1.10.9
+
+### Patch Changes
+
+- Fix: Resolve workspace:\* dependencies to actual versions during scoping and fix CI/CD build order.
+
+- Updated dependencies []:
+  - swarm-path@1.2.1
+
 ## 1.10.8
 
 ### Patch Changes

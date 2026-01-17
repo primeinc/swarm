@@ -1,29 +1,29 @@
 {
-  "name": "swarm-monorepo",
-  "private": true,
-  "packageManager": "bun@1.3.4",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
-  "scripts": {
-    "ci:version": "changeset version && bun update",
-    "ci:publish": "for dir in packages/*; do (cd \"$dir\" && bun publish --access public || true); done && changeset tag",
-    "test:integration": "bun --filter=swarm test:integration",
-    "lint": "bun turbo lint",
-    "format": "bun turbo format",
-    "eval:ci": "cd packages/opencode-swarm-plugin && bun run swarm eval run --ci"
-  },
-  "devDependencies": {
-    "@changesets/changelog-github": "^0.5.2",
-    "@changesets/cli": "^2.29.8",
-    "@neon-rs/load": "^0.1.82",
-    "turbo": "^2.7.4"
-  },
-  "overrides": {
-    "@types/node": "22.19.3"
-  },
-  "dependencies": {
-    "libsql": "^0.5.22"
-  }
+	"name": "swarm-monorepo",
+	"private": true,
+	"packageManager": "bun@1.3.4",
+	"workspaces": [
+		"apps/*",
+		"packages/*"
+	],
+	"scripts": {
+		"ci:version": "changeset version && bun update",
+		"ci:publish": "for dir in packages/*; do (cd \"$dir\" && bun publish --access public || true); done && changeset tag",
+		"test:integration": "bun --filter=swarm test:integration",
+		"lint": "bun turbo lint",
+		"format": "bun turbo format",
+		"eval:ci": "cd packages/swarm && bun run swarm eval run --ci"
+	},
+	"devDependencies": {
+		"@changesets/changelog-github": "^0.5.2",
+		"@changesets/cli": "^2.29.8",
+		"@neon-rs/load": "^0.1.82",
+		"turbo": "^2.7.4"
+	},
+	"overrides": {
+		"@types/node": "22.19.3"
+	},
+	"dependencies": {
+		"libsql": "^0.5.22"
+	}
 }
