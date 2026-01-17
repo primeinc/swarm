@@ -1,6 +1,6 @@
 {
 	"name": "swarm-mail",
-	"version": "1.10.7",
+	"version": "1.10.8",
 	"description": "Event sourcing primitives for multi-agent coordination. Local-first, no external servers.",
 	"type": "module",
 	"main": "./dist/index.js",
@@ -51,7 +51,7 @@
 		"minimatch": "^10.1.1",
 		"nanoid": "^5.1.6",
 		"proper-lockfile": "^4.1.2",
-		"swarm-cross-path": "workspace:*",
+		"swarm-path": "workspace:*",
 		"zod": "^3.24.1"
 	},
 	"devDependencies": {

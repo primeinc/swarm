@@ -79,7 +79,7 @@ jobs:
             rm -rf "$pack_dir"
           }
 
-          verify_package "packages/opencode-swarm-plugin" "swarm" "dist/index.js" "dist/index.d.ts" "claude-plugin/dist/"
+          verify_package "packages/swarm" "swarm" "dist/index.js" "dist/index.d.ts" "claude-plugin/dist/"
           verify_package "packages/swarm-mail" "swarm-mail" "dist/index.js" "dist/index.d.ts"
 
       - name: Type check
@@ -104,7 +104,7 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            const evalResultsPath = 'packages/opencode-swarm-plugin/.hive/eval-results.json';
+            const evalResultsPath = 'packages/swarm/.hive/eval-results.json';
             
             if (!fs.existsSync(evalResultsPath)) {
               console.log('No eval results found');

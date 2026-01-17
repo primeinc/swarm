@@ -1,5 +1,14 @@
 # swarm-mail
 
+## 1.10.8
+
+### Patch Changes
+
+- Refactor: Rename swarm-cross-path to swarm-path. This standardizes the naming convention across the repository.
+
+- Updated dependencies []:
+  - swarm-path@1.2.0
+
 ## 1.10.7
 
 ### Patch Changes

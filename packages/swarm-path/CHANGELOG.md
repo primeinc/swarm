@@ -1,5 +1,11 @@
 # swarm-cross-path
 
+## 1.2.0
+
+### Minor Changes
+
+- Refactor: Rename swarm-cross-path to swarm-path. This standardizes the naming convention across the repository.
+
 ## 1.1.0
 
 ### Minor Changes

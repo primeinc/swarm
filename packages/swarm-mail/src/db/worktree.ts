@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { normalize } from "swarm-cross-path";
+import { normalize } from "swarm-path";
 
 /**
  * Detects if a path is inside a git worktree.

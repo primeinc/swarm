@@ -24,7 +24,6 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { tool } from "@opencode-ai/plugin";
-import { normalize as normalizePath } from "swarm-cross-path";
 import {
 	type Cell as AdapterCell,
 	createHiveAdapter,
@@ -37,6 +36,7 @@ import {
 	resolvePartialId,
 	syncMemories,
 } from "swarm-mail";
+import { normalize as normalizePath } from "swarm-path";
 import type { z } from "zod";
 import {
 	formatZodError,

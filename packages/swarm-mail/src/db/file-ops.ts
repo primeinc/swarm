@@ -8,7 +8,7 @@ import {
 	unlinkSync,
 } from "node:fs";
 import { dirname, join } from "node:path";
-import { normalize } from "swarm-cross-path";
+import { normalize } from "swarm-path";
 
 /**
  * Database File Operations

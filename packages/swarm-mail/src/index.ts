@@ -53,13 +53,13 @@ export type { LibSQLConfig } from "./libsql";
 export { createLibSQLAdapter } from "./libsql";
 
 // ============================================================================
-// Path Normalization Utilities (re-exported from swarm-cross-path)
+// Path Normalization Utilities (re-exported from swarm-path)
 // ============================================================================
 
 export {
 	normalize as normalizePath,
 	normalizeProjectKey,
-} from "swarm-cross-path";
+} from "swarm-path";
 
 // LibSQL Convenience Layer
 export {

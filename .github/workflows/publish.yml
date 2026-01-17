@@ -50,16 +50,16 @@ jobs:
       - name: Build all packages
         run: |
           # Build in dependency order:
-          # 1. swarm-cross-path (no workspace deps)
-          (cd packages/cross-path && bun run build)
-          # 2. swarm-mail (depends on swarm-cross-path)
+          # 1. swarm-path (no workspace deps)
+          (cd packages/swarm-path && bun run build)
+          # 2. swarm-mail (depends on swarm-path)
           (cd packages/swarm-mail && bun run build)
-          # 3. swarm (depends on swarm-cross-path & swarm-mail)
-          (cd packages/opencode-swarm-plugin && bun run build)
+          # 3. swarm (depends on swarm-path & swarm-mail)
+          (cd packages/swarm && bun run build)
           # 4. swarm-evals (depends on swarm & swarm-mail)
           (cd packages/swarm-evals && bun run build || true)
           # 5. swarm-claude-code (no workspace deps)
-          (cd packages/claude-code-swarm-plugin && bun run build || true)
+          (cd packages/swarm-claude-code && bun run build || true)
           # 6. swarm-dashboard (depends on swarm-mail)
           (cd packages/swarm-dashboard && bun run build || true)
 
@@ -69,18 +69,18 @@ jobs:
           set -euo pipefail
 
           # Publish ALL 6 packages in dependency order:
-          # 1. swarm-cross-path (no deps)
-          # 2. swarm-mail (depends on swarm-cross-path)
-          # 3. swarm (depends on swarm-cross-path & swarm-mail)
+          # 1. swarm-path (no deps)
+          # 2. swarm-mail (depends on swarm-path)
+          # 3. swarm (depends on swarm-path & swarm-mail)
           # 4. swarm-evals (depends on swarm & swarm-mail)
           # 5. swarm-claude-code (no workspace deps)
           # 6. swarm-dashboard (depends on swarm-mail)
           PACKAGES=(
-            packages/cross-path
+            packages/swarm-path
             packages/swarm-mail
-            packages/opencode-swarm-plugin
+            packages/swarm
             packages/swarm-evals
-            packages/claude-code-swarm-plugin
+            packages/swarm-claude-code
             packages/swarm-dashboard
           )
 
@@ -99,11 +99,11 @@ jobs:
         if: ${{ inputs.dry_run == true }}
         run: |
           PACKAGES=(
-            packages/cross-path
+            packages/swarm-path
             packages/swarm-mail
-            packages/opencode-swarm-plugin
+            packages/swarm
             packages/swarm-evals
-            packages/claude-code-swarm-plugin
+            packages/swarm-claude-code
             packages/swarm-dashboard
           )
           for pkg in "${PACKAGES[@]}"; do
