@@ -1,5 +1,11 @@
 # claude-code-swarm-plugin
 
+## 0.58.2
+
+### Patch Changes
+
+- Fix: Remove beta tag from publish workflow to make it the latest release.
+
 ## 0.58.1
 
 ### Patch Changes

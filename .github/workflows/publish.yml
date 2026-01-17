@@ -66,9 +66,9 @@ jobs:
 
           for pkg in "${PACKAGES[@]}"; do
             echo "📦 Publishing $pkg..."
+            # bun publish resolves workspace:* to actual versions automatically
             # --access public required for scoped packages
-            # --tag beta marks these as beta releases
-            (cd "$pkg" && bun publish --access public --tag beta) || echo "⚠️ May already exist"
+            (cd "$pkg" && bun publish --access public) || echo "⚠️ May already exist"
           done
         env:
           # bun publish uses NPM_CONFIG_TOKEN (not NODE_AUTH_TOKEN)

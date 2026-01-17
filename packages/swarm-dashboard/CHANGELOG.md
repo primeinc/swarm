@@ -1,5 +1,14 @@
 # swarm-dashboard
 
+## 0.0.16
+
+### Patch Changes
+
+- Fix: Remove beta tag from publish workflow to make it the latest release.
+
+- Updated dependencies []:
+  - swarm-mail@1.10.11
+
 ## 0.0.15
 
 ### Patch Changes

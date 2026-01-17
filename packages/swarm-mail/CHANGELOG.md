@@ -1,5 +1,14 @@
 # swarm-mail
 
+## 1.10.11
+
+### Patch Changes
+
+- Fix: Remove beta tag from publish workflow to make it the latest release.
+
+- Updated dependencies []:
+  - swarm-path@1.2.3
+
 ## 1.10.10
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
 	"name": "swarm-path",
-	"version": "1.2.2",
+	"version": "1.2.3",
 	"description": "Cross-platform path normalization for consistent identifiers across Windows, WSL, and Linux",
 	"type": "module",
 	"main": "./dist/index.js",

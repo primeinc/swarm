@@ -1,5 +1,11 @@
 # swarm-cross-path
 
+## 1.2.3
+
+### Patch Changes
+
+- Fix: Remove beta tag from publish workflow to make it the latest release.
+
 ## 1.2.2
 
 ### Patch Changes

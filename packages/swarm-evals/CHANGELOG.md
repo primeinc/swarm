@@ -1,5 +1,15 @@
 # @swarmtools/evals
 
+## 0.2.34
+
+### Patch Changes
+
+- Fix: Remove beta tag from publish workflow to make it the latest release.
+
+- Updated dependencies []:
+  - swarm@0.57.17
+  - swarm-mail@1.10.11
+
 ## 0.2.33
 
 ### Patch Changes

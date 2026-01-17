@@ -1,5 +1,15 @@
 # opencode-swarm-plugin
 
+## 0.57.17
+
+### Patch Changes
+
+- Fix: Remove beta tag from publish workflow to make it the latest release.
+
+- Updated dependencies []:
+  - swarm-mail@1.10.11
+  - swarm-path@1.2.3
+
 ## 0.57.16
 
 ### Patch Changes
