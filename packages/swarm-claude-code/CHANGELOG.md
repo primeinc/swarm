@@ -1,5 +1,11 @@
 # claude-code-swarm-plugin
 
+## 0.58.1
+
+### Patch Changes
+
+- Fix: Full monorepo version bump to ensure workspace dependency resolution works across all packages.
+
 ## 0.58.0
 
 ### Minor Changes

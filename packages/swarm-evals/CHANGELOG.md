@@ -1,5 +1,15 @@
 # @swarmtools/evals
 
+## 0.2.33
+
+### Patch Changes
+
+- Fix: Full monorepo version bump to ensure workspace dependency resolution works across all packages.
+
+- Updated dependencies []:
+  - swarm@0.57.16
+  - swarm-mail@1.10.10
+
 ## 0.2.32
 
 ### Patch Changes

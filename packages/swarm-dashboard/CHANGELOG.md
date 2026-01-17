@@ -1,5 +1,14 @@
 # swarm-dashboard
 
+## 0.0.15
+
+### Patch Changes
+
+- Fix: Full monorepo version bump to ensure workspace dependency resolution works across all packages.
+
+- Updated dependencies []:
+  - swarm-mail@1.10.10
+
 ## 0.0.14
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # swarm-cross-path
 
+## 1.2.2
+
+### Patch Changes
+
+- Fix: Full monorepo version bump to ensure workspace dependency resolution works across all packages.
+
 ## 1.2.1
 
 ### Patch Changes

@@ -1,5 +1,15 @@
 # opencode-swarm-plugin
 
+## 0.57.16
+
+### Patch Changes
+
+- Fix: Full monorepo version bump to ensure workspace dependency resolution works across all packages.
+
+- Updated dependencies []:
+  - swarm-mail@1.10.10
+  - swarm-path@1.2.2
+
 ## 0.57.15
 
 ### Patch Changes

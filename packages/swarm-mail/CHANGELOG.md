@@ -1,5 +1,14 @@
 # swarm-mail
 
+## 1.10.10
+
+### Patch Changes
+
+- Fix: Full monorepo version bump to ensure workspace dependency resolution works across all packages.
+
+- Updated dependencies []:
+  - swarm-path@1.2.2
+
 ## 1.10.9
 
 ### Patch Changes
