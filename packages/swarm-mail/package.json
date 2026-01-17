@@ -31,7 +31,7 @@
 	"author": "Joel Hooks",
 	"license": "MIT",
 	"scripts": {
-		"build": "bun build ./src/index.ts --outdir ./dist --target node --external @libsql/client && tsc",
+		"build": "bun build ./src/index.ts --outdir ./dist --target node --external @libsql/client && cp package.json dist/package.json && tsc",
 		"test": "bun test --bail=1 --timeout 60000 $(find src -name '*.test.ts' ! -name '*.integration.test.ts' | tr '\\n' ' ')",
 		"test:integration": "bun test --bail=1 src/*.integration.test.ts src/**/*.integration.test.ts --timeout 120000",
 		"test:all": "bun test --bail=1 src/ --timeout 120000",

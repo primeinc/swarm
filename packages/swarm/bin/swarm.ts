@@ -56,6 +56,7 @@ import {
 	migrateCellsToHive,
 } from "../dist/hive.js";
 import { formatCoordinatorPrompt } from "../dist/swarm-prompts.js";
+import packageJson from "../package.json" with { type: "json" };
 import {
 	getEpicList,
 	getFileLocks,
@@ -120,8 +121,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const pkgPath = existsSync(join(__dirname, "..", "package.json"))
 	? join(__dirname, "..", "package.json")
 	: join(__dirname, "..", "..", "package.json");
-const pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
-const VERSION: string = pkg.version;
+const VERSION: string = packageJson.version;
 const PACKAGE_ROOT = dirname(pkgPath);
 const CLAUDE_PLUGIN_NAME = "swarm";
 
