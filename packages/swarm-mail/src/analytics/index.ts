@@ -29,7 +29,12 @@
  * @module analytics
  */
 
-export { formatCSV, formatJSON, formatJSONL, formatTable } from "./formatters.js";
-export { QueryBuilder } from "./query-builder.js";
+export {
+	formatCSV,
+	formatJSON,
+	formatJSONL,
+	formatTable,
+} from "./formatters.js";
 export * from "./queries/index.js";
+export { QueryBuilder } from "./query-builder.js";
 export type { AnalyticsQuery, OutputFormat, QueryResult } from "./types.js";

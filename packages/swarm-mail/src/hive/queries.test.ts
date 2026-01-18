@@ -1,842 +1,960 @@
 /**
- * Tests for beads query functions
+ * Tests for Hive query functions
  *
- * @module beads/queries.test
+ * @module hive/queries.test
  */
 
-import { describe, test, expect, beforeEach } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
+
 import { createTestLibSQLDb } from "../test-libsql.js";
-import { createHiveAdapter } from "./adapter.js";
 import type { DatabaseAdapter } from "../types/database.js";
 import type { HiveAdapter } from "../types/hive-adapter.js";
+import { createHiveAdapter } from "./adapter.js";
 import {
-  getReadyWork,
-  getBlockedIssues,
-  getEpicsEligibleForClosure,
-  getStaleIssues,
-  getStatistics,
-  resolvePartialId,
+	getBlockedIssues,
+	getEpicsEligibleForClosure,
+	getReadyWork,
+	getStaleIssues,
+	getStatistics,
+	resolvePartialId,
 } from "./queries.js";
 
-describe("beads/queries", () => {
-  let db: DatabaseAdapter;
-  let beads: HiveAdapter;
-  const projectKey = "/test/project";
-
-  beforeEach(async () => {
-    // Use libSQL test helper - schema already includes all tables
-    const { adapter } = await createTestLibSQLDb();
-    db = adapter;
-    
-    // Create beads adapter (no migrations needed - schema already set up)
-    beads = createHiveAdapter(db, projectKey);
-  });
-
-  describe("getReadyWork", () => {
-    test("returns empty array when no beads exist", async () => {
-      const ready = await getReadyWork(beads, projectKey);
-      expect(ready).toEqual([]);
-    });
-
-    test("returns unblocked open bead", async () => {
-      const bead = await beads.createCell(projectKey, {
-        title: "Ready task",
-        type: "task",
-        priority: 2,
-      });
-
-      const ready = await getReadyWork(beads, projectKey);
-      expect(ready).toHaveLength(1);
-      expect(ready[0].id).toBe(bead.id);
-    });
-
-    test("excludes blocked beads", async () => {
-      const blocker = await beads.createCell(projectKey, {
-        title: "Blocker",
-        type: "task",
-        priority: 2,
-      });
-
-      const blocked = await beads.createCell(projectKey, {
-        title: "Blocked task",
-        type: "task",
-        priority: 2,
-      });
-
-      await beads.addDependency(projectKey, blocked.id, blocker.id, "blocks");
-
-      const ready = await getReadyWork(beads, projectKey);
-      expect(ready).toHaveLength(1);
-      expect(ready[0].id).toBe(blocker.id);
-    });
-
-    test("includes in_progress beads by default", async () => {
-      const openBead = await beads.createCell(projectKey, {
-        title: "Open task",
-        type: "task",
-        priority: 2,
-      });
-
-      const inProgress = await beads.createCell(projectKey, {
-        title: "In progress task",
-        type: "task",
-        priority: 2,
-      });
-      await beads.changeCellStatus(projectKey, inProgress.id, "in_progress");
-
-      const ready = await getReadyWork(beads, projectKey);
-      expect(ready).toHaveLength(2);
-      expect(ready.map(b => b.id).sort()).toEqual([openBead.id, inProgress.id].sort());
-    });
-
-    test("excludes closed beads", async () => {
-      const open = await beads.createCell(projectKey, {
-        title: "Open task",
-        type: "task",
-        priority: 2,
-      });
-
-      const closed = await beads.createCell(projectKey, {
-        title: "Closed task",
-        type: "task",
-        priority: 2,
-      });
-      await beads.closeCell(projectKey, closed.id, "Done");
-
-      const ready = await getReadyWork(beads, projectKey);
-      expect(ready).toHaveLength(1);
-      expect(ready[0].id).toBe(open.id);
-    });
-
-    test("filters by assignee", async () => {
-      await beads.createCell(projectKey, {
-        title: "Task 1",
-        type: "task",
-        priority: 2,
-        assignee: "alice",
-      });
-
-      const bead2 = await beads.createCell(projectKey, {
-        title: "Task 2",
-        type: "task",
-        priority: 2,
-        assignee: "bob",
-      });
-
-      const ready = await getReadyWork(beads, projectKey, {
-        assignee: "bob",
-      });
-
-      expect(ready).toHaveLength(1);
-      expect(ready[0].id).toBe(bead2.id);
-    });
-
-    test("filters unassigned beads", async () => {
-      const unassigned = await beads.createCell(projectKey, {
-        title: "Unassigned task",
-        type: "task",
-        priority: 2,
-      });
-
-      await beads.createCell(projectKey, {
-        title: "Assigned task",
-        type: "task",
-        priority: 2,
-        assignee: "alice",
-      });
-
-      const ready = await getReadyWork(beads, projectKey, {
-        unassigned: true,
-      });
-
-      expect(ready).toHaveLength(1);
-      expect(ready[0].id).toBe(unassigned.id);
-    });
-
-    test("limits results", async () => {
-      await beads.createCell(projectKey, { title: "Task 1", type: "task", priority: 2 });
-      await beads.createCell(projectKey, { title: "Task 2", type: "task", priority: 2 });
-      await beads.createCell(projectKey, { title: "Task 3", type: "task", priority: 2 });
-
-      const ready = await getReadyWork(beads, projectKey, { limit: 2 });
-      expect(ready).toHaveLength(2);
-    });
-
-    test("sort policy: priority - highest priority first", async () => {
-      const low = await beads.createCell(projectKey, {
-        title: "Low priority",
-        type: "task",
-        priority: 2,
-      });
-
-      const high = await beads.createCell(projectKey, {
-        title: "High priority",
-        type: "task",
-        priority: 0,
-      });
-
-      const medium = await beads.createCell(projectKey, {
-        title: "Medium priority",
-        type: "task",
-        priority: 1,
-      });
-
-      const ready = await getReadyWork(beads, projectKey, {
-        sortPolicy: "priority",
-      });
-
-      expect(ready.map(b => b.id)).toEqual([high.id, medium.id, low.id]);
-    });
-
-    test("sort policy: oldest - creation date ascending", async () => {
-      // Sleep to ensure different timestamps
-      const first = await beads.createCell(projectKey, {
-        title: "First",
-        type: "task",
-        priority: 2,
-      });
-
-      await new Promise(resolve => setTimeout(resolve, 10));
-
-      const second = await beads.createCell(projectKey, {
-        title: "Second",
-        type: "task",
-        priority: 2,
-      });
-
-      await new Promise(resolve => setTimeout(resolve, 10));
-
-      const third = await beads.createCell(projectKey, {
-        title: "Third",
-        type: "task",
-        priority: 2,
-      });
-
-      const ready = await getReadyWork(beads, projectKey, {
-        sortPolicy: "oldest",
-      });
-
-      expect(ready.map(b => b.id)).toEqual([first.id, second.id, third.id]);
-    });
-
-    test("sort policy: hybrid - recent by priority, old by age", async () => {
-      // Create old bead (low priority)
-      const old = await beads.createCell(projectKey, {
-        title: "Old task",
-        type: "task",
-        priority: 2,
-      });
-
-      // Make it appear old (update created_at directly)
-      await db.query(
-        `UPDATE beads SET created_at = $1 WHERE id = $2`,
-        [Date.now() - 3 * 24 * 60 * 60 * 1000, old.id] // 3 days ago
-      );
-
-      // Create recent beads with different priorities
-      const recentLow = await beads.createCell(projectKey, {
-        title: "Recent low",
-        type: "task",
-        priority: 2,
-      });
-
-      const recentHigh = await beads.createCell(projectKey, {
-        title: "Recent high",
-        type: "task",
-        priority: 0,
-      });
-
-      const ready = await getReadyWork(beads, projectKey, {
-        sortPolicy: "hybrid",
-      });
-
-      // Hybrid: recent issues (high priority first), then old issues by age
-      expect(ready.map(b => b.id)).toEqual([recentHigh.id, recentLow.id, old.id]);
-    });
-  });
-
-  describe("getBlockedIssues", () => {
-    test("returns empty array when no blocked beads", async () => {
-      await beads.createCell(projectKey, {
-        title: "Unblocked",
-        type: "task",
-        priority: 2,
-      });
-
-      const blocked = await getBlockedIssues(beads, projectKey);
-      expect(blocked).toEqual([]);
-    });
-
-    test("returns blocked bead with blockers", async () => {
-      const blocker = await beads.createCell(projectKey, {
-        title: "Blocker",
-        type: "task",
-        priority: 2,
-      });
-
-      const blocked = await beads.createCell(projectKey, {
-        title: "Blocked task",
-        type: "task",
-        priority: 2,
-      });
-
-      await beads.addDependency(projectKey, blocked.id, blocker.id, "blocks");
-
-      const result = await getBlockedIssues(beads, projectKey);
-      expect(result).toHaveLength(1);
-      expect(result[0].cell.id).toBe(blocked.id);
-      expect(result[0].blockers).toEqual([blocker.id]);
-    });
-
-    test("includes multiple blockers", async () => {
-      const blocker1 = await beads.createCell(projectKey, {
-        title: "Blocker 1",
-        type: "task",
-        priority: 2,
-      });
-
-      const blocker2 = await beads.createCell(projectKey, {
-        title: "Blocker 2",
-        type: "task",
-        priority: 2,
-      });
-
-      const blocked = await beads.createCell(projectKey, {
-        title: "Blocked task",
-        type: "task",
-        priority: 2,
-      });
-
-      await beads.addDependency(projectKey, blocked.id, blocker1.id, "blocks");
-      await beads.addDependency(projectKey, blocked.id, blocker2.id, "blocks");
-
-      const result = await getBlockedIssues(beads, projectKey);
-      expect(result).toHaveLength(1);
-      expect(result[0].blockers.sort()).toEqual([blocker1.id, blocker2.id].sort());
-    });
-
-    test("excludes beads where blockers are closed", async () => {
-      const blocker = await beads.createCell(projectKey, {
-        title: "Blocker",
-        type: "task",
-        priority: 2,
-      });
-
-      const blocked = await beads.createCell(projectKey, {
-        title: "Blocked task",
-        type: "task",
-        priority: 2,
-      });
-
-      await beads.addDependency(projectKey, blocked.id, blocker.id, "blocks");
-      await beads.closeCell(projectKey, blocker.id, "Done");
-
-      const result = await getBlockedIssues(beads, projectKey);
-      expect(result).toEqual([]);
-    });
-  });
-
-  describe("getEpicsEligibleForClosure", () => {
-    test("returns empty array when no epics", async () => {
-      await beads.createCell(projectKey, {
-        title: "Task",
-        type: "task",
-        priority: 2,
-      });
-
-      const eligible = await getEpicsEligibleForClosure(beads, projectKey);
-      expect(eligible).toEqual([]);
-    });
-
-    test("returns epic when all children closed", async () => {
-      const epic = await beads.createCell(projectKey, {
-        title: "Epic",
-        type: "epic",
-        priority: 2,
-      });
-
-      const child1 = await beads.createCell(projectKey, {
-        title: "Child 1",
-        type: "task",
-        priority: 2,
-      });
-
-      const child2 = await beads.createCell(projectKey, {
-        title: "Child 2",
-        type: "task",
-        priority: 2,
-      });
-
-      await beads.addChildToEpic(projectKey, epic.id, child1.id);
-      await beads.addChildToEpic(projectKey, epic.id, child2.id);
-
-      await beads.closeCell(projectKey, child1.id, "Done");
-      await beads.closeCell(projectKey, child2.id, "Done");
-
-      const eligible = await getEpicsEligibleForClosure(beads, projectKey);
-      expect(eligible).toHaveLength(1);
-      expect(eligible[0].epic_id).toBe(epic.id);
-      expect(eligible[0].total_children).toBe(2);
-      expect(eligible[0].closed_children).toBe(2);
-    });
-
-    test("excludes epic when children still open", async () => {
-      const epic = await beads.createCell(projectKey, {
-        title: "Epic",
-        type: "epic",
-        priority: 2,
-      });
-
-      const child1 = await beads.createCell(projectKey, {
-        title: "Child 1",
-        type: "task",
-        priority: 2,
-      });
-
-      const child2 = await beads.createCell(projectKey, {
-        title: "Child 2",
-        type: "task",
-        priority: 2,
-      });
-
-      await beads.addChildToEpic(projectKey, epic.id, child1.id);
-      await beads.addChildToEpic(projectKey, epic.id, child2.id);
-
-      await beads.closeCell(projectKey, child1.id, "Done");
-      // child2 still open
-
-      const eligible = await getEpicsEligibleForClosure(beads, projectKey);
-      expect(eligible).toEqual([]);
-    });
-
-    test("excludes already closed epics", async () => {
-      const epic = await beads.createCell(projectKey, {
-        title: "Epic",
-        type: "epic",
-        priority: 2,
-      });
-
-      await beads.closeCell(projectKey, epic.id, "Done");
-
-      const eligible = await getEpicsEligibleForClosure(beads, projectKey);
-      expect(eligible).toEqual([]);
-    });
-  });
-
-  describe("getStaleIssues", () => {
-    test("returns empty array when no stale issues", async () => {
-      await beads.createCell(projectKey, {
-        title: "Recent",
-        type: "task",
-        priority: 2,
-      });
-
-      const stale = await getStaleIssues(beads, projectKey, 7);
-      expect(stale).toEqual([]);
-    });
-
-    test("returns issues not updated in N days", async () => {
-      const recent = await beads.createCell(projectKey, {
-        title: "Recent",
-        type: "task",
-        priority: 2,
-      });
-
-      const old = await beads.createCell(projectKey, {
-        title: "Old",
-        type: "task",
-        priority: 2,
-      });
-
-      // Make old bead appear stale (update updated_at directly)
-      await db.query(
-        `UPDATE beads SET updated_at = $1 WHERE id = $2`,
-        [Date.now() - 10 * 24 * 60 * 60 * 1000, old.id] // 10 days ago
-      );
-
-      const stale = await getStaleIssues(beads, projectKey, 7);
-      expect(stale).toHaveLength(1);
-      expect(stale[0].id).toBe(old.id);
-    });
-
-    test("excludes closed issues", async () => {
-      const closedOld = await beads.createCell(projectKey, {
-        title: "Closed old",
-        type: "task",
-        priority: 2,
-      });
-
-      await db.query(
-        `UPDATE beads SET updated_at = $1 WHERE id = $2`,
-        [Date.now() - 10 * 24 * 60 * 60 * 1000, closedOld.id]
-      );
-
-      await beads.closeCell(projectKey, closedOld.id, "Done");
-
-      const stale = await getStaleIssues(beads, projectKey, 7);
-      expect(stale).toEqual([]);
-    });
-
-    test("filters by status", async () => {
-      const openOld = await beads.createCell(projectKey, {
-        title: "Open old",
-        type: "task",
-        priority: 2,
-      });
-
-      const inProgressOld = await beads.createCell(projectKey, {
-        title: "In progress old",
-        type: "task",
-        priority: 2,
-      });
-
-      await beads.changeCellStatus(projectKey, inProgressOld.id, "in_progress");
-
-      // Make both old
-      const oldTimestamp = Date.now() - 10 * 24 * 60 * 60 * 1000;
-      await db.query(
-        `UPDATE beads SET updated_at = $1 WHERE id IN ($2, $3)`,
-        [oldTimestamp, openOld.id, inProgressOld.id]
-      );
-
-      const stale = await getStaleIssues(beads, projectKey, 7, {
-        status: "in_progress",
-      });
-
-      expect(stale).toHaveLength(1);
-      expect(stale[0].id).toBe(inProgressOld.id);
-    });
-
-    test("limits results", async () => {
-      const old1 = await beads.createCell(projectKey, { title: "Old 1", type: "task", priority: 2 });
-      const old2 = await beads.createCell(projectKey, { title: "Old 2", type: "task", priority: 2 });
-      const old3 = await beads.createCell(projectKey, { title: "Old 3", type: "task", priority: 2 });
-
-      const oldTimestamp = Date.now() - 10 * 24 * 60 * 60 * 1000;
-      await db.query(
-        `UPDATE beads SET updated_at = $1 WHERE id IN ($2, $3, $4)`,
-        [oldTimestamp, old1.id, old2.id, old3.id]
-      );
-
-      const stale = await getStaleIssues(beads, projectKey, 7, { limit: 2 });
-      expect(stale).toHaveLength(2);
-    });
-
-    test("orders by oldest first", async () => {
-      const old1 = await beads.createCell(projectKey, { title: "Old 1", type: "task", priority: 2 });
-      const old2 = await beads.createCell(projectKey, { title: "Old 2", type: "task", priority: 2 });
-
-      // old1 is older
-      await db.query(`UPDATE beads SET updated_at = $1 WHERE id = $2`, [
-        Date.now() - 20 * 24 * 60 * 60 * 1000,
-        old1.id,
-      ]);
-
-      // old2 is less old
-      await db.query(`UPDATE beads SET updated_at = $1 WHERE id = $2`, [
-        Date.now() - 10 * 24 * 60 * 60 * 1000,
-        old2.id,
-      ]);
-
-      const stale = await getStaleIssues(beads, projectKey, 7);
-      expect(stale.map(b => b.id)).toEqual([old1.id, old2.id]);
-    });
-  });
-
-  describe("resolvePartialId", () => {
-    test("returns full ID when given complete hash portion", async () => {
-      const cell = await beads.createCell(projectKey, {
-        title: "Test task",
-        type: "task",
-        priority: 2,
-      });
-
-      // Extract hash portion from ID
-      // Format: {prefix}-{hash}-{timestamp}{random}
-      const parts = cell.id.split("-");
-      const hash = parts[1]; // e.g., "lf2p4u"
-
-      const { resolvePartialId } = await import("./queries.js");
-      const result = await resolvePartialId(beads, projectKey, hash);
-
-      expect(result).toBe(cell.id);
-    });
-
-    test("returns full ID when given partial hash", async () => {
-      const cell = await beads.createCell(projectKey, {
-        title: "Test task",
-        type: "task",
-        priority: 2,
-      });
-
-      const parts = cell.id.split("-");
-      const hash = parts[1];
-      const partialHash = hash.slice(0, 3); // first 3 chars
-
-      const { resolvePartialId } = await import("./queries.js");
-      const result = await resolvePartialId(beads, projectKey, partialHash);
-
-      expect(result).toBe(cell.id);
-    });
-
-    test("returns null when no matches found", async () => {
-      await beads.createCell(projectKey, {
-        title: "Test task",
-        type: "task",
-        priority: 2,
-      });
-
-      const { resolvePartialId } = await import("./queries.js");
-      const result = await resolvePartialId(beads, projectKey, "nonexistent");
-
-      expect(result).toBe(null);
-    });
-
-    test("throws error when multiple cells match (ambiguous)", async () => {
-      // This is edge case - would need hash collision
-      // For now, test that function returns first match consistently
-      const cell1 = await beads.createCell(projectKey, {
-        title: "Test 1",
-        type: "task",
-        priority: 2,
-      });
-
-      const cell2 = await beads.createCell(projectKey, {
-        title: "Test 2",
-        type: "task",
-        priority: 2,
-      });
-
-      // Both should have same hash (same project key)
-      const parts1 = cell1.id.split("-");
-      const parts2 = cell2.id.split("-");
-      
-      // Hashes should be identical for same projectKey
-      expect(parts1[1]).toBe(parts2[1]);
-
-      const { resolvePartialId } = await import("./queries.js");
-      // Should throw when ambiguous
-      await expect(
-        resolvePartialId(beads, projectKey, parts1[1])
-      ).rejects.toThrow(/multiple cells/i);
-    });
-
-    test("ignores deleted cells", async () => {
-      const cell = await beads.createCell(projectKey, {
-        title: "Test task",
-        type: "task",
-        priority: 2,
-      });
-
-      const parts = cell.id.split("-");
-      const hash = parts[1];
-
-      await beads.deleteCell(projectKey, cell.id);
-
-      const { resolvePartialId } = await import("./queries.js");
-      const result = await resolvePartialId(beads, projectKey, hash);
-
-      expect(result).toBe(null);
-    });
-
-    test("returns full ID when given timestamp+random segment (end of ID)", async () => {
-      const cell = await beads.createCell(projectKey, {
-        title: "Test task",
-        type: "task",
-        priority: 2,
-      });
-
-      // Cell ID format: {prefix}-{hash}-{timestamp}{random}
-      // Example: opencode-swarm-monorepo-lf2p4u-mjkmdat26vq
-      // The last segment after the final dash is timestamp+random
-      const parts = cell.id.split("-");
-      const timestampRandom = parts[parts.length - 1]; // e.g., "mjkmdat26vq"
-
-      const { resolvePartialId } = await import("./queries.js");
-      const result = await resolvePartialId(beads, projectKey, timestampRandom);
-
-      expect(result).toBe(cell.id);
-    });
-
-    test("returns full ID when given partial timestamp+random segment", async () => {
-      const cell = await beads.createCell(projectKey, {
-        title: "Test task",
-        type: "task",
-        priority: 2,
-      });
-
-      const parts = cell.id.split("-");
-      const timestampRandom = parts[parts.length - 1];
-      const partialTimestamp = timestampRandom.slice(0, 5); // first 5 chars
-
-      const { resolvePartialId } = await import("./queries.js");
-      const result = await resolvePartialId(beads, projectKey, partialTimestamp);
-
-      expect(result).toBe(cell.id);
-    });
-
-    test("returns full ID when given any unique substring of the ID", async () => {
-      const cell = await beads.createCell(projectKey, {
-        title: "Test task",
-        type: "task",
-        priority: 2,
-      });
-
-      // Should match any unique substring
-      const { resolvePartialId } = await import("./queries.js");
-      
-      // Match by full ID
-      const result1 = await resolvePartialId(beads, projectKey, cell.id);
-      expect(result1).toBe(cell.id);
-    });
-  });
-
-  describe("findCellsByPartialId", () => {
-    test("returns all matching cells instead of throwing on ambiguous", async () => {
-      // Create two cells with same project key (same hash segment)
-      const cell1 = await beads.createCell(projectKey, {
-        title: "Task 1",
-        type: "task",
-        priority: 2,
-      });
-      const cell2 = await beads.createCell(projectKey, {
-        title: "Task 2",
-        type: "task",
-        priority: 2,
-      });
-
-      // Both cells share the same hash segment (derived from projectKey)
-      const parts1 = cell1.id.split("-");
-      const hash = parts1[1]; // e.g., "lf2p4u"
-
-      const { findCellsByPartialId } = await import("./queries.js");
-      const results = await findCellsByPartialId(beads, projectKey, hash);
-
-      // Should return both cells, not throw
-      expect(results.length).toBeGreaterThanOrEqual(2);
-      expect(results.some(c => c.id === cell1.id)).toBe(true);
-      expect(results.some(c => c.id === cell2.id)).toBe(true);
-    });
-
-    test("returns empty array when no matches", async () => {
-      const { findCellsByPartialId } = await import("./queries.js");
-      const results = await findCellsByPartialId(beads, projectKey, "nonexistent999");
-
-      expect(results).toEqual([]);
-    });
-
-    test("returns single cell when unique match", async () => {
-      const cell = await beads.createCell(projectKey, {
-        title: "Unique task",
-        type: "task",
-        priority: 2,
-      });
-
-      // Use the full timestamp+random segment which should be unique
-      const parts = cell.id.split("-");
-      const timestampRandom = parts[parts.length - 1];
-
-      const { findCellsByPartialId } = await import("./queries.js");
-      const results = await findCellsByPartialId(beads, projectKey, timestampRandom);
-
-      expect(results.length).toBe(1);
-      expect(results[0].id).toBe(cell.id);
-    });
-
-    test("ignores deleted cells", async () => {
-      const cell = await beads.createCell(projectKey, {
-        title: "To be deleted",
-        type: "task",
-        priority: 2,
-      });
-
-      const parts = cell.id.split("-");
-      const timestampRandom = parts[parts.length - 1];
-
-      await beads.deleteCell(projectKey, cell.id);
-
-      const { findCellsByPartialId } = await import("./queries.js");
-      const results = await findCellsByPartialId(beads, projectKey, timestampRandom);
-
-      expect(results).toEqual([]);
-    });
-  });
-
-  describe("getStatistics", () => {
-    test("returns zeros for empty database", async () => {
-      const stats = await getStatistics(beads, projectKey);
-      
-      expect(stats.total_cells).toBe(0);
-      expect(stats.open).toBe(0);
-      expect(stats.in_progress).toBe(0);
-      expect(stats.closed).toBe(0);
-      expect(stats.blocked).toBe(0);
-      expect(stats.ready).toBe(0);
-      expect(stats.by_type).toEqual({});
-    });
-
-    test("counts beads by status", async () => {
-      await beads.createCell(projectKey, { title: "Open 1", type: "task", priority: 2 });
-      await beads.createCell(projectKey, { title: "Open 2", type: "task", priority: 2 });
-
-      const inProgress = await beads.createCell(projectKey, { title: "In Progress", type: "task", priority: 2 });
-      await beads.changeCellStatus(projectKey, inProgress.id, "in_progress");
-
-      const closed = await beads.createCell(projectKey, { title: "Closed", type: "task", priority: 2 });
-      await beads.closeCell(projectKey, closed.id, "Done");
-
-      const stats = await getStatistics(beads, projectKey);
-      
-      expect(stats.total_cells).toBe(4);
-      expect(stats.open).toBe(2);
-      expect(stats.in_progress).toBe(1);
-      expect(stats.closed).toBe(1);
-    });
-
-    test("counts blocked beads", async () => {
-      const blocker = await beads.createCell(projectKey, { title: "Blocker", type: "task", priority: 2 });
-      const blocked = await beads.createCell(projectKey, { title: "Blocked", type: "task", priority: 2 });
-
-      await beads.addDependency(projectKey, blocked.id, blocker.id, "blocks");
-
-      const stats = await getStatistics(beads, projectKey);
-      expect(stats.blocked).toBe(1);
-    });
-
-    test("counts ready beads", async () => {
-      const blocker = await beads.createCell(projectKey, { title: "Blocker", type: "task", priority: 2 });
-      const blocked = await beads.createCell(projectKey, { title: "Blocked", type: "task", priority: 2 });
-      await beads.createCell(projectKey, { title: "Ready", type: "task", priority: 2 });
-
-      await beads.addDependency(projectKey, blocked.id, blocker.id, "blocks");
-
-      const stats = await getStatistics(beads, projectKey);
-      expect(stats.ready).toBe(2); // blocker + ready (blocked is not ready)
-    });
-
-    test("groups by type", async () => {
-      await beads.createCell(projectKey, { title: "Task 1", type: "task", priority: 2 });
-      await beads.createCell(projectKey, { title: "Task 2", type: "task", priority: 2 });
-      await beads.createCell(projectKey, { title: "Bug", type: "bug", priority: 0 });
-      await beads.createCell(projectKey, { title: "Epic", type: "epic", priority: 2 });
-
-      const stats = await getStatistics(beads, projectKey);
-      
-      expect(stats.by_type).toEqual({
-        task: 2,
-        bug: 1,
-        epic: 1,
-      });
-    });
-
-    test("excludes deleted beads", async () => {
-      await beads.createCell(projectKey, { title: "Task 1", type: "task", priority: 2 });
-      const deleted = await beads.createCell(projectKey, { title: "Task 2", type: "task", priority: 2 });
-      
-      await beads.deleteCell(projectKey, deleted.id);
-
-      const stats = await getStatistics(beads, projectKey);
-      expect(stats.total_cells).toBe(1);
-    });
-  });
+describe("cells/queries", () => {
+	let db: DatabaseAdapter;
+	let cells: HiveAdapter;
+	const projectKey = "/test/project";
+
+	beforeEach(async () => {
+		// Use libSQL test helper - schema already includes all tables
+		const { adapter } = await createTestLibSQLDb();
+		db = adapter;
+
+		// Create cells adapter (no migrations needed - schema already set up)
+		cells = createHiveAdapter(db, projectKey);
+	});
+
+	describe("getReadyWork", () => {
+		test("returns empty array when no cells exist", async () => {
+			const ready = await getReadyWork(cells, projectKey);
+			expect(ready).toEqual([]);
+		});
+
+		test("returns unblocked open cell", async () => {
+			const cell = await cells.createCell(projectKey, {
+				title: "Ready task",
+				type: "task",
+				priority: 2,
+			});
+
+			const ready = await getReadyWork(cells, projectKey);
+			expect(ready).toHaveLength(1);
+			expect(ready[0].id).toBe(cell.id);
+		});
+
+		test("excludes blocked cells", async () => {
+			const blocker = await cells.createCell(projectKey, {
+				title: "Blocker",
+				type: "task",
+				priority: 2,
+			});
+
+			const blocked = await cells.createCell(projectKey, {
+				title: "Blocked task",
+				type: "task",
+				priority: 2,
+			});
+
+			await cells.addDependency(projectKey, blocked.id, blocker.id, "blocks");
+
+			const ready = await getReadyWork(cells, projectKey);
+			expect(ready).toHaveLength(1);
+			expect(ready[0].id).toBe(blocker.id);
+		});
+
+		test("includes in_progress cells by default", async () => {
+			const openCell = await cells.createCell(projectKey, {
+				title: "Open task",
+				type: "task",
+				priority: 2,
+			});
+
+			const inProgress = await cells.createCell(projectKey, {
+				title: "In progress task",
+				type: "task",
+				priority: 2,
+			});
+			await cells.changeCellStatus(projectKey, inProgress.id, "in_progress");
+
+			const ready = await getReadyWork(cells, projectKey);
+			expect(ready).toHaveLength(2);
+			expect(ready.map((b) => b.id).sort()).toEqual(
+				[openCell.id, inProgress.id].sort(),
+			);
+		});
+
+		test("excludes closed cells", async () => {
+			const open = await cells.createCell(projectKey, {
+				title: "Open task",
+				type: "task",
+				priority: 2,
+			});
+
+			const closed = await cells.createCell(projectKey, {
+				title: "Closed task",
+				type: "task",
+				priority: 2,
+			});
+			await cells.closeCell(projectKey, closed.id, "Done");
+
+			const ready = await getReadyWork(cells, projectKey);
+			expect(ready).toHaveLength(1);
+			expect(ready[0].id).toBe(open.id);
+		});
+
+		test("filters by assignee", async () => {
+			await cells.createCell(projectKey, {
+				title: "Task 1",
+				type: "task",
+				priority: 2,
+				assignee: "alice",
+			});
+
+			const cell2 = await cells.createCell(projectKey, {
+				title: "Task 2",
+				type: "task",
+				priority: 2,
+				assignee: "bob",
+			});
+
+			const ready = await getReadyWork(cells, projectKey, {
+				assignee: "bob",
+			});
+
+			expect(ready).toHaveLength(1);
+			expect(ready[0].id).toBe(cell2.id);
+		});
+
+		test("filters unassigned cells", async () => {
+			const unassigned = await cells.createCell(projectKey, {
+				title: "Unassigned task",
+				type: "task",
+				priority: 2,
+			});
+
+			await cells.createCell(projectKey, {
+				title: "Assigned task",
+				type: "task",
+				priority: 2,
+				assignee: "alice",
+			});
+
+			const ready = await getReadyWork(cells, projectKey, {
+				unassigned: true,
+			});
+
+			expect(ready).toHaveLength(1);
+			expect(ready[0].id).toBe(unassigned.id);
+		});
+
+		test("limits results", async () => {
+			await cells.createCell(projectKey, {
+				title: "Task 1",
+				type: "task",
+				priority: 2,
+			});
+			await cells.createCell(projectKey, {
+				title: "Task 2",
+				type: "task",
+				priority: 2,
+			});
+			await cells.createCell(projectKey, {
+				title: "Task 3",
+				type: "task",
+				priority: 2,
+			});
+
+			const ready = await getReadyWork(cells, projectKey, { limit: 2 });
+			expect(ready).toHaveLength(2);
+		});
+
+		test("sort policy: priority - highest priority first", async () => {
+			const low = await cells.createCell(projectKey, {
+				title: "Low priority",
+				type: "task",
+				priority: 2,
+			});
+
+			const high = await cells.createCell(projectKey, {
+				title: "High priority",
+				type: "task",
+				priority: 0,
+			});
+
+			const medium = await cells.createCell(projectKey, {
+				title: "Medium priority",
+				type: "task",
+				priority: 1,
+			});
+
+			const ready = await getReadyWork(cells, projectKey, {
+				sortPolicy: "priority",
+			});
+
+			expect(ready.map((b) => b.id)).toEqual([high.id, medium.id, low.id]);
+		});
+
+		test("sort policy: oldest - creation date ascending", async () => {
+			// Sleep to ensure different timestamps
+			const first = await cells.createCell(projectKey, {
+				title: "First",
+				type: "task",
+				priority: 2,
+			});
+
+			await new Promise((resolve) => setTimeout(resolve, 10));
+
+			const second = await cells.createCell(projectKey, {
+				title: "Second",
+				type: "task",
+				priority: 2,
+			});
+
+			await new Promise((resolve) => setTimeout(resolve, 10));
+
+			const third = await cells.createCell(projectKey, {
+				title: "Third",
+				type: "task",
+				priority: 2,
+			});
+
+			const ready = await getReadyWork(cells, projectKey, {
+				sortPolicy: "oldest",
+			});
+
+			expect(ready.map((b) => b.id)).toEqual([first.id, second.id, third.id]);
+		});
+
+		test("sort policy: hybrid - recent by priority, old by age", async () => {
+			// Create old cell (low priority)
+			const old = await cells.createCell(projectKey, {
+				title: "Old task",
+				type: "task",
+				priority: 2,
+			});
+
+			// Make it appear old (update created_at directly)
+			await db.query(
+				`UPDATE cells SET created_at = $1 WHERE id = $2`,
+				[Date.now() - 3 * 24 * 60 * 60 * 1000, old.id], // 3 days ago
+			);
+
+			// Create recent cells with different priorities
+			const recentLow = await cells.createCell(projectKey, {
+				title: "Recent low",
+				type: "task",
+				priority: 2,
+			});
+
+			const recentHigh = await cells.createCell(projectKey, {
+				title: "Recent high",
+				type: "task",
+				priority: 0,
+			});
+
+			const ready = await getReadyWork(cells, projectKey, {
+				sortPolicy: "hybrid",
+			});
+
+			// Hybrid: recent issues (high priority first), then old issues by age
+			expect(ready.map((b) => b.id)).toEqual([
+				recentHigh.id,
+				recentLow.id,
+				old.id,
+			]);
+		});
+	});
+
+	describe("getBlockedIssues", () => {
+		test("returns empty array when no blocked cells", async () => {
+			await cells.createCell(projectKey, {
+				title: "Unblocked",
+				type: "task",
+				priority: 2,
+			});
+
+			const blocked = await getBlockedIssues(cells, projectKey);
+			expect(blocked).toEqual([]);
+		});
+
+		test("returns blocked cell with blockers", async () => {
+			const blocker = await cells.createCell(projectKey, {
+				title: "Blocker",
+				type: "task",
+				priority: 2,
+			});
+
+			const blocked = await cells.createCell(projectKey, {
+				title: "Blocked task",
+				type: "task",
+				priority: 2,
+			});
+
+			await cells.addDependency(projectKey, blocked.id, blocker.id, "blocks");
+
+			const result = await getBlockedIssues(cells, projectKey);
+			expect(result).toHaveLength(1);
+			expect(result[0].cell.id).toBe(blocked.id);
+			expect(result[0].blockers).toEqual([blocker.id]);
+		});
+
+		test("includes multiple blockers", async () => {
+			const blocker1 = await cells.createCell(projectKey, {
+				title: "Blocker 1",
+				type: "task",
+				priority: 2,
+			});
+
+			const blocker2 = await cells.createCell(projectKey, {
+				title: "Blocker 2",
+				type: "task",
+				priority: 2,
+			});
+
+			const blocked = await cells.createCell(projectKey, {
+				title: "Blocked task",
+				type: "task",
+				priority: 2,
+			});
+
+			await cells.addDependency(projectKey, blocked.id, blocker1.id, "blocks");
+			await cells.addDependency(projectKey, blocked.id, blocker2.id, "blocks");
+
+			const result = await getBlockedIssues(cells, projectKey);
+			expect(result).toHaveLength(1);
+			expect(result[0].blockers.sort()).toEqual(
+				[blocker1.id, blocker2.id].sort(),
+			);
+		});
+
+		test("excludes cells where blockers are closed", async () => {
+			const blocker = await cells.createCell(projectKey, {
+				title: "Blocker",
+				type: "task",
+				priority: 2,
+			});
+
+			const blocked = await cells.createCell(projectKey, {
+				title: "Blocked task",
+				type: "task",
+				priority: 2,
+			});
+
+			await cells.addDependency(projectKey, blocked.id, blocker.id, "blocks");
+			await cells.closeCell(projectKey, blocker.id, "Done");
+
+			const result = await getBlockedIssues(cells, projectKey);
+			expect(result).toEqual([]);
+		});
+	});
+
+	describe("getEpicsEligibleForClosure", () => {
+		test("returns empty array when no epics", async () => {
+			await cells.createCell(projectKey, {
+				title: "Task",
+				type: "task",
+				priority: 2,
+			});
+
+			const eligible = await getEpicsEligibleForClosure(cells, projectKey);
+			expect(eligible).toEqual([]);
+		});
+
+		test("returns epic when all children closed", async () => {
+			const epic = await cells.createCell(projectKey, {
+				title: "Epic",
+				type: "epic",
+				priority: 2,
+			});
+
+			const child1 = await cells.createCell(projectKey, {
+				title: "Child 1",
+				type: "task",
+				priority: 2,
+			});
+
+			const child2 = await cells.createCell(projectKey, {
+				title: "Child 2",
+				type: "task",
+				priority: 2,
+			});
+
+			await cells.addChildToEpic(projectKey, epic.id, child1.id);
+			await cells.addChildToEpic(projectKey, epic.id, child2.id);
+
+			await cells.closeCell(projectKey, child1.id, "Done");
+			await cells.closeCell(projectKey, child2.id, "Done");
+
+			const eligible = await getEpicsEligibleForClosure(cells, projectKey);
+			expect(eligible).toHaveLength(1);
+			expect(eligible[0].epic_id).toBe(epic.id);
+			expect(eligible[0].total_children).toBe(2);
+			expect(eligible[0].closed_children).toBe(2);
+		});
+
+		test("excludes epic when children still open", async () => {
+			const epic = await cells.createCell(projectKey, {
+				title: "Epic",
+				type: "epic",
+				priority: 2,
+			});
+
+			const child1 = await cells.createCell(projectKey, {
+				title: "Child 1",
+				type: "task",
+				priority: 2,
+			});
+
+			const child2 = await cells.createCell(projectKey, {
+				title: "Child 2",
+				type: "task",
+				priority: 2,
+			});
+
+			await cells.addChildToEpic(projectKey, epic.id, child1.id);
+			await cells.addChildToEpic(projectKey, epic.id, child2.id);
+
+			await cells.closeCell(projectKey, child1.id, "Done");
+			// child2 still open
+
+			const eligible = await getEpicsEligibleForClosure(cells, projectKey);
+			expect(eligible).toEqual([]);
+		});
+
+		test("excludes already closed epics", async () => {
+			const epic = await cells.createCell(projectKey, {
+				title: "Epic",
+				type: "epic",
+				priority: 2,
+			});
+
+			await cells.closeCell(projectKey, epic.id, "Done");
+
+			const eligible = await getEpicsEligibleForClosure(cells, projectKey);
+			expect(eligible).toEqual([]);
+		});
+	});
+
+	describe("getStaleIssues", () => {
+		test("returns empty array when no stale issues", async () => {
+			await cells.createCell(projectKey, {
+				title: "Recent",
+				type: "task",
+				priority: 2,
+			});
+
+			const stale = await getStaleIssues(cells, projectKey, 7);
+			expect(stale).toEqual([]);
+		});
+
+		test("returns issues not updated in N days", async () => {
+			const recent = await cells.createCell(projectKey, {
+				title: "Recent",
+				type: "task",
+				priority: 2,
+			});
+
+			const old = await cells.createCell(projectKey, {
+				title: "Old",
+				type: "task",
+				priority: 2,
+			});
+
+			// Make old cell appear stale (update updated_at directly)
+			await db.query(
+				`UPDATE cells SET updated_at = $1 WHERE id = $2`,
+				[Date.now() - 10 * 24 * 60 * 60 * 1000, old.id], // 10 days ago
+			);
+
+			const stale = await getStaleIssues(cells, projectKey, 7);
+			expect(stale).toHaveLength(1);
+			expect(stale[0].id).toBe(old.id);
+		});
+
+		test("excludes closed issues", async () => {
+			const closedOld = await cells.createCell(projectKey, {
+				title: "Closed old",
+				type: "task",
+				priority: 2,
+			});
+
+			await db.query(`UPDATE cells SET updated_at = $1 WHERE id = $2`, [
+				Date.now() - 10 * 24 * 60 * 60 * 1000,
+				closedOld.id,
+			]);
+
+			await cells.closeCell(projectKey, closedOld.id, "Done");
+
+			const stale = await getStaleIssues(cells, projectKey, 7);
+			expect(stale).toEqual([]);
+		});
+
+		test("filters by status", async () => {
+			const openOld = await cells.createCell(projectKey, {
+				title: "Open old",
+				type: "task",
+				priority: 2,
+			});
+
+			const inProgressOld = await cells.createCell(projectKey, {
+				title: "In progress old",
+				type: "task",
+				priority: 2,
+			});
+
+			await cells.changeCellStatus(projectKey, inProgressOld.id, "in_progress");
+
+			// Make both old
+			const oldTimestamp = Date.now() - 10 * 24 * 60 * 60 * 1000;
+			await db.query(`UPDATE cells SET updated_at = $1 WHERE id IN ($2, $3)`, [
+				oldTimestamp,
+				openOld.id,
+				inProgressOld.id,
+			]);
+
+			const stale = await getStaleIssues(cells, projectKey, 7, {
+				status: "in_progress",
+			});
+
+			expect(stale).toHaveLength(1);
+			expect(stale[0].id).toBe(inProgressOld.id);
+		});
+
+		test("limits results", async () => {
+			const old1 = await cells.createCell(projectKey, {
+				title: "Old 1",
+				type: "task",
+				priority: 2,
+			});
+			const old2 = await cells.createCell(projectKey, {
+				title: "Old 2",
+				type: "task",
+				priority: 2,
+			});
+			const old3 = await cells.createCell(projectKey, {
+				title: "Old 3",
+				type: "task",
+				priority: 2,
+			});
+
+			const oldTimestamp = Date.now() - 10 * 24 * 60 * 60 * 1000;
+			await db.query(
+				`UPDATE cells SET updated_at = $1 WHERE id IN ($2, $3, $4)`,
+				[oldTimestamp, old1.id, old2.id, old3.id],
+			);
+
+			const stale = await getStaleIssues(cells, projectKey, 7, { limit: 2 });
+			expect(stale).toHaveLength(2);
+		});
+
+		test("orders by oldest first", async () => {
+			const old1 = await cells.createCell(projectKey, {
+				title: "Old 1",
+				type: "task",
+				priority: 2,
+			});
+			const old2 = await cells.createCell(projectKey, {
+				title: "Old 2",
+				type: "task",
+				priority: 2,
+			});
+
+			// old1 is older
+			await db.query(`UPDATE cells SET updated_at = $1 WHERE id = $2`, [
+				Date.now() - 20 * 24 * 60 * 60 * 1000,
+				old1.id,
+			]);
+
+			// old2 is less old
+			await db.query(`UPDATE cells SET updated_at = $1 WHERE id = $2`, [
+				Date.now() - 10 * 24 * 60 * 60 * 1000,
+				old2.id,
+			]);
+
+			const stale = await getStaleIssues(cells, projectKey, 7);
+			expect(stale.map((b) => b.id)).toEqual([old1.id, old2.id]);
+		});
+	});
+
+	describe("resolvePartialId", () => {
+		test("returns full ID when given complete hash portion", async () => {
+			const cell = await cells.createCell(projectKey, {
+				title: "Test task",
+				type: "task",
+				priority: 2,
+			});
+
+			// Extract hash portion from ID
+			// Format: {prefix}-{hash}-{timestamp}{random}
+			const parts = cell.id.split("-");
+			const hash = parts[1]; // e.g., "lf2p4u"
+
+			const { resolvePartialId } = await import("./queries.js");
+			const result = await resolvePartialId(cells, projectKey, hash);
+
+			expect(result).toBe(cell.id);
+		});
+
+		test("returns full ID when given partial hash", async () => {
+			const cell = await cells.createCell(projectKey, {
+				title: "Test task",
+				type: "task",
+				priority: 2,
+			});
+
+			const parts = cell.id.split("-");
+			const hash = parts[1];
+			const partialHash = hash.slice(0, 3); // first 3 chars
+
+			const { resolvePartialId } = await import("./queries.js");
+			const result = await resolvePartialId(cells, projectKey, partialHash);
+
+			expect(result).toBe(cell.id);
+		});
+
+		test("returns null when no matches found", async () => {
+			await cells.createCell(projectKey, {
+				title: "Test task",
+				type: "task",
+				priority: 2,
+			});
+
+			const { resolvePartialId } = await import("./queries.js");
+			const result = await resolvePartialId(cells, projectKey, "nonexistent");
+
+			expect(result).toBe(null);
+		});
+
+		test("throws error when multiple cells match (ambiguous)", async () => {
+			// This is edge case - would need hash collision
+			// For now, test that function returns first match consistently
+			const cell1 = await cells.createCell(projectKey, {
+				title: "Test 1",
+				type: "task",
+				priority: 2,
+			});
+
+			const cell2 = await cells.createCell(projectKey, {
+				title: "Test 2",
+				type: "task",
+				priority: 2,
+			});
+
+			// Both should have same hash (same project key)
+			const parts1 = cell1.id.split("-");
+			const parts2 = cell2.id.split("-");
+
+			// Hashes should be identical for same projectKey
+			expect(parts1[1]).toBe(parts2[1]);
+
+			const { resolvePartialId } = await import("./queries.js");
+			// Should throw when ambiguous
+			await expect(
+				resolvePartialId(cells, projectKey, parts1[1]),
+			).rejects.toThrow(/multiple cells/i);
+		});
+
+		test("ignores deleted cells", async () => {
+			const cell = await cells.createCell(projectKey, {
+				title: "Test task",
+				type: "task",
+				priority: 2,
+			});
+
+			const parts = cell.id.split("-");
+			const hash = parts[1];
+
+			await cells.deleteCell(projectKey, cell.id);
+
+			const { resolvePartialId } = await import("./queries.js");
+			const result = await resolvePartialId(cells, projectKey, hash);
+
+			expect(result).toBe(null);
+		});
+
+		test("returns full ID when given timestamp+random segment (end of ID)", async () => {
+			const cell = await cells.createCell(projectKey, {
+				title: "Test task",
+				type: "task",
+				priority: 2,
+			});
+
+			// Cell ID format: {prefix}-{hash}-{timestamp}{random}
+			// Example: opencode-swarm-monorepo-lf2p4u-mjkmdat26vq
+			// The last segment after the final dash is timestamp+random
+			const parts = cell.id.split("-");
+			const timestampRandom = parts[parts.length - 1]; // e.g., "mjkmdat26vq"
+
+			const { resolvePartialId } = await import("./queries.js");
+			const result = await resolvePartialId(cells, projectKey, timestampRandom);
+
+			expect(result).toBe(cell.id);
+		});
+
+		test("returns full ID when given partial timestamp+random segment", async () => {
+			const cell = await cells.createCell(projectKey, {
+				title: "Test task",
+				type: "task",
+				priority: 2,
+			});
+
+			const parts = cell.id.split("-");
+			const timestampRandom = parts[parts.length - 1];
+			const partialTimestamp = timestampRandom.slice(0, 5); // first 5 chars
+
+			const { resolvePartialId } = await import("./queries.js");
+			const result = await resolvePartialId(
+				cells,
+				projectKey,
+				partialTimestamp,
+			);
+
+			expect(result).toBe(cell.id);
+		});
+
+		test("returns full ID when given any unique substring of the ID", async () => {
+			const cell = await cells.createCell(projectKey, {
+				title: "Test task",
+				type: "task",
+				priority: 2,
+			});
+
+			// Should match any unique substring
+			const { resolvePartialId } = await import("./queries.js");
+
+			// Match by full ID
+			const result1 = await resolvePartialId(cells, projectKey, cell.id);
+			expect(result1).toBe(cell.id);
+		});
+	});
+
+	describe("findCellsByPartialId", () => {
+		test("returns all matching cells instead of throwing on ambiguous", async () => {
+			// Create two cells with same project key (same hash segment)
+			const cell1 = await cells.createCell(projectKey, {
+				title: "Task 1",
+				type: "task",
+				priority: 2,
+			});
+			const cell2 = await cells.createCell(projectKey, {
+				title: "Task 2",
+				type: "task",
+				priority: 2,
+			});
+
+			// Both cells share the same hash segment (derived from projectKey)
+			const parts1 = cell1.id.split("-");
+			const hash = parts1[1]; // e.g., "lf2p4u"
+
+			const { findCellsByPartialId } = await import("./queries.js");
+			const results = await findCellsByPartialId(cells, projectKey, hash);
+
+			// Should return both cells, not throw
+			expect(results.length).toBeGreaterThanOrEqual(2);
+			expect(results.some((c) => c.id === cell1.id)).toBe(true);
+			expect(results.some((c) => c.id === cell2.id)).toBe(true);
+		});
+
+		test("returns empty array when no matches", async () => {
+			const { findCellsByPartialId } = await import("./queries.js");
+			const results = await findCellsByPartialId(
+				cells,
+				projectKey,
+				"nonexistent999",
+			);
+
+			expect(results).toEqual([]);
+		});
+
+		test("returns single cell when unique match", async () => {
+			const cell = await cells.createCell(projectKey, {
+				title: "Unique task",
+				type: "task",
+				priority: 2,
+			});
+
+			// Use the full timestamp+random segment which should be unique
+			const parts = cell.id.split("-");
+			const timestampRandom = parts[parts.length - 1];
+
+			const { findCellsByPartialId } = await import("./queries.js");
+			const results = await findCellsByPartialId(
+				cells,
+				projectKey,
+				timestampRandom,
+			);
+
+			expect(results.length).toBe(1);
+			expect(results[0].id).toBe(cell.id);
+		});
+
+		test("ignores deleted cells", async () => {
+			const cell = await cells.createCell(projectKey, {
+				title: "To be deleted",
+				type: "task",
+				priority: 2,
+			});
+
+			const parts = cell.id.split("-");
+			const timestampRandom = parts[parts.length - 1];
+
+			await cells.deleteCell(projectKey, cell.id);
+
+			const { findCellsByPartialId } = await import("./queries.js");
+			const results = await findCellsByPartialId(
+				cells,
+				projectKey,
+				timestampRandom,
+			);
+
+			expect(results).toEqual([]);
+		});
+	});
+
+	describe("getStatistics", () => {
+		test("returns zeros for empty database", async () => {
+			const stats = await getStatistics(cells, projectKey);
+
+			expect(stats.total_cells).toBe(0);
+			expect(stats.open).toBe(0);
+			expect(stats.in_progress).toBe(0);
+			expect(stats.closed).toBe(0);
+			expect(stats.blocked).toBe(0);
+			expect(stats.ready).toBe(0);
+			expect(stats.by_type).toEqual({});
+		});
+
+		test("counts cells by status", async () => {
+			await cells.createCell(projectKey, {
+				title: "Open 1",
+				type: "task",
+				priority: 2,
+			});
+			await cells.createCell(projectKey, {
+				title: "Open 2",
+				type: "task",
+				priority: 2,
+			});
+
+			const inProgress = await cells.createCell(projectKey, {
+				title: "In Progress",
+				type: "task",
+				priority: 2,
+			});
+			await cells.changeCellStatus(projectKey, inProgress.id, "in_progress");
+
+			const closed = await cells.createCell(projectKey, {
+				title: "Closed",
+				type: "task",
+				priority: 2,
+			});
+			await cells.closeCell(projectKey, closed.id, "Done");
+
+			const stats = await getStatistics(cells, projectKey);
+
+			expect(stats.total_cells).toBe(4);
+			expect(stats.open).toBe(2);
+			expect(stats.in_progress).toBe(1);
+			expect(stats.closed).toBe(1);
+		});
+
+		test("counts blocked cells", async () => {
+			const blocker = await cells.createCell(projectKey, {
+				title: "Blocker",
+				type: "task",
+				priority: 2,
+			});
+			const blocked = await cells.createCell(projectKey, {
+				title: "Blocked",
+				type: "task",
+				priority: 2,
+			});
+
+			await cells.addDependency(projectKey, blocked.id, blocker.id, "blocks");
+
+			const stats = await getStatistics(cells, projectKey);
+			expect(stats.blocked).toBe(1);
+		});
+
+		test("counts ready cells", async () => {
+			const blocker = await cells.createCell(projectKey, {
+				title: "Blocker",
+				type: "task",
+				priority: 2,
+			});
+			const blocked = await cells.createCell(projectKey, {
+				title: "Blocked",
+				type: "task",
+				priority: 2,
+			});
+			await cells.createCell(projectKey, {
+				title: "Ready",
+				type: "task",
+				priority: 2,
+			});
+
+			await cells.addDependency(projectKey, blocked.id, blocker.id, "blocks");
+
+			const stats = await getStatistics(cells, projectKey);
+			expect(stats.ready).toBe(2); // blocker + ready (blocked is not ready)
+		});
+
+		test("groups by type", async () => {
+			await cells.createCell(projectKey, {
+				title: "Task 1",
+				type: "task",
+				priority: 2,
+			});
+			await cells.createCell(projectKey, {
+				title: "Task 2",
+				type: "task",
+				priority: 2,
+			});
+			await cells.createCell(projectKey, {
+				title: "Bug",
+				type: "bug",
+				priority: 0,
+			});
+			await cells.createCell(projectKey, {
+				title: "Epic",
+				type: "epic",
+				priority: 2,
+			});
+
+			const stats = await getStatistics(cells, projectKey);
+
+			expect(stats.by_type).toEqual({
+				task: 2,
+				bug: 1,
+				epic: 1,
+			});
+		});
+
+		test("excludes deleted cells", async () => {
+			await cells.createCell(projectKey, {
+				title: "Task 1",
+				type: "task",
+				priority: 2,
+			});
+			const deleted = await cells.createCell(projectKey, {
+				title: "Task 2",
+				type: "task",
+				priority: 2,
+			});
+
+			await cells.deleteCell(projectKey, deleted.id);
+
+			const stats = await getStatistics(cells, projectKey);
+			expect(stats.total_cells).toBe(1);
+		});
+	});
 });

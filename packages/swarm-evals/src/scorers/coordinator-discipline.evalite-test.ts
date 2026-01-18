@@ -2,7 +2,7 @@
  * Tests for coordinator-discipline scorers
  */
 import { describe, expect, it } from "bun:test";
-import type { CoordinatorSession } from "opencode-swarm-plugin/eval-capture";
+import type { CoordinatorSession } from "swarm/eval-capture";
 import {
 	overallDiscipline,
 
@@ -122,7 +122,7 @@ describe("spawnEfficiency", () => {
 					timestamp: "2025-01-01T00:00:10Z",
 					event_type: "DECISION",
 					decision_type: "worker_spawned",
-					payload: { bead_id: "bd-1" },
+					payload: { cell_id: "bd-1" },
 				},
 				{
 					session_id: "test-session",
@@ -130,7 +130,7 @@ describe("spawnEfficiency", () => {
 					timestamp: "2025-01-01T00:00:20Z",
 					event_type: "DECISION",
 					decision_type: "worker_spawned",
-					payload: { bead_id: "bd-2" },
+					payload: { cell_id: "bd-2" },
 				},
 				{
 					session_id: "test-session",
@@ -138,7 +138,7 @@ describe("spawnEfficiency", () => {
 					timestamp: "2025-01-01T00:00:30Z",
 					event_type: "DECISION",
 					decision_type: "worker_spawned",
-					payload: { bead_id: "bd-3" },
+					payload: { cell_id: "bd-3" },
 				},
 			],
 		};
@@ -172,7 +172,7 @@ describe("spawnEfficiency", () => {
 					timestamp: "2025-01-01T00:00:10Z",
 					event_type: "DECISION",
 					decision_type: "worker_spawned",
-					payload: { bead_id: "bd-1" },
+					payload: { cell_id: "bd-1" },
 				},
 				{
 					session_id: "test-session",
@@ -180,7 +180,7 @@ describe("spawnEfficiency", () => {
 					timestamp: "2025-01-01T00:00:20Z",
 					event_type: "DECISION",
 					decision_type: "worker_spawned",
-					payload: { bead_id: "bd-2" },
+					payload: { cell_id: "bd-2" },
 				},
 			],
 		};
@@ -206,7 +206,7 @@ describe("spawnEfficiency", () => {
 					timestamp: "2025-01-01T00:00:10Z",
 					event_type: "DECISION",
 					decision_type: "worker_spawned",
-					payload: { bead_id: "bd-1" },
+					payload: { cell_id: "bd-1" },
 				},
 			],
 		};
@@ -234,7 +234,7 @@ describe("reviewThoroughness", () => {
 					timestamp: "2025-01-01T00:00:00Z",
 					event_type: "OUTCOME",
 					outcome_type: "subtask_success",
-					payload: { bead_id: "bd-1" },
+					payload: { cell_id: "bd-1" },
 				},
 				{
 					session_id: "test-session",
@@ -242,7 +242,7 @@ describe("reviewThoroughness", () => {
 					timestamp: "2025-01-01T00:00:10Z",
 					event_type: "OUTCOME",
 					outcome_type: "subtask_success",
-					payload: { bead_id: "bd-2" },
+					payload: { cell_id: "bd-2" },
 				},
 				{
 					session_id: "test-session",
@@ -250,7 +250,7 @@ describe("reviewThoroughness", () => {
 					timestamp: "2025-01-01T00:00:20Z",
 					event_type: "DECISION",
 					decision_type: "review_completed",
-					payload: { bead_id: "bd-1" },
+					payload: { cell_id: "bd-1" },
 				},
 				{
 					session_id: "test-session",
@@ -258,7 +258,7 @@ describe("reviewThoroughness", () => {
 					timestamp: "2025-01-01T00:00:30Z",
 					event_type: "DECISION",
 					decision_type: "review_completed",
-					payload: { bead_id: "bd-2" },
+					payload: { cell_id: "bd-2" },
 				},
 			],
 		};
@@ -284,7 +284,7 @@ describe("reviewThoroughness", () => {
 					timestamp: "2025-01-01T00:00:00Z",
 					event_type: "OUTCOME",
 					outcome_type: "subtask_success",
-					payload: { bead_id: "bd-1" },
+					payload: { cell_id: "bd-1" },
 				},
 				{
 					session_id: "test-session",
@@ -292,7 +292,7 @@ describe("reviewThoroughness", () => {
 					timestamp: "2025-01-01T00:00:10Z",
 					event_type: "OUTCOME",
 					outcome_type: "subtask_success",
-					payload: { bead_id: "bd-2" },
+					payload: { cell_id: "bd-2" },
 				},
 				{
 					session_id: "test-session",
@@ -300,7 +300,7 @@ describe("reviewThoroughness", () => {
 					timestamp: "2025-01-01T00:00:20Z",
 					event_type: "DECISION",
 					decision_type: "review_completed",
-					payload: { bead_id: "bd-1" },
+					payload: { cell_id: "bd-1" },
 				},
 			],
 		};
@@ -363,7 +363,7 @@ describe("timeToFirstSpawn", () => {
 					timestamp: "2025-01-01T00:00:30Z",
 					event_type: "DECISION",
 					decision_type: "worker_spawned",
-					payload: { bead_id: "bd-1" },
+					payload: { cell_id: "bd-1" },
 				},
 			],
 		};
@@ -416,7 +416,7 @@ describe("timeToFirstSpawn", () => {
 					timestamp: "2025-01-01T00:00:10Z",
 					event_type: "DECISION",
 					decision_type: "worker_spawned",
-					payload: { bead_id: "bd-1" },
+					payload: { cell_id: "bd-1" },
 				},
 			],
 		};
@@ -453,7 +453,7 @@ describe("overallDiscipline", () => {
 					timestamp: "2025-01-01T00:00:10Z",
 					event_type: "DECISION",
 					decision_type: "worker_spawned",
-					payload: { bead_id: "bd-1" },
+					payload: { cell_id: "bd-1" },
 				},
 				{
 					session_id: "test-session",
@@ -461,7 +461,7 @@ describe("overallDiscipline", () => {
 					timestamp: "2025-01-01T00:00:20Z",
 					event_type: "DECISION",
 					decision_type: "worker_spawned",
-					payload: { bead_id: "bd-2" },
+					payload: { cell_id: "bd-2" },
 				},
 				{
 					session_id: "test-session",
@@ -469,7 +469,7 @@ describe("overallDiscipline", () => {
 					timestamp: "2025-01-01T00:10:00Z",
 					event_type: "OUTCOME",
 					outcome_type: "subtask_success",
-					payload: { bead_id: "bd-1" },
+					payload: { cell_id: "bd-1" },
 				},
 				{
 					session_id: "test-session",
@@ -477,7 +477,7 @@ describe("overallDiscipline", () => {
 					timestamp: "2025-01-01T00:10:10Z",
 					event_type: "OUTCOME",
 					outcome_type: "subtask_success",
-					payload: { bead_id: "bd-2" },
+					payload: { cell_id: "bd-2" },
 				},
 				{
 					session_id: "test-session",
@@ -485,7 +485,7 @@ describe("overallDiscipline", () => {
 					timestamp: "2025-01-01T00:10:20Z",
 					event_type: "DECISION",
 					decision_type: "review_completed",
-					payload: { bead_id: "bd-1" },
+					payload: { cell_id: "bd-1" },
 				},
 				{
 					session_id: "test-session",
@@ -493,7 +493,7 @@ describe("overallDiscipline", () => {
 					timestamp: "2025-01-01T00:10:30Z",
 					event_type: "DECISION",
 					decision_type: "review_completed",
-					payload: { bead_id: "bd-2" },
+					payload: { cell_id: "bd-2" },
 				},
 			],
 		};

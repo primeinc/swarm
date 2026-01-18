@@ -1,5 +1,90 @@
 # swarm-mail
 
+## 1.10.12
+
+### Patch Changes
+
+- Fix: Improve CLI path resolution for global installs and remove redundant package.json copying.
+- 4eab84a: > "Software design is an exercise in human relationships."
+
+  > — Kent Beck, _Tidy First?_
+
+  This release fixes a critical module resolution error on Windows when the `swarm` CLI is installed globally via Bun.
+
+  **The Fix:**
+
+  - **Build-time Metadata**: The `package.json` is now copied into the `dist/` directory during the build process. This ensures Bun's Windows shim can find the necessary package metadata without relying on repository-relative paths.
+  - **Static Versioning**: Switched `swarm-mail` to use static ES module imports for versioning. This prevents runtime filesystem probes that often fail in global installation contexts.
+  - **Improved Pathing**: Optimized CLI path resolution to handle bundled and global installation layouts more gracefully.
+
+  **Why it matters:**
+  Windows users installing via `bun add -g @primeinc/swarm` previously encountered "Cannot find module 'package.json'" errors because the runtime was looking for metadata that wasn't included in the `dist` folder.
+
+- Updated dependencies
+  - swarm-path@1.2.4
+
+## 1.10.11
+
+### Patch Changes
+
+- Fix: Remove beta tag from publish workflow to make it the latest release.
+
+- Updated dependencies []:
+  - swarm-path@1.2.3
+
+## 1.10.10
+
+### Patch Changes
+
+- Fix: Full monorepo version bump to ensure workspace dependency resolution works across all packages.
+
+- Updated dependencies []:
+  - swarm-path@1.2.2
+
+## 1.10.9
+
+### Patch Changes
+
+- Fix: Resolve workspace:\* dependencies to actual versions during scoping and fix CI/CD build order.
+
+- Updated dependencies []:
+  - swarm-path@1.2.1
+
+## 1.10.8
+
+### Patch Changes
+
+- Refactor: Rename swarm-cross-path to swarm-path. This standardizes the naming convention across the repository.
+
+- Updated dependencies []:
+  - swarm-path@1.2.0
+
+## 1.10.7
+
+### Patch Changes
+
+- ## 🐝 Global Terminology Migration: Bead → Cell
+
+  The codebase has been systematically updated to use the "Hive/Cell" metaphor across all systems.
+
+  **What changed:**
+
+  - Renamed all occurrences of "bead" to "cell" in schemas, types, and logic.
+  - Updated `swarm` CLI to support `hive` command (aliased to `cells`).
+  - Database migration (Version 10) renames legacy tables (`bead_*` → `cell_*`) and columns.
+  - Standardized Epic hierarchy: Hive → Epic → Cell.
+
+  **Why it matters:**
+
+  - Provides a clearer, more scalable mental model for multi-agent coordination.
+  - Aligns with the "Hivemind" unified memory system architecture.
+  - Improves consistency between CLI, database, and internal logic.
+
+  "The swarm is the coordinator, the hive is the memory."
+
+- Updated dependencies [96aea82]
+  - swarm-cross-path@1.1.0
+
 ## 1.10.2
 
 ### Patch Changes
@@ -500,7 +585,7 @@
   Migrates all subsystems:
 
   - **Streams:** events, agents, messages, message_recipients, reservations, cursors, locks
-  - **Hive:** beads, bead_dependencies, bead_labels, bead_comments, blocked_beads_cache, dirty_beads
+  - **Hive:** cells, cell_dependencies, cell_labels, cell_comments, blocked_cells_cache, dirty_cells
   - **Learning:** eval_records, swarm_contexts, deferred
 
   **Manual migration:**
@@ -1182,7 +1267,7 @@
 
   **Structured Error Classes** (swarm-mail)
 
-  - `BaseSwarmError` with rich context: agent, bead_id, epic_id, timestamp, recent events
+  - `BaseSwarmError` with rich context: agent, cell_id, epic_id, timestamp, recent events
   - Specialized errors: `ReservationError`, `CheckpointError`, `ValidationError`, `DecompositionError`
   - Every error includes actionable suggestions for resolution
   - Full `toJSON()` serialization for logging and debugging
@@ -1842,7 +1927,7 @@
 
   **swarm-mail:**
 
-  - `generateBeadId()` now reads `package.json` name field from project directory
+  - `generatecellId()` now reads `package.json` name field from project directory
   - Added `slugifyProjectName()` for safe ID generation (lowercase, special chars → dashes)
   - Falls back to `cell-` prefix if no package.json or no name field
 
@@ -1864,7 +1949,7 @@
 
   - **Identifiable at a glance** - Know which project a cell belongs to without looking it up
   - **Multi-project workspaces** - Filter/search cells by project prefix
-  - **Terminology cleanup** - Removes legacy "bead" (`bd-`) from user-facing IDs
+  - **Terminology cleanup** - Removes legacy "cell" (`bd-`) from user-facing IDs
 
   ### Backward Compatible
 
@@ -1889,18 +1974,18 @@
 
 - [`90409ef`](https://github.com/joelhooks/swarm-tools/commit/90409ef4f353844b25fe04221bc80d6f930eced2) Thanks [@joelhooks](https://github.com/joelhooks)! - Fix table name mismatches and SQL alias typo in hive module
 
-  - jsonl.ts: Fixed DELETE queries using wrong table names (cell*\* → bead*\*)
+  - jsonl.ts: Fixed DELETE queries using wrong table names (cell*\* → cell*\*)
   - projections.ts: Fixed SQL alias typo (bcc.cell_id → bbc.cell_id)
 
 ## 0.3.3
 
 ### Patch Changes
 
-- [`ec23d25`](https://github.com/joelhooks/swarm-tools/commit/ec23d25aeca667c0294a6255fecf11dd7d7fd6b3) Thanks [@joelhooks](https://github.com/joelhooks)! - Add .beads → .hive directory migration support
+- [`ec23d25`](https://github.com/joelhooks/swarm-tools/commit/ec23d25aeca667c0294a6255fecf11dd7d7fd6b3) Thanks [@joelhooks](https://github.com/joelhooks)! - Add .cells → .hive directory migration support
 
-  - Fix migration version collision: beadsMigration now v7, cellsViewMigration now v8 (was conflicting with streams v6)
-  - Add `checkBeadsMigrationNeeded()` to detect legacy .beads directories
-  - Add `migrateBeadsToHive()` to rename .beads to .hive
+  - Fix migration version collision: cellsMigration now v7, cellsViewMigration now v8 (was conflicting with streams v6)
+  - Add `checkcellsMigrationNeeded()` to detect legacy .cells directories
+  - Add `migratecellsToHive()` to rename .cells to .hive
   - Add `ensureHiveDirectory()` to create .hive if missing (called by hive_sync)
   - Update hive_sync to ensure .hive directory exists before writing
   - Add migration prompt to `swarm setup` CLI flow
@@ -1921,10 +2006,10 @@
 
 ### Minor Changes
 
-- [`26fd2ef`](https://github.com/joelhooks/swarm-tools/commit/26fd2ef27562edc39f7db7a9cdbed399a465200d) Thanks [@joelhooks](https://github.com/joelhooks)! - Rename beads → hive across the codebase
+- [`26fd2ef`](https://github.com/joelhooks/swarm-tools/commit/26fd2ef27562edc39f7db7a9cdbed399a465200d) Thanks [@joelhooks](https://github.com/joelhooks)! - Rename cells → hive across the codebase
 
-  - `createBeadsAdapter` → `createHiveAdapter` (old name still exported as alias)
-  - `BeadsAdapter` type → `HiveAdapter` type
+  - `createcellsAdapter` → `createHiveAdapter` (old name still exported as alias)
+  - `cellsAdapter` type → `HiveAdapter` type
   - All internal references updated to use hive terminology
   - Backward compatible: old exports still work but are deprecated
 
@@ -1932,12 +2017,12 @@
 
 ### Patch Changes
 
-- [`b2d4a84`](https://github.com/joelhooks/swarm-tools/commit/b2d4a84748cdef4b9dbca7666dd3d313b6cd2b24) Thanks [@joelhooks](https://github.com/joelhooks)! - Add automatic JSONL migration for beads on first use
+- [`b2d4a84`](https://github.com/joelhooks/swarm-tools/commit/b2d4a84748cdef4b9dbca7666dd3d313b6cd2b24) Thanks [@joelhooks](https://github.com/joelhooks)! - Add automatic JSONL migration for cells on first use
 
-  - Auto-migrate from `.beads/issues.jsonl` when database is empty
+  - Auto-migrate from `.cells/issues.jsonl` when database is empty
   - Fix import to handle missing dependencies/labels/comments arrays
-  - Fix closed bead import to satisfy check constraint (status + closed_at)
-  - Migrates 500+ historical beads seamlessly on first adapter initialization
+  - Fix closed cell import to satisfy check constraint (status + closed_at)
+  - Migrates 500+ historical cells seamlessly on first adapter initialization
 
 ## 0.2.0
 

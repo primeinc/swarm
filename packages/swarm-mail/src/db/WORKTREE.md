@@ -74,13 +74,11 @@ resolveDbPath("/path/to/main-repo");
 ```typescript
 export function getOldProjectDbPaths(projectPath: string): {
   libsql: string;
-  pglite: string;
 } {
   const mainRepoPath = getMainRepoPath(projectPath);
   const localDir = join(mainRepoPath, ".opencode");
   return {
     libsql: join(localDir, "streams.db"),
-    pglite: join(localDir, "streams"),
   };
 }
 ```
@@ -91,7 +89,7 @@ This ensures migration detection looks in the main repo's `.opencode/`, not the 
 
 - [Git Worktree Docs](https://git-scm.com/docs/git-worktree)
 - Original issue: https://github.com/joelhooks/opencode-swarm-plugin/issues/52
-- Inspired by: https://github.com/steveyegge/beads/blob/main/docs/WORKTREES.md
+- Inspired by: https://github.com/steveyegge/cells/blob/main/docs/WORKTREES.md
 
 ## Testing
 

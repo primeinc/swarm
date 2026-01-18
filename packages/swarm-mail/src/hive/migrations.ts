@@ -1,49 +1,49 @@
 /**
- * Beads Schema Migration (v7-v8)
+ * cells Schema Migration (v7-v8)
  *
- * Adds beads-specific tables to the shared libSQL database.
+ * Adds cells-specific tables to the shared libSQL database.
  * This migration extends the existing swarm-mail schema.
  *
  * ## Migration Strategy
- * - Migration v7 adds beads tables to existing swarm-mail schema (v0-v6)
- * - Migration v8 adds cells view for beads→hive rename compatibility
+ * - Migration v7 adds cells tables to existing swarm-mail schema (v0-v6)
+ * - Migration v8 adds cells view for cells→hive rename compatibility
  * - Shares same libSQL database instance and migration system
  * - Uses same schema_version table for tracking
  *
  * ## Tables Created
- * - beads: Core bead records (parallel to steveyegge/beads issues table)
- * - bead_dependencies: Dependency relationships between beads
- * - bead_labels: String tags for categorization
- * - bead_comments: Comments/notes on beads
- * - blocked_beads_cache: Materialized view for fast blocked queries
- * - dirty_beads: Tracks beads that need JSONL export
+ * - cells: Core cell records (parallel to steveyegge/cells issues table)
+ * - cell_dependencies: Dependency relationships between cells
+ * - cell_labels: String tags for categorization
+ * - cell_comments: Comments/notes on cells
+ * - blocked_cells_cache: Materialized view for fast blocked queries
+ * - dirty_cells: Tracks cells that need JSONL export
  *
  * ## Design Notes
  * - Uses BIGINT for timestamps (Unix ms, like swarm-mail events)
- * - Uses TEXT for IDs (like steveyegge/beads)
+ * - Uses TEXT for IDs (like steveyegge/cells)
  * - CASCADE deletes for referential integrity
  * - Indexes for common query patterns
  * - CHECK constraints for data integrity
  *
- * @module beads/migrations
+ * @module hive/migrations
  */
 
 import type { Migration } from "../streams/migrations.js";
 
 /**
- * Migration v6: Add beads tables
+ * Migration v6: Add cells tables
  *
  * This migration is designed to be appended to the existing migrations array
  * in src/streams/migrations.ts.
  */
-export const beadsMigration: Migration = {
-  version: 7,
-  description: "Add beads tables for issue tracking",
-  up: `
+export const cellsMigration: Migration = {
+	version: 7,
+	description: "Add cells tables for issue tracking",
+	up: `
     -- ========================================================================
-    -- Core Beads Table
+    -- Core cells Table
     -- ========================================================================
-    CREATE TABLE IF NOT EXISTS beads (
+    CREATE TABLE IF NOT EXISTS cells (
       id TEXT PRIMARY KEY,
       project_key TEXT NOT NULL,
       type TEXT NOT NULL CHECK (type IN ('bug', 'feature', 'task', 'epic', 'chore', 'message')),
@@ -51,7 +51,7 @@ export const beadsMigration: Migration = {
       title TEXT NOT NULL CHECK (length(title) <= 500),
       description TEXT,
       priority INTEGER NOT NULL DEFAULT 2 CHECK (priority BETWEEN 0 AND 3),
-      parent_id TEXT REFERENCES beads(id) ON DELETE SET NULL,
+      parent_id TEXT REFERENCES cells(id) ON DELETE SET NULL,
       assignee TEXT,
       created_at BIGINT NOT NULL,
       updated_at BIGINT NOT NULL,
@@ -65,133 +65,133 @@ export const beadsMigration: Migration = {
     );
 
     -- Indexes for common queries
-    CREATE INDEX IF NOT EXISTS idx_beads_project ON beads(project_key);
-    CREATE INDEX IF NOT EXISTS idx_beads_status ON beads(status);
-    CREATE INDEX IF NOT EXISTS idx_beads_type ON beads(type);
-    CREATE INDEX IF NOT EXISTS idx_beads_priority ON beads(priority);
-    CREATE INDEX IF NOT EXISTS idx_beads_assignee ON beads(assignee);
-    CREATE INDEX IF NOT EXISTS idx_beads_parent ON beads(parent_id);
-    CREATE INDEX IF NOT EXISTS idx_beads_created ON beads(created_at);
-    CREATE INDEX IF NOT EXISTS idx_beads_project_status ON beads(project_key, status);
+    CREATE INDEX IF NOT EXISTS idx_cells_project ON cells(project_key);
+    CREATE INDEX IF NOT EXISTS idx_cells_status ON cells(status);
+    CREATE INDEX IF NOT EXISTS idx_cells_type ON cells(type);
+    CREATE INDEX IF NOT EXISTS idx_cells_priority ON cells(priority);
+    CREATE INDEX IF NOT EXISTS idx_cells_assignee ON cells(assignee);
+    CREATE INDEX IF NOT EXISTS idx_cells_parent ON cells(parent_id);
+    CREATE INDEX IF NOT EXISTS idx_cells_created ON cells(created_at);
+    CREATE INDEX IF NOT EXISTS idx_cells_project_status ON cells(project_key, status);
 
     -- ========================================================================
     -- Dependencies Table
     -- ========================================================================
-    CREATE TABLE IF NOT EXISTS bead_dependencies (
-      cell_id TEXT NOT NULL REFERENCES beads(id) ON DELETE CASCADE,
-      depends_on_id TEXT NOT NULL REFERENCES beads(id) ON DELETE CASCADE,
+    CREATE TABLE IF NOT EXISTS cell_dependencies (
+      cell_id TEXT NOT NULL REFERENCES cells(id) ON DELETE CASCADE,
+      depends_on_id TEXT NOT NULL REFERENCES cells(id) ON DELETE CASCADE,
       relationship TEXT NOT NULL CHECK (relationship IN ('blocks', 'related', 'parent-child', 'discovered-from', 'replies-to', 'relates-to', 'duplicates', 'supersedes')),
       created_at BIGINT NOT NULL,
       created_by TEXT,
       PRIMARY KEY (cell_id, depends_on_id, relationship)
     );
 
-    CREATE INDEX IF NOT EXISTS idx_bead_deps_bead ON bead_dependencies(cell_id);
-    CREATE INDEX IF NOT EXISTS idx_bead_deps_depends_on ON bead_dependencies(depends_on_id);
-    CREATE INDEX IF NOT EXISTS idx_bead_deps_relationship ON bead_dependencies(relationship);
+    CREATE INDEX IF NOT EXISTS idx_cell_deps_cell ON cell_dependencies(cell_id);
+    CREATE INDEX IF NOT EXISTS idx_cell_deps_depends_on ON cell_dependencies(depends_on_id);
+    CREATE INDEX IF NOT EXISTS idx_cell_deps_relationship ON cell_dependencies(relationship);
 
     -- ========================================================================
     -- Labels Table
     -- ========================================================================
-    CREATE TABLE IF NOT EXISTS bead_labels (
-      cell_id TEXT NOT NULL REFERENCES beads(id) ON DELETE CASCADE,
+    CREATE TABLE IF NOT EXISTS cell_labels (
+      cell_id TEXT NOT NULL REFERENCES cells(id) ON DELETE CASCADE,
       label TEXT NOT NULL,
       created_at BIGINT NOT NULL,
       PRIMARY KEY (cell_id, label)
     );
 
-    CREATE INDEX IF NOT EXISTS idx_bead_labels_label ON bead_labels(label);
+    CREATE INDEX IF NOT EXISTS idx_cell_labels_label ON cell_labels(label);
 
     -- ========================================================================
     -- Comments Table
     -- ========================================================================
-    CREATE TABLE IF NOT EXISTS bead_comments (
+    CREATE TABLE IF NOT EXISTS cell_comments (
       id SERIAL PRIMARY KEY,
-      cell_id TEXT NOT NULL REFERENCES beads(id) ON DELETE CASCADE,
+      cell_id TEXT NOT NULL REFERENCES cells(id) ON DELETE CASCADE,
       author TEXT NOT NULL,
       body TEXT NOT NULL,
-      parent_id INTEGER REFERENCES bead_comments(id) ON DELETE CASCADE,
+      parent_id INTEGER REFERENCES cell_comments(id) ON DELETE CASCADE,
       created_at BIGINT NOT NULL,
       updated_at BIGINT
     );
 
-    CREATE INDEX IF NOT EXISTS idx_bead_comments_bead ON bead_comments(cell_id);
-    CREATE INDEX IF NOT EXISTS idx_bead_comments_author ON bead_comments(author);
-    CREATE INDEX IF NOT EXISTS idx_bead_comments_created ON bead_comments(created_at);
+    CREATE INDEX IF NOT EXISTS idx_cell_comments_cell ON cell_comments(cell_id);
+    CREATE INDEX IF NOT EXISTS idx_cell_comments_author ON cell_comments(author);
+    CREATE INDEX IF NOT EXISTS idx_cell_comments_created ON cell_comments(created_at);
 
     -- ========================================================================
-    -- Blocked Beads Cache
+    -- Blocked Cells Cache
     -- ========================================================================
     -- Materialized view for fast blocked queries
     -- Updated by projections when dependencies change
-    CREATE TABLE IF NOT EXISTS blocked_beads_cache (
-      cell_id TEXT PRIMARY KEY REFERENCES beads(id) ON DELETE CASCADE,
+    CREATE TABLE IF NOT EXISTS blocked_cells_cache (
+      cell_id TEXT PRIMARY KEY REFERENCES cells(id) ON DELETE CASCADE,
       blocker_ids TEXT[] NOT NULL,
       updated_at BIGINT NOT NULL
     );
 
-    CREATE INDEX IF NOT EXISTS idx_blocked_beads_updated ON blocked_beads_cache(updated_at);
+    CREATE INDEX IF NOT EXISTS idx_blocked_cells_updated ON blocked_cells_cache(updated_at);
 
     -- ========================================================================
-    -- Dirty Beads Table
+    -- Dirty Cells Table
     -- ========================================================================
-    -- Tracks beads that need JSONL export (incremental sync)
-    CREATE TABLE IF NOT EXISTS dirty_beads (
-      cell_id TEXT PRIMARY KEY REFERENCES beads(id) ON DELETE CASCADE,
+    -- Tracks cells that need JSONL export (incremental sync)
+    CREATE TABLE IF NOT EXISTS dirty_cells (
+      cell_id TEXT PRIMARY KEY REFERENCES cells(id) ON DELETE CASCADE,
       marked_at BIGINT NOT NULL
     );
 
-    CREATE INDEX IF NOT EXISTS idx_dirty_beads_marked ON dirty_beads(marked_at);
+    CREATE INDEX IF NOT EXISTS idx_dirty_cells_marked ON dirty_cells(marked_at);
   `,
-  down: `
+	down: `
     -- Drop in reverse order to handle foreign key constraints
-    DROP TABLE IF EXISTS dirty_beads;
-    DROP TABLE IF EXISTS blocked_beads_cache;
-    DROP TABLE IF EXISTS bead_comments;
-    DROP TABLE IF EXISTS bead_labels;
-    DROP TABLE IF EXISTS bead_dependencies;
-    DROP TABLE IF EXISTS beads;
+    DROP TABLE IF EXISTS dirty_cells;
+    DROP TABLE IF EXISTS blocked_cells_cache;
+    DROP TABLE IF EXISTS cell_comments;
+    DROP TABLE IF EXISTS cell_labels;
+    DROP TABLE IF EXISTS cell_dependencies;
+    DROP TABLE IF EXISTS cells;
   `,
 };
 
 /**
- * Migration v7: Add cells view for beads→hive rename compatibility
+ * Migration v7: Add cells view for cells→hive rename compatibility
  *
- * Creates a view called `cells` that points to the `beads` table.
- * This allows code that references `cells` to work with existing `beads` data.
+ * Creates a view called `cells` that points to the `cells` table.
+ * This allows code that references `cells` to work with existing `cells` data.
  *
  * The view is updatable via INSTEAD OF triggers for INSERT/UPDATE/DELETE.
  */
 export const cellsViewMigration: Migration = {
-  version: 8,
-  description: "Add cells view for beads→hive rename compatibility",
-  up: `
+	version: 8,
+	description: "Add cells view for cells→hive rename compatibility",
+	up: `
     -- ========================================================================
-    -- Cells View (alias for beads table)
+    -- Hive View (alias for cells table)
     -- ========================================================================
-    -- This view allows code to reference "cells" while data lives in "beads"
-    CREATE OR REPLACE VIEW cells AS SELECT * FROM beads;
+    -- This view allows code to reference "hive" while data lives in "cells"
+    CREATE OR REPLACE VIEW hive AS SELECT * FROM cells;
 
     -- INSTEAD OF INSERT trigger
-    CREATE OR REPLACE FUNCTION cells_insert_trigger()
+    CREATE OR REPLACE FUNCTION hive_insert_trigger()
     RETURNS TRIGGER AS $$
     BEGIN
-      INSERT INTO beads VALUES (NEW.*);
+      INSERT INTO cells VALUES (NEW.*);
       RETURN NEW;
     END;
     $$ LANGUAGE plpgsql;
 
-    DROP TRIGGER IF EXISTS cells_insert ON cells;
-    CREATE TRIGGER cells_insert
-      INSTEAD OF INSERT ON cells
+    DROP TRIGGER IF EXISTS hive_insert ON cells;
+    CREATE TRIGGER hive_insert
+      INSTEAD OF INSERT ON hive
       FOR EACH ROW
-      EXECUTE FUNCTION cells_insert_trigger();
+      EXECUTE FUNCTION hive_insert_trigger();
 
     -- INSTEAD OF UPDATE trigger
-    CREATE OR REPLACE FUNCTION cells_update_trigger()
+    CREATE OR REPLACE FUNCTION hive_update_trigger()
     RETURNS TRIGGER AS $$
     BEGIN
-      UPDATE beads SET
+      UPDATE cells SET
         project_key = NEW.project_key,
         type = NEW.type,
         status = NEW.status,
@@ -213,28 +213,28 @@ export const cellsViewMigration: Migration = {
     END;
     $$ LANGUAGE plpgsql;
 
-    DROP TRIGGER IF EXISTS cells_update ON cells;
-    CREATE TRIGGER cells_update
-      INSTEAD OF UPDATE ON cells
+    DROP TRIGGER IF EXISTS hive_update ON cells;
+    CREATE TRIGGER hive_update
+      INSTEAD OF UPDATE ON hive
       FOR EACH ROW
-      EXECUTE FUNCTION cells_update_trigger();
+      EXECUTE FUNCTION hive_update_trigger();
 
     -- INSTEAD OF DELETE trigger
-    CREATE OR REPLACE FUNCTION cells_delete_trigger()
+    CREATE OR REPLACE FUNCTION hive_delete_trigger()
     RETURNS TRIGGER AS $$
     BEGIN
-      DELETE FROM beads WHERE id = OLD.id;
+      DELETE FROM cells WHERE id = OLD.id;
       RETURN OLD;
     END;
     $$ LANGUAGE plpgsql;
 
-    DROP TRIGGER IF EXISTS cells_delete ON cells;
-    CREATE TRIGGER cells_delete
-      INSTEAD OF DELETE ON cells
+    DROP TRIGGER IF EXISTS hive_delete ON cells;
+    CREATE TRIGGER hive_delete
+      INSTEAD OF DELETE ON hive
       FOR EACH ROW
-      EXECUTE FUNCTION cells_delete_trigger();
+      EXECUTE FUNCTION hive_delete_trigger();
   `,
-  down: `
+	down: `
     DROP TRIGGER IF EXISTS cells_delete ON cells;
     DROP TRIGGER IF EXISTS cells_update ON cells;
     DROP TRIGGER IF EXISTS cells_insert ON cells;
@@ -247,27 +247,27 @@ export const cellsViewMigration: Migration = {
 
 /**
  * LibSQL-compatible cells view migration (v8)
- * 
+ *
  * SQLite doesn't support CREATE OR REPLACE or stored procedures.
  * Use DROP IF EXISTS + CREATE and inline INSTEAD OF triggers.
  */
 export const cellsViewMigrationLibSQL: Migration = {
-  version: 8,
-  description: "Add cells view for beads→hive rename compatibility (LibSQL)",
-  up: `
+	version: 8,
+	description: "Add cells view for cells→hive rename compatibility (LibSQL)",
+	up: `
     -- ========================================================================
-    -- Cells View (alias for beads table) - LibSQL version
+    -- Hive View (alias for cells table) - LibSQL version
     -- ========================================================================
-    DROP VIEW IF EXISTS cells;
-    CREATE VIEW cells AS SELECT * FROM beads;
+    DROP VIEW IF EXISTS hive;
+    CREATE VIEW hive AS SELECT * FROM cells;
 
     -- INSTEAD OF INSERT trigger (inline, no stored procedure)
-    DROP TRIGGER IF EXISTS cells_insert;
-    CREATE TRIGGER cells_insert
-      INSTEAD OF INSERT ON cells
+    DROP TRIGGER IF EXISTS hive_insert;
+    CREATE TRIGGER hive_insert
+      INSTEAD OF INSERT ON hive
       FOR EACH ROW
     BEGIN
-      INSERT INTO beads VALUES (
+      INSERT INTO cells VALUES (
         NEW.id, NEW.project_key, NEW.type, NEW.status, NEW.title,
         NEW.description, NEW.priority, NEW.parent_id, NEW.assignee,
         NEW.created_at, NEW.updated_at, NEW.closed_at, NEW.closed_reason,
@@ -276,12 +276,12 @@ export const cellsViewMigrationLibSQL: Migration = {
     END;
 
     -- INSTEAD OF UPDATE trigger
-    DROP TRIGGER IF EXISTS cells_update;
-    CREATE TRIGGER cells_update
-      INSTEAD OF UPDATE ON cells
+    DROP TRIGGER IF EXISTS hive_update;
+    CREATE TRIGGER hive_update
+      INSTEAD OF UPDATE ON hive
       FOR EACH ROW
     BEGIN
-      UPDATE beads SET
+      UPDATE cells SET
         project_key = NEW.project_key,
         type = NEW.type,
         status = NEW.status,
@@ -302,15 +302,50 @@ export const cellsViewMigrationLibSQL: Migration = {
     END;
 
     -- INSTEAD OF DELETE trigger
-    DROP TRIGGER IF EXISTS cells_delete;
-    CREATE TRIGGER cells_delete
-      INSTEAD OF DELETE ON cells
+    DROP TRIGGER IF EXISTS hive_delete;
+    CREATE TRIGGER hive_delete
+      INSTEAD OF DELETE ON hive
       FOR EACH ROW
     BEGIN
-      DELETE FROM beads WHERE id = OLD.id;
+      DELETE FROM cells WHERE id = OLD.id;
+    END;
+
+    -- INSTEAD OF UPDATE trigger
+    DROP TRIGGER IF EXISTS hive_update;
+    CREATE TRIGGER hive_update
+      INSTEAD OF UPDATE ON hive
+      FOR EACH ROW
+    BEGIN
+      UPDATE cells SET
+        project_key = NEW.project_key,
+        type = NEW.type,
+        status = NEW.status,
+        title = NEW.title,
+        description = NEW.description,
+        priority = NEW.priority,
+        parent_id = NEW.parent_id,
+        assignee = NEW.assignee,
+        created_at = NEW.created_at,
+        updated_at = NEW.updated_at,
+        closed_at = NEW.closed_at,
+        closed_reason = NEW.closed_reason,
+        deleted_at = NEW.deleted_at,
+        deleted_by = NEW.deleted_by,
+        delete_reason = NEW.delete_reason,
+        created_by = NEW.created_by
+      WHERE id = OLD.id;
+    END;
+
+    -- INSTEAD OF DELETE trigger
+    DROP TRIGGER IF EXISTS hive_delete;
+    CREATE TRIGGER hive_delete
+      INSTEAD OF DELETE ON hive
+      FOR EACH ROW
+    BEGIN
+      DELETE FROM cells WHERE id = OLD.id;
     END;
   `,
-  down: `
+	down: `
     DROP TRIGGER IF EXISTS cells_delete;
     DROP TRIGGER IF EXISTS cells_update;
     DROP TRIGGER IF EXISTS cells_insert;
@@ -319,21 +354,21 @@ export const cellsViewMigrationLibSQL: Migration = {
 };
 
 /**
- * LibSQL-compatible beads migration (v7)
- * 
+ * LibSQL-compatible cells migration (v7)
+ *
  * Differences from PGLite version:
  * - Uses INTEGER PRIMARY KEY AUTOINCREMENT instead of SERIAL
  * - Uses TEXT (JSON string) instead of TEXT[] for arrays
  * - Uses INTEGER instead of BIGINT (SQLite treats both as INTEGER anyway)
  */
-export const beadsMigrationLibSQL: Migration = {
-  version: 7,
-  description: "Add beads tables for issue tracking (LibSQL)",
-  up: `
+export const cellsMigrationLibSQL: Migration = {
+	version: 7,
+	description: "Add cells tables for issue tracking (LibSQL)",
+	up: `
     -- ========================================================================
-    -- Core Beads Table
+    -- Core cells Table
     -- ========================================================================
-    CREATE TABLE IF NOT EXISTS beads (
+    CREATE TABLE IF NOT EXISTS cells (
       id TEXT PRIMARY KEY,
       project_key TEXT NOT NULL,
       type TEXT NOT NULL CHECK (type IN ('bug', 'feature', 'task', 'epic', 'chore', 'message')),
@@ -341,7 +376,7 @@ export const beadsMigrationLibSQL: Migration = {
       title TEXT NOT NULL CHECK (length(title) <= 500),
       description TEXT,
       priority INTEGER NOT NULL DEFAULT 2 CHECK (priority BETWEEN 0 AND 3),
-      parent_id TEXT REFERENCES beads(id) ON DELETE SET NULL,
+      parent_id TEXT REFERENCES cells(id) ON DELETE SET NULL,
       assignee TEXT,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL,
@@ -355,105 +390,105 @@ export const beadsMigrationLibSQL: Migration = {
     );
 
     -- Indexes for common queries
-    CREATE INDEX IF NOT EXISTS idx_beads_project ON beads(project_key);
-    CREATE INDEX IF NOT EXISTS idx_beads_status ON beads(status);
-    CREATE INDEX IF NOT EXISTS idx_beads_type ON beads(type);
-    CREATE INDEX IF NOT EXISTS idx_beads_priority ON beads(priority);
-    CREATE INDEX IF NOT EXISTS idx_beads_assignee ON beads(assignee);
-    CREATE INDEX IF NOT EXISTS idx_beads_parent ON beads(parent_id);
-    CREATE INDEX IF NOT EXISTS idx_beads_created ON beads(created_at);
-    CREATE INDEX IF NOT EXISTS idx_beads_project_status ON beads(project_key, status);
+    CREATE INDEX IF NOT EXISTS idx_cells_project ON cells(project_key);
+    CREATE INDEX IF NOT EXISTS idx_cells_status ON cells(status);
+    CREATE INDEX IF NOT EXISTS idx_cells_type ON cells(type);
+    CREATE INDEX IF NOT EXISTS idx_cells_priority ON cells(priority);
+    CREATE INDEX IF NOT EXISTS idx_cells_assignee ON cells(assignee);
+    CREATE INDEX IF NOT EXISTS idx_cells_parent ON cells(parent_id);
+    CREATE INDEX IF NOT EXISTS idx_cells_created ON cells(created_at);
+    CREATE INDEX IF NOT EXISTS idx_cells_project_status ON cells(project_key, status);
 
     -- ========================================================================
     -- Dependencies Table
     -- ========================================================================
-    CREATE TABLE IF NOT EXISTS bead_dependencies (
-      cell_id TEXT NOT NULL REFERENCES beads(id) ON DELETE CASCADE,
-      depends_on_id TEXT NOT NULL REFERENCES beads(id) ON DELETE CASCADE,
+    CREATE TABLE IF NOT EXISTS cell_dependencies (
+      cell_id TEXT NOT NULL REFERENCES cells(id) ON DELETE CASCADE,
+      depends_on_id TEXT NOT NULL REFERENCES cells(id) ON DELETE CASCADE,
       relationship TEXT NOT NULL CHECK (relationship IN ('blocks', 'related', 'parent-child', 'discovered-from', 'replies-to', 'relates-to', 'duplicates', 'supersedes')),
       created_at INTEGER NOT NULL,
       created_by TEXT,
       PRIMARY KEY (cell_id, depends_on_id, relationship)
     );
 
-    CREATE INDEX IF NOT EXISTS idx_bead_deps_bead ON bead_dependencies(cell_id);
-    CREATE INDEX IF NOT EXISTS idx_bead_deps_depends_on ON bead_dependencies(depends_on_id);
-    CREATE INDEX IF NOT EXISTS idx_bead_deps_relationship ON bead_dependencies(relationship);
+    CREATE INDEX IF NOT EXISTS idx_cell_deps_cell ON cell_dependencies(cell_id);
+    CREATE INDEX IF NOT EXISTS idx_cell_deps_depends_on ON cell_dependencies(depends_on_id);
+    CREATE INDEX IF NOT EXISTS idx_cell_deps_relationship ON cell_dependencies(relationship);
 
     -- ========================================================================
     -- Labels Table
     -- ========================================================================
-    CREATE TABLE IF NOT EXISTS bead_labels (
-      cell_id TEXT NOT NULL REFERENCES beads(id) ON DELETE CASCADE,
+    CREATE TABLE IF NOT EXISTS cell_labels (
+      cell_id TEXT NOT NULL REFERENCES cells(id) ON DELETE CASCADE,
       label TEXT NOT NULL,
       created_at INTEGER NOT NULL,
       PRIMARY KEY (cell_id, label)
     );
 
-    CREATE INDEX IF NOT EXISTS idx_bead_labels_label ON bead_labels(label);
+    CREATE INDEX IF NOT EXISTS idx_cell_labels_label ON cell_labels(label);
 
     -- ========================================================================
     -- Comments Table
     -- ========================================================================
-    CREATE TABLE IF NOT EXISTS bead_comments (
+    CREATE TABLE IF NOT EXISTS cell_comments (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      cell_id TEXT NOT NULL REFERENCES beads(id) ON DELETE CASCADE,
+      cell_id TEXT NOT NULL REFERENCES cells(id) ON DELETE CASCADE,
       author TEXT NOT NULL,
       body TEXT NOT NULL,
-      parent_id INTEGER REFERENCES bead_comments(id) ON DELETE CASCADE,
+      parent_id INTEGER REFERENCES cell_comments(id) ON DELETE CASCADE,
       created_at INTEGER NOT NULL,
       updated_at INTEGER
     );
 
-    CREATE INDEX IF NOT EXISTS idx_bead_comments_bead ON bead_comments(cell_id);
-    CREATE INDEX IF NOT EXISTS idx_bead_comments_author ON bead_comments(author);
-    CREATE INDEX IF NOT EXISTS idx_bead_comments_created ON bead_comments(created_at);
+    CREATE INDEX IF NOT EXISTS idx_cell_comments_cell ON cell_comments(cell_id);
+    CREATE INDEX IF NOT EXISTS idx_cell_comments_author ON cell_comments(author);
+    CREATE INDEX IF NOT EXISTS idx_cell_comments_created ON cell_comments(created_at);
 
     -- ========================================================================
-    -- Blocked Beads Cache
+    -- Blocked Cells Cache
     -- ========================================================================
     -- Materialized view for fast blocked queries
     -- Updated by projections when dependencies change
     -- Note: SQLite doesn't support arrays, so blocker_ids is a JSON string
-    CREATE TABLE IF NOT EXISTS blocked_beads_cache (
-      cell_id TEXT PRIMARY KEY REFERENCES beads(id) ON DELETE CASCADE,
+    CREATE TABLE IF NOT EXISTS blocked_cells_cache (
+      cell_id TEXT PRIMARY KEY REFERENCES cells(id) ON DELETE CASCADE,
       blocker_ids TEXT NOT NULL,
       updated_at INTEGER NOT NULL
     );
 
-    CREATE INDEX IF NOT EXISTS idx_blocked_beads_updated ON blocked_beads_cache(updated_at);
+    CREATE INDEX IF NOT EXISTS idx_blocked_cells_updated ON blocked_cells_cache(updated_at);
 
     -- ========================================================================
-    -- Dirty Beads Table
+    -- Dirty Cells Table
     -- ========================================================================
-    -- Tracks beads that need JSONL export (incremental sync)
-    CREATE TABLE IF NOT EXISTS dirty_beads (
-      cell_id TEXT PRIMARY KEY REFERENCES beads(id) ON DELETE CASCADE,
+    -- Tracks cells that need JSONL export (incremental sync)
+    CREATE TABLE IF NOT EXISTS dirty_cells (
+      cell_id TEXT PRIMARY KEY REFERENCES cells(id) ON DELETE CASCADE,
       marked_at INTEGER NOT NULL
     );
 
-    CREATE INDEX IF NOT EXISTS idx_dirty_beads_marked ON dirty_beads(marked_at);
+    CREATE INDEX IF NOT EXISTS idx_dirty_cells_marked ON dirty_cells(marked_at);
   `,
-  down: `
+	down: `
     -- Drop in reverse order to handle foreign key constraints
-    DROP TABLE IF EXISTS dirty_beads;
-    DROP TABLE IF EXISTS blocked_beads_cache;
-    DROP TABLE IF EXISTS bead_comments;
-    DROP TABLE IF EXISTS bead_labels;
-    DROP TABLE IF EXISTS bead_dependencies;
-    DROP TABLE IF EXISTS beads;
+    DROP TABLE IF EXISTS dirty_cells;
+    DROP TABLE IF EXISTS blocked_cells_cache;
+    DROP TABLE IF EXISTS cell_comments;
+    DROP TABLE IF EXISTS cell_labels;
+    DROP TABLE IF EXISTS cell_dependencies;
+    DROP TABLE IF EXISTS cells;
   `,
 };
 
 /**
  * Export individual migrations
  */
-export const beadsMigrations: Migration[] = [beadsMigration];
+export const cellsMigrations: Migration[] = [cellsMigration];
 
 /**
  * All hive migrations in order (PGLite version)
  */
-export const hiveMigrations: Migration[] = [beadsMigration, cellsViewMigration];
+export const hiveMigrations: Migration[] = [cellsMigration, cellsViewMigration];
 
 /**
  * Migration v9: Add sessions table for handoff notes
@@ -477,7 +512,7 @@ export const sessionsMigrationLibSQL: Migration = {
       project_key TEXT NOT NULL,
       started_at INTEGER NOT NULL,
       ended_at INTEGER,
-      active_cell_id TEXT REFERENCES beads(id) ON DELETE SET NULL,
+      active_cell_id TEXT REFERENCES cells(id) ON DELETE SET NULL,
       handoff_notes TEXT,
       created_by TEXT
     );
@@ -496,7 +531,7 @@ export const sessionsMigrationLibSQL: Migration = {
  * All hive migrations in order (LibSQL version)
  */
 export const hiveMigrationsLibSQL: Migration[] = [
-	beadsMigrationLibSQL,
+	cellsMigrationLibSQL,
 	cellsViewMigrationLibSQL,
 	sessionsMigrationLibSQL,
 ];

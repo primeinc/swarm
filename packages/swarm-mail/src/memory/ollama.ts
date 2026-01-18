@@ -25,8 +25,16 @@
  * ```
  */
 
-import { Chunk, Context, Duration, Effect, Layer, Schedule, Stream } from "effect";
-import { Schema } from "effect";
+import {
+	Chunk,
+	Context,
+	Duration,
+	Effect,
+	Layer,
+	Schedule,
+	Schema,
+	Stream,
+} from "effect";
 
 // ============================================================================
 // Types & Errors
@@ -105,7 +113,9 @@ export const makeOllamaLive = (config: MemoryConfig) =>
 			 * Retries with exponential backoff on transient failures:
 			 * 100ms -> 200ms -> 400ms (3 attempts total)
 			 */
-			const embedSingle = (text: string): Effect.Effect<number[], OllamaError> =>
+			const embedSingle = (
+				text: string,
+			): Effect.Effect<number[], OllamaError> =>
 				Effect.gen(function* () {
 					const response = yield* Effect.tryPromise({
 						try: () =>
@@ -117,13 +127,15 @@ export const makeOllamaLive = (config: MemoryConfig) =>
 									prompt: text,
 								}),
 							}),
-						catch: (e) => new OllamaError({ reason: `Connection failed: ${e}` }),
+						catch: (e) =>
+							new OllamaError({ reason: `Connection failed: ${e}` }),
 					});
 
 					if (!response.ok) {
 						const error = yield* Effect.tryPromise({
 							try: () => response.text(),
-							catch: () => new OllamaError({ reason: "Failed to read error response" }),
+							catch: () =>
+								new OllamaError({ reason: "Failed to read error response" }),
 						});
 						return yield* Effect.fail(new OllamaError({ reason: error }));
 					}
@@ -172,7 +184,8 @@ export const makeOllamaLive = (config: MemoryConfig) =>
 
 						const data = yield* Effect.tryPromise({
 							try: () => response.json() as Promise<OllamaTagsResponse>,
-							catch: () => new OllamaError({ reason: "Invalid response from Ollama" }),
+							catch: () =>
+								new OllamaError({ reason: "Invalid response from Ollama" }),
 						});
 
 						const hasModel = data.models.some(

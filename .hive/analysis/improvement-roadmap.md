@@ -63,7 +63,7 @@ The swarm system is **operationally excellent** (99.6% coordinator compliance, 1
 ```typescript
 // In swarm_complete:
 const outcome: OutcomeSignals = {
-  bead_id: subtaskId,
+  cell_id: subtaskId,
   duration_ms: endTime - startTime,
   error_count: errors.length,
   retry_count: retries,
@@ -77,7 +77,7 @@ const scored = scoreOutcome(outcome, learningConfig);
 await storage.storeFeedback({
   criterion: scored.signals.strategy,
   type: scored.type, // 'helpful' or 'harmful'
-  bead_id: outcome.bead_id,
+  cell_id: outcome.cell_id,
   raw_value: scored.decayed_value
 });
 

@@ -22,31 +22,31 @@ import { z } from "zod";
  * Auto-tag result structure
  */
 export interface AutoTagResult {
-  /** 3-5 categorical labels (lowercase, single words) */
-  tags: string[];
-  /** 5-10 searchable terms from content */
-  keywords: string[];
-  /** Primary domain category */
-  category: string;
+	/** 3-5 categorical labels (lowercase, single words) */
+	tags: string[];
+	/** 5-10 searchable terms from content */
+	keywords: string[];
+	/** Primary domain category */
+	category: string;
 }
 
 /**
  * Zod schema for LLM response validation
  */
 const AutoTagResultSchema = z.object({
-  tags: z.array(z.string()).min(3).max(5),
-  keywords: z.array(z.string()).min(5).max(10),
-  category: z.string(),
+	tags: z.array(z.string()).min(3).max(5),
+	keywords: z.array(z.string()).min(5).max(10),
+	category: z.string(),
 });
 
 /**
  * Configuration for auto-tagging
  */
 export interface AutoTagConfig {
-  /** Model string (e.g., "anthropic/claude-haiku-4-5") */
-  model: string;
-  /** Vercel AI Gateway API key */
-  apiKey: string;
+	/** Model string (e.g., "anthropic/claude-haiku-4-5") */
+	model: string;
+	/** Vercel AI Gateway API key */
+	apiKey: string;
 }
 
 /**
@@ -73,16 +73,17 @@ export interface AutoTagConfig {
  * ```
  */
 export async function generateTags(
-  content: string,
-  existingTags: string[] | undefined,
-  config: AutoTagConfig
+	content: string,
+	existingTags: string[] | undefined,
+	config: AutoTagConfig,
 ): Promise<AutoTagResult> {
-  try {
-    const userTagsHint = existingTags && existingTags.length > 0
-      ? `\n\nUSER-PROVIDED TAGS (incorporate these):\n${existingTags.join(", ")}`
-      : "";
+	try {
+		const userTagsHint =
+			existingTags && existingTags.length > 0
+				? `\n\nUSER-PROVIDED TAGS (incorporate these):\n${existingTags.join(", ")}`
+				: "";
 
-    const prompt = `Analyze this memory content and generate:
+		const prompt = `Analyze this memory content and generate:
 1. tags: 3-5 categorical labels (lowercase, single words like "auth", "database", "frontend")
 2. keywords: 5-10 searchable terms extracted from the content (lowercase)
 3. category: primary domain category (lowercase, e.g., "authentication", "database", "architecture")
@@ -97,26 +98,26 @@ Rules:
 - incorporate user-provided tags when present
 - extract key technical terms as keywords`;
 
-    const { output } = await generateText({
-      model: config.model,
-      prompt,
-      output: Output.object({
-        schema: AutoTagResultSchema,
-      }),
-      // AI Gateway config - uses AI_GATEWAY_API_KEY from env automatically
-      headers: {
-        Authorization: `Bearer ${config.apiKey}`,
-      },
-    });
+		const { output } = await generateText({
+			model: config.model,
+			prompt,
+			output: Output.object({
+				schema: AutoTagResultSchema,
+			}),
+			// AI Gateway config - uses AI_GATEWAY_API_KEY from env automatically
+			headers: {
+				Authorization: `Bearer ${config.apiKey}`,
+			},
+		});
 
-    return output as AutoTagResult;
-  } catch (error) {
-    // Graceful degradation on LLM errors
-    console.error("[auto-tagger] Failed to generate tags:", error);
-    return {
-      tags: [],
-      keywords: [],
-      category: "",
-    };
-  }
+		return output as AutoTagResult;
+	} catch (error) {
+		// Graceful degradation on LLM errors
+		console.error("[auto-tagger] Failed to generate tags:", error);
+		return {
+			tags: [],
+			keywords: [],
+			category: "",
+		};
+	}
 }

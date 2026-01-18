@@ -15,7 +15,9 @@
  * ```
  */
 
-export const SWARM_MAIL_VERSION = "1.10.1";
+// Re-export version from version.ts which reads from package.json at runtime
+// This prevents version drift between package.json and the exported constant
+export { SWARM_MAIL_VERSION } from "./version";
 
 // ============================================================================
 // Debug Logging
@@ -50,6 +52,15 @@ export type {
 export type { LibSQLConfig } from "./libsql";
 export { createLibSQLAdapter } from "./libsql";
 
+// ============================================================================
+// Path Normalization Utilities (re-exported from swarm-path)
+// ============================================================================
+
+export {
+	normalize as normalizePath,
+	normalizeProjectKey,
+} from "swarm-path";
+
 // LibSQL Convenience Layer
 export {
 	closeAllSwarmMailLibSQL,
@@ -81,7 +92,11 @@ export {
 
 // Re-export checkSwarmHealth from correct location
 export { checkHealth as checkSwarmHealth } from "./streams/agent-mail";
-
+export type {
+	MigrationResult as AutoMigrationResult,
+	MigrationStats as AutoMigrationStats,
+	SourceType,
+} from "./streams/auto-migrate";
 // Auto-migration (project DB → global DB)
 export {
 	backupOldDb,
@@ -89,15 +104,27 @@ export {
 	getGlobalDbPath,
 	migrateLibSQLToGlobal,
 	migrateLocalDbToGlobal,
-	migratePGLiteToGlobal,
 	migrateProjectToGlobal,
 	needsMigration,
 } from "./streams/auto-migrate";
 export type {
-	MigrationResult as AutoMigrationResult,
-	MigrationStats as AutoMigrationStats,
-	SourceType,
-} from "./streams/auto-migrate";
+	DecisionTrace,
+	DecisionTraceInput,
+	EntityLinkInput,
+} from "./streams/decision-trace-store";
+// Decision trace store for observability
+export {
+	calculateDecisionQuality,
+	createDecisionTrace,
+	createEntityLink,
+	findSimilarDecisions,
+	getDecisionsByMemoryPattern,
+	getDecisionTracesByAgent,
+	getDecisionTracesByEpic,
+	getDecisionTracesByType,
+	getStrategySuccessRates,
+	linkOutcomeToTrace,
+} from "./streams/decision-trace-store";
 export type {
 	DecompositionGeneratedEvent,
 	MailSessionState,
@@ -107,14 +134,17 @@ export type {
 export { createEvent } from "./streams/events";
 // Event store primitives (now using Drizzle via wrapper functions)
 // Projections (now using Drizzle via wrapper functions)
+// Database path utilities
 export {
 	appendEvent,
 	clearAdapterCache,
 	getActiveReservations,
 	getAgent,
+	getDatabasePath,
 	getEvalRecords,
 	getEvalStats,
 	getOldProjectDbPaths,
+	getOrCreateAdapter,
 	readEvents,
 } from "./streams/index";
 export type { EvalRecord } from "./streams/projections-drizzle";
@@ -125,34 +155,12 @@ export {
 	getSwarmInbox,
 	initSwarmAgent,
 	readSwarmMessage,
-	releaseSwarmFiles,
 	releaseAllSwarmFiles,
+	releaseSwarmFiles,
 	releaseSwarmFilesForAgent,
 	reserveSwarmFiles,
 	sendSwarmMessage,
 } from "./streams/swarm-mail";
-
-// Decision trace store for observability
-export {
-	createDecisionTrace,
-	getDecisionTracesByAgent,
-	getDecisionTracesByEpic,
-	getDecisionTracesByType,
-	linkOutcomeToTrace,
-	findSimilarDecisions,
-	getStrategySuccessRates,
-	createEntityLink,
-	calculateDecisionQuality,
-	getDecisionsByMemoryPattern,
-} from "./streams/decision-trace-store";
-export type {
-	DecisionTrace,
-	DecisionTraceInput,
-	EntityLinkInput,
-} from "./streams/decision-trace-store";
-
-// Database path utilities
-export { getDatabasePath } from "./streams/index";
 
 // ============================================================================
 // Durable Streams (real-time event streaming via SSE)
@@ -174,6 +182,15 @@ export {
 // Analytics Module Exports
 // ============================================================================
 
+export type {
+	AgentActivityFilters,
+	FailedDecompositionsFilters,
+	LockContentionFilters,
+	MessageLatencyFilters,
+	OutputFormat,
+	QueryResult,
+	StrategySuccessRatesFilters,
+} from "./analytics/index.js";
 // Event-sourcing analytics (queries 1-10 from analytics/)
 export {
 	agentActivity,
@@ -192,21 +209,10 @@ export {
 	strategySuccessRates,
 	taskDuration,
 } from "./analytics/index.js";
-export type {
-	AgentActivityFilters,
-	FailedDecompositionsFilters,
-	LockContentionFilters,
-	MessageLatencyFilters,
-	OutputFormat,
-	QueryResult,
-	StrategySuccessRatesFilters,
-} from "./analytics/index.js";
-
-// Four Golden Signals analytics (new root-level module)
-export { ANALYTICS_QUERIES, runAnalyticsQuery } from "./analytics.js";
-
 // AnalyticsQuery type (from query-builder module)
 export type { AnalyticsQuery } from "./analytics/types.js";
+// Four Golden Signals analytics (new root-level module)
+export { ANALYTICS_QUERIES, runAnalyticsQuery } from "./analytics.js";
 
 // ============================================================================
 // Hive Module Exports (work item tracking)
@@ -219,31 +225,6 @@ export * from "./hive";
 // ============================================================================
 
 export { createMemoryAdapter } from "./memory/adapter";
-
-// Pagination API for field selection (token budget optimization)
-export {
-	FIELD_SETS,
-	projectSearchResult,
-	projectSearchResults,
-} from "./sessions/pagination";
-export type {
-	FieldSelection,
-	FieldSet,
-	MemoryField,
-	SearchResultField,
-} from "./sessions/pagination";
-
-export type {
-	MigrationOptions,
-	MigrationResult,
-} from "./memory/migrate-legacy";
-export {
-	getDefaultLegacyPath,
-	getMigrationStatus,
-	legacyDatabaseExists,
-	migrateLegacyMemories,
-	targetHasMemories,
-} from "./memory/migrate-legacy";
 export {
 	memoryMigration,
 	memoryMigrations,
@@ -254,6 +235,7 @@ export {
 	makeOllamaLive,
 	Ollama,
 	OllamaError,
+	OllamaError as OllamaProviderError,
 } from "./memory/ollama";
 export type {
 	Memory,
@@ -278,41 +260,36 @@ export {
 	serializeMemoryToJSONL,
 	syncMemories,
 } from "./memory/sync";
-
 // Memory test utilities
 export { createTestMemoryDb } from "./memory/test-utils";
+export type {
+	FieldSelection,
+	FieldSet,
+	MemoryField,
+	SearchResultField,
+} from "./sessions/pagination";
+// Pagination API for field selection (token budget optimization)
+export {
+	FIELD_SETS,
+	projectSearchResult,
+	projectSearchResults,
+} from "./sessions/pagination";
 
 // ============================================================================
 // Wave 1-2: Memory Intelligence Services
 // ============================================================================
 
-// Smart operations (ADD/UPDATE/DELETE/NOOP analysis)
-export { analyzeMemoryOperation } from "./memory/memory-operations";
-export type {
-	MemoryOperation,
-	MemoryOperationConfig,
-} from "./memory/memory-operations";
-
-// Auto-tagging (LLM-powered tag generation)
-export { generateTags } from "./memory/auto-tagger";
 export type {
 	AutoTagConfig,
 	AutoTagResult,
 } from "./memory/auto-tagger";
-
-// Memory linking (semantic relationship detection)
-export {
-	autoLinkMemory,
-	createLink,
-	findRelatedMemories,
-	getLinks,
-	updateLinkStrength,
-} from "./memory/memory-linking";
+// Auto-tagging (LLM-powered tag generation)
+export { generateTags } from "./memory/auto-tagger";
 export type {
-	LinkingConfig,
-	MemoryLink,
-} from "./memory/memory-linking";
-
+	Entity,
+	ExtractionResult,
+	Relationship,
+} from "./memory/entity-extraction";
 // Entity extraction (knowledge graph building)
 export {
 	extractEntitiesAndRelationships,
@@ -323,10 +300,23 @@ export {
 	storeRelationships,
 } from "./memory/entity-extraction";
 export type {
-	Entity,
-	ExtractionResult,
-	Relationship,
-} from "./memory/entity-extraction";
+	LinkingConfig,
+	MemoryLink,
+} from "./memory/memory-linking";
+// Memory linking (semantic relationship detection)
+export {
+	autoLinkMemory,
+	createLink,
+	findRelatedMemories,
+	getLinks,
+	updateLinkStrength,
+} from "./memory/memory-linking";
+export type {
+	MemoryOperation,
+	MemoryOperationConfig,
+} from "./memory/memory-operations";
+// Smart operations (ADD/UPDATE/DELETE/NOOP analysis)
+export { analyzeMemoryOperation } from "./memory/memory-operations";
 
 // ============================================================================
 // Drizzle Database Client (for memory store)
@@ -342,29 +332,27 @@ export { toDrizzleDb, toSwarmDb } from "./libsql.convenience";
 // Database Consolidation (stray database detection and migration)
 // ============================================================================
 
+export type { ManagedDb } from "./db/client-factory";
+export { DbClientFactory } from "./db/client-factory";
+export type {
+	ConsolidationOptions,
+	ConsolidationReport,
+	StrayDatabase,
+} from "./db/consolidate-databases";
 export {
 	analyzeStrayDatabase,
 	consolidateDatabases,
 	detectStrayDatabases,
 	migrateToGlobal,
 } from "./db/consolidate-databases";
-export type {
-	ConsolidationOptions,
-	ConsolidationReport,
-	StrayDatabase,
-} from "./db/consolidate-databases";
+export { DbFileOps } from "./db/file-ops";
 
 // ============================================================================
 // Session Management (CASS inhousing)
 // ============================================================================
 
-export { viewSessionLine } from "./sessions/session-viewer";
-export type { SessionViewerOpts } from "./sessions/session-viewer";
-
-export { FileWatcher } from "./sessions/file-watcher";
 export type { FileEvent, FileWatcherOptions } from "./sessions/file-watcher";
-
-export { SessionIndexer } from "./sessions/session-indexer";
+export { FileWatcher } from "./sessions/file-watcher";
 export type {
 	IndexDirectoryOptions,
 	IndexFileResult,
@@ -373,34 +361,21 @@ export type {
 	SessionStats,
 	StalenessResult,
 } from "./sessions/session-indexer";
+export { SessionIndexer } from "./sessions/session-indexer";
+export type { SessionViewerOpts } from "./sessions/session-viewer";
+export { viewSessionLine } from "./sessions/session-viewer";
 
 // ============================================================================
-// PGlite → libSQL Migration
-// ============================================================================
-
-export {
-	type MigrationOptions as PGliteMigrationOptions,
-	type MigrationResult as PGliteMigrationResult,
-	migratePGliteToLibSQL,
-	pgliteExists,
-} from "./migrate-pglite-to-libsql";
-
-export {
-	warnPGliteDeprecation,
-	wrapPGlite,
-} from "./pglite";
-
-// ============================================================================
-// Legacy Hive Schema Migration (issues → beads)
+// Legacy Hive Schema Migration (issues → cells)
 // ============================================================================
 
 export {
-	transformIssue,
-	transformEvent,
-	transformDependency,
-	migrateLegacyHive,
-	type LegacyIssue,
-	type LegacyEvent,
 	type LegacyDependency,
+	type LegacyEvent,
+	type LegacyIssue,
 	type MigrationSummary as LegacyHiveMigrationSummary,
+	migrateLegacyHive,
+	transformDependency,
+	transformEvent,
+	transformIssue,
 } from "./migrations/legacy-hive-transformer";

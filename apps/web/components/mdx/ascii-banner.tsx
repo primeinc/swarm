@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { cn } from '@/lib/utils';
+import { cn } from "@/lib/utils";
 
 /**
  * Pre-defined ASCII art banners for Swarm Tools documentation
  */
 const BANNERS = {
-  swarm: `
+	swarm: `
 ███████╗██╗    ██╗ █████╗ ██████╗ ███╗   ███╗
 ██╔════╝██║    ██║██╔══██╗██╔══██╗████╗ ████║
 ███████╗██║ █╗ ██║███████║██████╔╝██╔████╔██║
@@ -14,40 +14,40 @@ const BANNERS = {
 ███████║╚███╔███╔╝██║  ██║██║  ██║██║ ╚═╝ ██║
 ╚══════╝ ╚══╝╚══╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝
 `,
-  mail: `
+	mail: `
 ┌─────────────────────────────────────┐
 │  📬  SWARM MAIL                     │
 │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │
 │  Event-Sourced Agent Coordination   │
 └─────────────────────────────────────┘
 `,
-  beads: `
+	cells: `
 ┌─────────────────────────────────────┐
-│  🔮  BEADS                          │
+│  🔮  cellS                          │
 │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │
 │  Git-Backed Issue Tracking          │
 └─────────────────────────────────────┘
 `,
-  skills: `
+	skills: `
 ┌─────────────────────────────────────┐
 │  📚  SKILLS                         │
 │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │
 │  Knowledge Injection System         │
 └─────────────────────────────────────┘
 `,
-  learning: `
+	learning: `
 ┌─────────────────────────────────────┐
 │  🧠  LEARNING                       │
 │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │
 │  Pattern Maturity & Anti-Patterns   │
 └─────────────────────────────────────┘
 `,
-  architecture: `
+	architecture: `
 ┌─────────────────────────────────────────────────────────────┐
 │                     SWARM TOOLS STACK                       │
 ├─────────────────────────────────────────────────────────────┤
 │  TIER 3: ORCHESTRATION                                      │
-│  └── OpenCode Plugin (beads, swarm, skills, learning)      │
+│  └── OpenCode Plugin (cells, swarm, skills, learning)      │
 │                                                             │
 │  TIER 2: COORDINATION                                       │
 │  ├── DurableMailbox - Actor inbox with typed envelopes     │
@@ -62,7 +62,7 @@ const BANNERS = {
 │  └── PGLite (Embedded Postgres) + Event Sourcing           │
 └─────────────────────────────────────────────────────────────┘
 `,
-  bee: `
+	bee: `
     🐝
    ╱  ╲
   ╱ ◉◉ ╲
@@ -70,7 +70,7 @@ const BANNERS = {
 ╱________╲
    ║║║║
 `,
-  hive: `
+	hive: `
     ⬡ ⬡ ⬡
    ⬡ 🐝 ⬡
     ⬡ ⬡ ⬡
@@ -80,14 +80,14 @@ const BANNERS = {
 type BannerName = keyof typeof BANNERS;
 
 interface AsciiBannerProps {
-  /** Pre-defined banner name or custom ASCII art */
-  name?: BannerName;
-  /** Custom ASCII art (overrides name) */
-  children?: string;
-  /** Additional CSS classes */
-  className?: string;
-  /** Whether to show the glow effect */
-  glow?: boolean;
+	/** Pre-defined banner name or custom ASCII art */
+	name?: BannerName;
+	/** Custom ASCII art (overrides name) */
+	children?: string;
+	/** Additional CSS classes */
+	className?: string;
+	/** Whether to show the glow effect */
+	glow?: boolean;
 }
 
 /**
@@ -103,24 +103,24 @@ interface AsciiBannerProps {
  * ```
  */
 export function AsciiBanner({
-  name,
-  children,
-  className,
-  glow = false,
+	name,
+	children,
+	className,
+	glow = false,
 }: AsciiBannerProps) {
-  const content = children ?? (name ? BANNERS[name] : '');
+	const content = children ?? (name ? BANNERS[name] : "");
 
-  return (
-    <pre
-      className={cn(
-        'ascii-banner overflow-x-auto text-center',
-        glow && 'glow-amber',
-        className
-      )}
-    >
-      <code className="text-fd-primary">{content}</code>
-    </pre>
-  );
+	return (
+		<pre
+			className={cn(
+				"ascii-banner overflow-x-auto text-center",
+				glow && "glow-amber",
+				className,
+			)}
+		>
+			<code className="text-fd-primary">{content}</code>
+		</pre>
+	);
 }
 
 /**
@@ -136,17 +136,17 @@ export function AsciiBanner({
  * ```
  */
 export function AsciiArt({
-  children,
-  className,
+	children,
+	className,
 }: {
-  children: string;
-  className?: string;
+	children: string;
+	className?: string;
 }) {
-  return (
-    <pre className={cn('ascii-art', className)}>
-      <code>{children}</code>
-    </pre>
-  );
+	return (
+		<pre className={cn("ascii-art", className)}>
+			<code>{children}</code>
+		</pre>
+	);
 }
 
 export default AsciiBanner;

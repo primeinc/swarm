@@ -1,14 +1,14 @@
-import defaultMdxComponents from 'fumadocs-ui/mdx';
-import type { MDXComponents } from 'mdx/types';
-import { Mermaid } from '@/components/mdx/mermaid';
-import { AsciiBanner, AsciiArt } from '@/components/mdx/ascii-banner';
+import defaultMdxComponents from "fumadocs-ui/mdx";
+import type { MDXComponents } from "mdx/types";
+import { AsciiArt, AsciiBanner } from "@/components/mdx/ascii-banner";
+import { Mermaid } from "@/components/mdx/mermaid";
 
 export function getMDXComponents(components?: MDXComponents): MDXComponents {
-  return {
-    ...defaultMdxComponents,
-    Mermaid,
-    AsciiBanner,
-    AsciiArt,
-    ...components,
-  };
+	return {
+		...defaultMdxComponents,
+		Mermaid,
+		AsciiBanner,
+		AsciiArt,
+		...components,
+	};
 }

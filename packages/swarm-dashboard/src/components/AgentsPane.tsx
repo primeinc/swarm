@@ -107,7 +107,7 @@ export function AgentsPane({ events, state }: AgentsPaneProps) {
       const agent = agentMap.get(event.agent_name);
       if (agent) {
         agent.lastActiveTime = Math.max(agent.lastActiveTime, event.timestamp);
-        agent.currentTask = event.bead_id;
+        agent.currentTask = event.cell_id;
       }
     }
 

@@ -106,15 +106,15 @@ From `packages/swarm-mail/src/streams/events.ts`:
 | **message_acked** | message_id, agent | Acknowledgment gaps |
 | **file_reserved** | agent, paths, exclusive, ttl, expires_at | Lock contention, access patterns |
 | **file_released** | agent, paths, reservation_ids | Lock hold duration |
-| **task_started** | agent, bead_id, epic_id | Task initiation |
-| **task_progress** | agent, bead_id, progress_percent, message, files | Progress tracking |
-| **task_completed** | agent, bead_id, summary, files, success | Completion signals |
-| **task_blocked** | agent, bead_id, reason | Blocker analysis |
+| **task_started** | agent, cell_id, epic_id | Task initiation |
+| **task_progress** | agent, cell_id, progress_percent, message, files | Progress tracking |
+| **task_completed** | agent, cell_id, summary, files, success | Completion signals |
+| **task_blocked** | agent, cell_id, reason | Blocker analysis |
 | **decomposition_generated** | epic_id, task, strategy, subtasks, recovery_context | Strategy effectiveness |
-| **subtask_outcome** | epic_id, bead_id, planned_files, actual_files, duration_ms, errors, retries, success, scope_violation | Contract compliance, learning signals |
+| **subtask_outcome** | epic_id, cell_id, planned_files, actual_files, duration_ms, errors, retries, success, scope_violation | Contract compliance, learning signals |
 | **human_feedback** | epic_id, accepted, modified, notes | Human approval patterns |
-| **swarm_checkpointed** | epic_id, bead_id, strategy, files, dependencies, recovery | Checkpoint frequency |
-| **swarm_recovered** | epic_id, bead_id, recovered_from_checkpoint | Recovery success rate |
+| **swarm_checkpointed** | epic_id, cell_id, strategy, files, dependencies, recovery | Checkpoint frequency |
+| **swarm_recovered** | epic_id, cell_id, recovered_from_checkpoint | Recovery success rate |
 
 ### 2.2 What Projections Exist
 
@@ -140,13 +140,13 @@ Events can be correlated via:
 
 1. **project_key** - All events in same repo
 2. **epic_id** - All work on same decomposition
-3. **bead_id** - All events for specific subtask
+3. **cell_id** - All events for specific subtask
 4. **thread_id** - Message conversation chains
 5. **agent_name** - All actions by same agent
 6. **timestamp** - Temporal ordering
 7. **sequence** - Total ordering (auto-generated from event id)
 
-**Critical:** We already have **distributed trace IDs** (epic_id, bead_id). We just need to expose them.
+**Critical:** We already have **distributed trace IDs** (epic_id, cell_id). We just need to expose them.
 
 ---
 
@@ -232,7 +232,7 @@ swarm-db export --format=jsonl --output=events.jsonl
 | Swarm Event | OTEL Concept | Span Attributes |
 |-------------|--------------|-----------------|
 | epic | trace | trace_id=epic_id |
-| bead | span | span_id=bead_id, parent_id=epic_id |
+| cell | span | span_id=cell_id, parent_id=epic_id |
 | task_started | span start | start_time |
 | task_completed | span end | end_time, status, error_count |
 | message_sent | event | event.name=message_sent |
@@ -289,24 +289,24 @@ function eventsToSpans(events: Event[]): OtelSpan[] {
   
   for (const event of events) {
     if (event.type === 'task_started') {
-      activeSpans.set(event.data.bead_id, {
-        spanId: event.data.bead_id,
+      activeSpans.set(event.data.cell_id, {
+        spanId: event.data.cell_id,
         parentSpanId: event.data.epic_id,
-        name: event.data.bead_id,
+        name: event.data.cell_id,
         startTime: event.timestamp,
         attributes: {
           'agent.name': event.data.agent_name,
         },
       });
     } else if (event.type === 'task_completed') {
-      const span = activeSpans.get(event.data.bead_id);
+      const span = activeSpans.get(event.data.cell_id);
       if (span) {
         span.endTime = event.timestamp;
         span.status = event.data.success ? 'OK' : 'ERROR';
         span.attributes['error.count'] = event.data.error_count || 0;
         span.attributes['files.touched'] = event.data.files_touched?.join(',') || '';
         spans.push(span);
-        activeSpans.delete(event.data.bead_id);
+        activeSpans.delete(event.data.cell_id);
       }
     }
     // TODO: Map other events to span events
@@ -392,15 +392,15 @@ function buildTimeline(events: Event[]): Timeline {
   
   for (const event of events) {
     if (event.type === 'task_started') {
-      spanMap.set(event.data.bead_id, {
-        id: event.data.bead_id,
+      spanMap.set(event.data.cell_id, {
+        id: event.data.cell_id,
         group: event.data.agent_name,
-        content: event.data.bead_id,
+        content: event.data.cell_id,
         start: event.timestamp,
         type: 'range',
       });
     } else if (event.type === 'task_completed') {
-      const item = spanMap.get(event.data.bead_id);
+      const item = spanMap.get(event.data.cell_id);
       if (item) {
         item.end = event.timestamp;
         item.className = event.data.success ? 'success' : 'failure';
@@ -583,7 +583,7 @@ export async function detectAntiPatterns(
 type CorrelationKeys = {
   project_key: string;  // All events in same repo
   epic_id: string;      // All work on same decomposition (trace_id)
-  bead_id: string;      // All events for specific subtask (span_id)
+  cell_id: string;      // All events for specific subtask (span_id)
   thread_id: string;    // Message conversation chains
   agent_name: string;   // All actions by same agent
   timestamp: number;    // Temporal ordering
@@ -609,7 +609,7 @@ WHERE data->>'agent_name' = 'BlueLake'
 ORDER BY timestamp;
 ```
 
-**Critical insight:** We don't need to add trace IDs. Epic ID IS the trace ID. Bead ID IS the span ID. The schema already models distributed tracing.
+**Critical insight:** We don't need to add trace IDs. Epic ID IS the trace ID. cell ID IS the span ID. The schema already models distributed tracing.
 
 ### 4.3 What's the query interface?
 
@@ -765,7 +765,7 @@ const failures = await analytics.failedDecompositions({ since: '7d' });
 
 **Scope:**
 - Timeline view (Gantt chart of agent activity)
-- Dependency graph (epic → beads → dependencies)
+- Dependency graph (epic → cells → dependencies)
 - Heatmap (lock contention, message volume)
 - Pattern browser (visualize extracted patterns)
 
@@ -947,7 +947,7 @@ SELECT
   json_extract(data, '$.strategy') as strategy,
   COUNT(*) as failure_count,
   AVG(CAST(json_extract(data, '$.duration_ms') AS REAL)) as avg_duration_ms,
-  GROUP_CONCAT(json_extract(data, '$.bead_id'), ', ') as failed_beads
+  GROUP_CONCAT(json_extract(data, '$.cell_id'), ', ') as failed_cells
 FROM events
 WHERE type = 'subtask_outcome' 
   AND json_extract(data, '$.success') = 'false'
@@ -978,9 +978,9 @@ LIMIT 10;
 SELECT 
   type,
   datetime(timestamp / 1000, 'unixepoch') as time,
-  json_extract(data, '$.bead_id') as bead_id,
+  json_extract(data, '$.cell_id') as cell_id,
   CASE type
-    WHEN 'task_started' THEN 'Started: ' || json_extract(data, '$.bead_id')
+    WHEN 'task_started' THEN 'Started: ' || json_extract(data, '$.cell_id')
     WHEN 'task_completed' THEN 'Completed: ' || json_extract(data, '$.summary')
     WHEN 'task_blocked' THEN 'Blocked: ' || json_extract(data, '$.reason')
     WHEN 'message_sent' THEN 'Sent: ' || json_extract(data, '$.subject')
@@ -1014,7 +1014,7 @@ ORDER BY success_rate_pct DESC;
 ```sql
 -- Files touched outside owned scope
 SELECT 
-  json_extract(data, '$.bead_id') as bead_id,
+  json_extract(data, '$.cell_id') as cell_id,
   json_extract(data, '$.epic_id') as epic_id,
   json_extract(data, '$.planned_files') as planned,
   json_extract(data, '$.actual_files') as actual,
@@ -1032,7 +1032,7 @@ ORDER BY timestamp DESC;
 | Swarm Concept | OTEL Concept | Mapping |
 |---------------|--------------|---------|
 | Epic | Trace | `trace_id` = `epic_id` |
-| Bead | Span | `span_id` = `bead_id`, `parent_span_id` = `epic_id` |
+| cell | Span | `span_id` = `cell_id`, `parent_span_id` = `epic_id` |
 | task_started | Span start | `start_time` |
 | task_completed | Span end | `end_time`, `status.code` |
 | task_blocked | Span event | `event.name` = "blocked", `event.attributes.reason` |
@@ -1053,7 +1053,7 @@ ORDER BY timestamp DESC;
   "endTimeUnixNano": 1703001240000000000,
   "attributes": {
     "agent.name": "BlueLake",
-    "task.bead_id": "bd-xyz-001",
+    "task.cell_id": "bd-xyz-001",
     "task.strategy": "file-based",
     "task.files_touched": "src/a.ts,src/b.ts",
     "task.error_count": 0,

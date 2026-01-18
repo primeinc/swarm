@@ -77,8 +77,7 @@ const features: Feature[] = [
 	{
 		icon: <GitBranch className="h-6 w-6" />,
 		title: "Git-Backed Tracking",
-		description:
-			"Cells stored in .hive/, synced with git, survives sessions",
+		description: "Cells stored in .hive/, synced with git, survives sessions",
 	},
 	{
 		icon: <MessageSquare className="h-6 w-6" />,

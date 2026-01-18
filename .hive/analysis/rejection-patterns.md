@@ -262,7 +262,7 @@ interface ReviewIssue {
   type: "review_completed",
   data: {
     epic_id: string,
-    bead_id: string,
+    cell_id: string,
     status: "approved" | "needs_changes" | "blocked",
     attempt: number,
     issues?: ReviewIssue[],  // ADD THIS
@@ -311,7 +311,7 @@ The swarm review system is **functionally effective** (73% first-pass success, 5
 ```sql
 WITH retry_sequences AS (
   SELECT 
-    json_extract(data, '$.bead_id') as bead_id,
+    json_extract(data, '$.cell_id') as cell_id,
     json_extract(data, '$.status') as status,
     json_extract(data, '$.attempt') as attempt,
     timestamp
@@ -319,11 +319,11 @@ WITH retry_sequences AS (
   WHERE type = 'review_completed'
 )
 SELECT 
-  bead_id,
+  cell_id,
   MAX(CAST(attempt AS INTEGER)) as max_attempts,
   GROUP_CONCAT(status || ':' || attempt, ' -> ') as sequence
 FROM retry_sequences
-GROUP BY bead_id
+GROUP BY cell_id
 HAVING MAX(CAST(attempt AS INTEGER)) > 1
 ORDER BY max_attempts DESC
 ```
@@ -344,7 +344,7 @@ ORDER BY count DESC
 ```sql
 WITH review_attempts AS (
   SELECT 
-    json_extract(data, '$.bead_id') as bead_id,
+    json_extract(data, '$.cell_id') as cell_id,
     json_extract(data, '$.status') as status,
     CAST(json_extract(data, '$.attempt') AS INTEGER) as attempt
   FROM events 

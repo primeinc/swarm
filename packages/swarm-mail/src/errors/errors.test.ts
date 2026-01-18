@@ -29,8 +29,8 @@ describe("BaseSwarmError", () => {
 
 		const error = new BaseSwarmError("Failed", {
 			agent: "WiseStone",
-			bead_id: "bd-123",
-			epic_id: "bd-100",
+			cell_id: "cell-123",
+			epic_id: "cell-100",
 			timestamp: now,
 			sequence: 42,
 			reason: "Test failure",
@@ -39,8 +39,8 @@ describe("BaseSwarmError", () => {
 		});
 
 		expect(error.context.agent).toBe("WiseStone");
-		expect(error.context.bead_id).toBe("bd-123");
-		expect(error.context.epic_id).toBe("bd-100");
+		expect(error.context.cell_id).toBe("cell-123");
+		expect(error.context.epic_id).toBe("cell-100");
 		expect(error.context.timestamp).toBe(now);
 		expect(error.context.sequence).toBe(42);
 		expect(error.context.reason).toBe("Test failure");
@@ -51,7 +51,7 @@ describe("BaseSwarmError", () => {
 	test("toJSON produces valid serializable object", () => {
 		const error = new BaseSwarmError("Test", {
 			agent: "WiseStone",
-			bead_id: "bd-123",
+			cell_id: "cell-123",
 			suggestions: ["Fix it"],
 		});
 
@@ -61,7 +61,7 @@ describe("BaseSwarmError", () => {
 		expect(json).toHaveProperty("message");
 		expect(json).toHaveProperty("context");
 		expect(json.context.agent).toBe("WiseStone");
-		expect(json.context.bead_id).toBe("bd-123");
+		expect(json.context.cell_id).toBe("cell-123");
 
 		// Verify it round-trips through JSON
 		const serialized = JSON.stringify(json);
@@ -80,11 +80,11 @@ describe("ReservationError", () => {
 	test("constructs with reservation context", () => {
 		const error = new ReservationError("Path reserved by other agent", {
 			agent: "WiseStone",
-			bead_id: "bd-123",
+			cell_id: "cell-123",
 			current_holder: {
 				agent: "OtherAgent",
 				expires_at: Date.now() + 3600000,
-				reason: "Working on bd-456",
+				reason: "Working on cell-456",
 			},
 			suggestions: ["Wait for reservation to expire", "Request access"],
 		});
@@ -113,7 +113,7 @@ describe("CheckpointError", () => {
 	test("constructs with checkpoint context", () => {
 		const error = new CheckpointError("Failed to save checkpoint", {
 			agent: "WiseStone",
-			bead_id: "bd-123",
+			cell_id: "cell-123",
 			sequence: 10,
 			reason: "Disk full",
 			suggestions: ["Clear disk space", "Retry checkpoint"],
@@ -141,14 +141,14 @@ describe("ValidationError", () => {
 	test("constructs with validation context", () => {
 		const error = new ValidationError("Invalid epic structure", {
 			agent: "WiseStone",
-			epic_id: "bd-100",
+			epic_id: "cell-100",
 			reason: "Missing required fields",
 			suggestions: ["Add epic title", "Add subtasks array"],
 		});
 
 		expect(error.name).toBe("ValidationError");
 		expect(error.message).toBe("Invalid epic structure");
-		expect(error.context.epic_id).toBe("bd-100");
+		expect(error.context.epic_id).toBe("cell-100");
 		expect(error.context.suggestions).toHaveLength(2);
 	});
 
@@ -164,12 +164,9 @@ describe("DecompositionError", () => {
 	test("constructs with decomposition context", () => {
 		const error = new DecompositionError("File conflicts detected", {
 			agent: "WiseStone",
-			epic_id: "bd-100",
+			epic_id: "cell-100",
 			reason: "Multiple subtasks editing same file",
-			suggestions: [
-				"Split subtasks by file",
-				"Merge conflicting subtasks",
-			],
+			suggestions: ["Split subtasks by file", "Merge conflicting subtasks"],
 		});
 
 		expect(error.name).toBe("DecompositionError");
@@ -179,7 +176,7 @@ describe("DecompositionError", () => {
 
 	test("serializes with all decomposition context", () => {
 		const error = new DecompositionError("Invalid strategy", {
-			epic_id: "bd-100",
+			epic_id: "cell-100",
 			recent_events: [
 				{
 					type: "DECOMPOSITION_STARTED",
@@ -190,7 +187,7 @@ describe("DecompositionError", () => {
 		});
 
 		const json = error.toJSON();
-		expect(json.context.epic_id).toBe("bd-100");
+		expect(json.context.epic_id).toBe("cell-100");
 		expect(json.context.recent_events).toHaveLength(1);
 	});
 });

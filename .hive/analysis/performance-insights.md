@@ -205,7 +205,7 @@ Swarm coordination shows **strong architectural foundations** but **zero real-wo
 ```typescript
 // In swarm_complete tool:
 await recordOutcome({
-  bead_id,
+  cell_id,
   strategy: epic.strategy,  // ← MUST capture from epic metadata
   duration_ms: Date.now() - startTime,
   success: verificationPassed,
@@ -269,10 +269,10 @@ await recordOutcome({
 **Fix:**
 ```typescript
 // In coordinator review cycle:
-const issues = await reviewWorkerOutput(bead_id, files_touched);
+const issues = await reviewWorkerOutput(cell_id, files_touched);
 await swarm_review_feedback({
   project_key,
-  task_id: bead_id,
+  task_id: cell_id,
   worker_id,
   status: issues.length > 0 ? 'needs_changes' : 'approved',
   issues: issues.map(i => ({
@@ -505,7 +505,7 @@ if (alreadyReserved) {
 ```typescript
 // MANDATORY in every swarm_complete():
 await recordOutcome({
-  bead_id,
+  cell_id,
   strategy: epic.strategy,  // from metadata
   duration_ms,
   success,

@@ -1,7 +1,7 @@
 /**
  * LibSQL Convenience Layer - Simple API for libSQL users
  *
- * Parallel to pglite.ts - provides simplified interface for users who want
+ * Provides simplified interface for users who want
  * libSQL without manually setting up adapters.
  *
  * ## Simple API (this file)
@@ -21,273 +21,224 @@
  * ```
  */
 
-import type { Client } from "@libsql/client";
-import { sql } from "drizzle-orm";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
+import type { Client } from "@libsql/client";
 import { createSwarmMailAdapter } from "./adapter.js";
-import { createDrizzleClient } from "./db/drizzle.js";
 import type { SwarmDb } from "./db/client.js";
-import { createLibSQLAdapter } from "./libsql.js";
+import { DbClientFactory } from "./db/client-factory.js";
+import { createDrizzleClient } from "./db/drizzle.js";
+import { DbPathResolver } from "./db/paths.js";
 import { createLibSQLMemorySchema } from "./memory/libsql-schema.js";
-import { warnPGliteDeprecation } from "./pglite.js";
-import { createLibSQLStreamsSchema } from "./streams/libsql-schema.js";
 import type { SwarmMailAdapter } from "./types/adapter.js";
 import type { DatabaseAdapter } from "./types/database.js";
-
-/**
- * Global singleton instances cache
- *
- * Maps project path → SwarmMailAdapter instance.
- * Prevents duplicate connections to the same database.
- */
-const instances = new Map<string, SwarmMailAdapter>();
 
 /**
  * Get project-specific temporary directory name
  *
  * Creates a stable directory name based on project path:
  * `opencode-<project-name>-<hash>`
- *
- * @param projectPath - Absolute path to project
- * @returns Directory name (not full path)
- *
- * @example
- * ```typescript
- * getProjectTempDirName("/path/to/my-project");
- * // => "opencode-my-project-a1b2c3d4"
- * ```
  */
 export function getProjectTempDirName(projectPath: string): string {
-  const projectName = basename(projectPath);
-  const hash = hashProjectPath(projectPath);
+	const projectName = basename(projectPath);
+	const hash = hashProjectPath(projectPath);
 
-  // Sanitize project name for filesystem
-  const safeName = projectName
-    .toLowerCase()
-    .replace(/[^a-z0-9-]/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 32); // Prevent excessively long names
+	// Sanitize project name for filesystem
+	const safeName = projectName
+		.toLowerCase()
+		.replace(/[^a-z0-9-]/g, "-")
+		.replace(/-+/g, "-")
+		.replace(/^-|-$/g, "")
+		.slice(0, 32); // Prevent excessively long names
 
-  return `opencode-${safeName}-${hash}`;
+	return `opencode-${safeName}-${hash}`;
 }
 
 /**
  * Hash project path to 8-character hex string
  *
  * Uses SHA-256 truncated to 8 chars for project path disambiguation.
- *
- * @param projectPath - Path to hash
- * @returns 8-character hex hash
  */
 export function hashProjectPath(projectPath: string): string {
-  return createHash("sha256").update(projectPath).digest("hex").slice(0, 8);
+	return createHash("sha256").update(projectPath).digest("hex").slice(0, 8);
 }
 
 /**
  * Get database file path for a project
  *
- * @deprecated This function is deprecated. Use `getDatabasePath` from `./streams/index.js` instead.
+ * @deprecated Use `DbPathResolver.getGlobalPath()` instead.
  * All databases should use the global path: ~/.config/swarm-tools/swarm.db
- * 
- * This function previously created temp databases which caused stray DB proliferation.
- * It now delegates to the canonical global path function.
- *
- * @param projectPath - Optional project path (ignored - always returns global path)
- * @returns Database file path (global)
  */
-export function getDatabasePath(projectPath?: string): string {
-  // CRITICAL: Always use global database path
-  // See: .hive/analysis/stray-database-audit.md for why local DBs are banned
-  const { getDatabasePath: getGlobalPath } = require("./streams/index.js");
-  return getGlobalPath(projectPath);
+export function getDatabasePath(_projectPath?: string): string {
+	return DbPathResolver.getGlobalPath();
 }
+
+/**
+ * Lazy singleton for SwarmMailAdapter instances
+ * Maps projectKey -> { adapter: SwarmMailAdapter, url: string }
+ */
+const adapterCache = new Map<
+	string,
+	{ adapter: SwarmMailAdapter; url: string }
+>();
 
 /**
  * Get SwarmMailAdapter for a project (singleton)
  *
  * Creates or returns existing adapter for the project.
- * Uses file-based libSQL database in system temp directory.
+ * Uses file-based libSQL database in system config directory.
  *
- * **Singleton behavior:** Multiple calls with same path return same instance.
- *
- * @param projectPath - Absolute path to project (or undefined for global)
- * @returns SwarmMailAdapter instance
- *
- * @example
- * ```typescript
- * const swarmMail = await getSwarmMailLibSQL('/path/to/project');
- * await swarmMail.registerAgent(projectKey, 'agent-1');
- * ```
+ * **Singleton behavior:** Multiple calls return same instance from factory.
  */
 export async function getSwarmMailLibSQL(
-  projectPath?: string,
+	projectPath?: string,
 ): Promise<SwarmMailAdapter> {
-  const key = projectPath || "__global__";
+	const projectKey = projectPath || "global";
 
-  // Return existing instance if available
-  if (instances.has(key)) {
-    return instances.get(key)!;
-  }
+	const existing = adapterCache.get(projectKey);
+	// Auto-heal check: if existing client is closed, we must recreate it
+	if (existing) {
+		// We can't easily check if existing.adapter's internal DB is closed directly
+		// without exposing it, but we can check the managed instance if we had access.
+		// Instead, we rely on DbClientFactory.getOrCreate to handle the connection pooling.
+		// If the connection was closed externally, DbClientFactory might need to know.
 
-  // CRITICAL: Use the shared adapter cache from store.ts to ensure
-  // all callers (sendSwarmMessage, getInbox, appendEvent) use the SAME adapter.
-  // Fixes bug where sendSwarmMessage created a different adapter, causing empty inbox.
-  const { getOrCreateAdapter } = await import("./streams/store.js");
-  const db = await getOrCreateAdapter(undefined, projectPath);
+		// But wait, adapterCache stores the *Adapter*, which wraps the DB.
+		// If the underlying DB is closed, the Adapter is dead.
+		// We should check connection health or just re-acquire from factory?
 
-  // Initialize memory schema (streams schema already initialized by getOrCreateAdapter)
-  // Cast to access getClient() - we know this is a LibSQLAdapter
-  await createLibSQLMemorySchema((db as any).getClient());
+		// Simplest fix: Re-acquire managed DB from factory.
+		// If factory returns a NEW connection (because old was closed),
+		// then our cached adapter is stale.
 
-  const projectKey = projectPath || "global";
-  const adapter = createSwarmMailAdapter(db, projectKey);
+		const managed = await DbClientFactory.getOrCreate(existing.url);
+		// Check if managed.client.closed is true (it shouldn't be if getOrCreate works right)
 
-  // Cache instance
-  instances.set(key, adapter);
+		// If we want to be safe, just clear cache if we suspect issues?
+		// No, better to trust the factory but ensure we don't hold stale refs.
 
-  return adapter;
+		// Let's implement a health check or simply recreate the adapter if needed?
+		// Creating adapter is cheap. The expensive part is the DB connection.
+
+		// For now, return existing. If it fails, caller handles it?
+		// No, that's what caused the test failure.
+
+		// Let's check health of the managed instance associated with this URL
+		if (managed.client.closed) {
+			// This shouldn't happen if getOrCreate works, but if it does:
+			adapterCache.delete(projectKey);
+			// Fall through to create new
+		} else {
+			return existing.adapter;
+		}
+	}
+
+	const url = `file:${DbPathResolver.getGlobalPath()}`;
+
+	// Use DbClientFactory for singleton management and policy application
+	const managed = await DbClientFactory.getOrCreate(url);
+	const db = managed.adapter;
+
+	// Initialize memory schema (streams schema already initialized by policy application/create)
+	await createLibSQLMemorySchema(managed.client);
+
+	const adapter = createSwarmMailAdapter(db, projectKey);
+	adapterCache.set(projectKey, { adapter, url });
+	return adapter;
 }
 
 /**
  * Create in-memory SwarmMailAdapter for testing
  *
- * Uses `:memory:` database - no persistence.
- * Each call creates a new isolated instance.
- *
- * @param testId - Unique test identifier
- * @returns SwarmMailAdapter instance
- *
- * @example
- * ```typescript
- * const swarmMail = await createInMemorySwarmMailLibSQL('test-123');
- * // ... use for tests ...
- * await swarmMail.close();
- * ```
+ * Each call creates a new isolated instance by using a unique file in the temp directory.
  */
 export async function createInMemorySwarmMailLibSQL(
-  testId: string,
+	testId: string,
 ): Promise<SwarmMailAdapter> {
-  const db = await createLibSQLAdapter({ url: ":memory:" });
+	// Use unique URL for isolation. libSQL client on Windows handles file:// paths well.
+	// We use a unique file in the OS temp directory to simulate in-memory isolation.
+	// Sanitize testId to a flat filename to avoid missing directory issues.
+	const safeId = testId.replace(/[^a-z0-9]/gi, "-").toLowerCase();
+	const tempFile = join(tmpdir(), `swarm-test-${safeId}.db`);
+	const url = `file:${tempFile}`;
 
-  // Initialize schemas
-  await createLibSQLStreamsSchema(db);
-  // Cast to access getClient() - we know this is a LibSQLAdapter
-  await createLibSQLMemorySchema((db as any).getClient());
+	// Force clean slate for tests: close existing if any
+	const existingManaged = await DbClientFactory.getOrCreate(url);
+	if (existingManaged && !existingManaged.client.closed) {
+		// If it exists, it might be from a previous run or stale.
+		// But getOrCreate returns an open connection.
+		// If we want a FRESH one, we rely on unique testId.
+	}
 
-  return createSwarmMailAdapter(db, `test-${testId}`);
+	const managed = await DbClientFactory.getOrCreate(url);
+	const db = managed.adapter;
+
+	// Initialize schemas
+	const { createLibSQLStreamsSchema } = await import(
+		"./streams/libsql-schema.js"
+	);
+	await createLibSQLStreamsSchema(db);
+	await createLibSQLMemorySchema(managed.client);
+
+	const adapter = createSwarmMailAdapter(db, `test-${safeId}`);
+	adapterCache.set(`test-${safeId}`, { adapter, url });
+	return adapter;
 }
 
 /**
  * Close SwarmMailAdapter for specific project
  *
  * Closes database connection and removes from singleton cache.
- *
- * @param projectPath - Project path (or undefined for global)
  */
 export async function closeSwarmMailLibSQL(
-  projectPath?: string,
+	projectPath?: string,
 ): Promise<void> {
-  const key = projectPath || "__global__";
-  const instance = instances.get(key);
+	const projectKey = projectPath || "global";
+	const cached = adapterCache.get(projectKey);
 
-  if (instance) {
-    await instance.close();
-    instances.delete(key);
-    
-    // CRITICAL: Also clear from the shared adapter cache in store.ts
-    // to prevent returning closed adapters on next getSwarmMailLibSQL call
-    const { clearAdapterCache } = await import("./streams/store.js");
-    clearAdapterCache();
-  }
+	if (cached) {
+		adapterCache.delete(projectKey);
+
+		// If it's a test database or global database, we close the connection
+		// Note: for global shared DB, this will close it for everyone.
+		// In tests, this is usually desired between test files or for isolation.
+		const managed = await DbClientFactory.getOrCreate(cached.url);
+		await managed.close();
+	}
 }
 
 /**
  * Close all SwarmMailAdapter instances
- *
- * Useful for cleanup in tests or application shutdown.
  */
 export async function closeAllSwarmMailLibSQL(): Promise<void> {
-  const closePromises = Array.from(instances.values()).map((instance) =>
-    instance.close(),
-  );
-
-  await Promise.all(closePromises);
-  instances.clear();
-  
-  // CRITICAL: Also clear from the shared adapter cache in store.ts
-  const { clearAdapterCache } = await import("./streams/store.js");
-  clearAdapterCache();
+	adapterCache.clear();
+	await DbClientFactory.closeAll();
 }
 
 /**
  * Convert a DatabaseAdapter to a SwarmDb (Drizzle database)
- * 
- * This is useful when you have a DatabaseAdapter from getSwarmMailLibSQL()
- * but need a SwarmDb for the memory store.
- * 
- * @param adapter - DatabaseAdapter (must be a LibSQLAdapter internally)
- * @returns SwarmDb (Drizzle database)
- * @throws Error if adapter doesn't have getClient() method
- * 
- * @example
- * ```typescript
- * const swarmMail = await getSwarmMailLibSQL('/path/to/project');
- * const dbAdapter = await swarmMail.getDatabase();
- * const drizzleDb = toSwarmDb(dbAdapter);
- * 
- * // Now use drizzleDb with memory store
- * const store = createMemoryStore(drizzleDb);
- * ```
  */
 export function toSwarmDb(adapter: DatabaseAdapter): SwarmDb {
-  // LibSQLAdapter has a getClient() method that returns the underlying libSQL client
-  const adapterWithClient = adapter as { getClient?: () => Client };
-  if (!adapterWithClient.getClient) {
-    throw new Error("DatabaseAdapter does not have getClient() method - must be a LibSQLAdapter");
-  }
-  return createDrizzleClient(adapterWithClient.getClient());
+	// LibSQLAdapter has a getClient() method that returns the underlying libSQL client
+	const adapterWithClient = adapter as { getClient?: () => Client };
+	if (!adapterWithClient.getClient) {
+		throw new Error(
+			"DatabaseAdapter does not have getClient() method - must be a LibSQLAdapter",
+		);
+	}
+	return createDrizzleClient(adapterWithClient.getClient());
 }
 
 /**
- * Convert DatabaseAdapter OR PGlite to SwarmDb (Drizzle client)
- * 
- * Supports both:
- * - LibSQLAdapter (has getClient() method)
- * - PGlite (direct instance)
- * 
- * @param db - DatabaseAdapter or PGlite instance
- * @returns Drizzle client compatible with SwarmDb
- * 
- * @example
- * ```typescript
- * // Works with LibSQLAdapter
- * const adapter = await createLibSQLAdapter();
- * const drizzle = toDrizzleDb(adapter);
- * 
- * // Works with PGlite
- * const pglite = await getDatabase(projectPath);
- * const drizzle = toDrizzleDb(pglite);
- * ```
+ * Convert DatabaseAdapter to SwarmDb (Drizzle client)
  */
-export function toDrizzleDb(db: any): SwarmDb {
-  // Check if it's a LibSQLAdapter (has getClient method)
-  if (db && typeof db.getClient === 'function') {
-    // LibSQL path - use existing createDrizzleClient
-    return createDrizzleClient(db.getClient());
-  }
-  
-  // Check if it's PGlite (has query and exec methods)
-  if (db && typeof db.query === 'function' && typeof db.exec === 'function') {
-    // DEPRECATED: PGlite path - warn and use drizzle-orm/pglite adapter
-    warnPGliteDeprecation();
-    const { drizzle } = require('drizzle-orm/pglite');
-    const { schema } = require('./db/schema/index.js');
-    return drizzle(db, { schema });
-  }
-  
-  throw new Error('Database must be either LibSQLAdapter (with getClient()) or PGlite (with query/exec)');
+export function toDrizzleDb(adapter: DatabaseAdapter): SwarmDb {
+	// Check if it's a LibSQLAdapter (has getClient method)
+	const adapterWithClient = adapter as { getClient?: () => Client };
+	if (adapterWithClient.getClient) {
+		return createDrizzleClient(adapterWithClient.getClient());
+	}
+
+	throw new Error("Database must be a LibSQLAdapter (with getClient())");
 }

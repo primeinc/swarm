@@ -2,7 +2,7 @@
  * libSQL Streams Schema - Event Store Tables and Indexes
  *
  * Provides table creation and index DDL for event store.
- * 
+ *
  * ## Schema Source of Truth
  * - **Table structure**: db/schema/streams.ts (Drizzle schema)
  * - **Index DDL**: This file (Drizzle doesn't auto-create indexes)
@@ -58,13 +58,15 @@ import type { DatabaseAdapter } from "../types/database.js";
  * await createLibSQLStreamsSchema(db);
  * ```
  */
-export async function createLibSQLStreamsSchema(db: DatabaseAdapter): Promise<void> {
-  // ========================================================================
-  // Events Table (append-only log)
-  // ========================================================================
-  // IMPORTANT: This table structure MUST match db/schema/streams.ts (eventsTable)
-  // Source of truth: db/schema/streams.ts
-  await db.exec(`
+export async function createLibSQLStreamsSchema(
+	db: DatabaseAdapter,
+): Promise<void> {
+	// ========================================================================
+	// Events Table (append-only log)
+	// ========================================================================
+	// IMPORTANT: This table structure MUST match db/schema/streams.ts (eventsTable)
+	// Source of truth: db/schema/streams.ts
+	await db.exec(`
     CREATE TABLE IF NOT EXISTS events (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       type TEXT NOT NULL,
@@ -75,39 +77,39 @@ export async function createLibSQLStreamsSchema(db: DatabaseAdapter): Promise<vo
     )
   `);
 
-  // Events indexes
-  await db.exec(`
+	// Events indexes
+	await db.exec(`
     CREATE INDEX IF NOT EXISTS idx_events_project_key 
     ON events(project_key)
   `);
 
-  await db.exec(`
+	await db.exec(`
     CREATE INDEX IF NOT EXISTS idx_events_type 
     ON events(type)
   `);
 
-  await db.exec(`
+	await db.exec(`
     CREATE INDEX IF NOT EXISTS idx_events_timestamp 
     ON events(timestamp)
   `);
 
-  await db.exec(`
+	await db.exec(`
     CREATE INDEX IF NOT EXISTS idx_events_project_type 
     ON events(project_key, type)
   `);
 
-  // Composite index for common query pattern: filter by project + sort by time
-  // Used by: timeline queries, dashboard views, event filtering by time range
-  await db.exec(`
+	// Composite index for common query pattern: filter by project + sort by time
+	// Used by: timeline queries, dashboard views, event filtering by time range
+	await db.exec(`
     CREATE INDEX IF NOT EXISTS idx_events_project_timestamp 
     ON events(project_key, timestamp)
   `);
 
-  // ========================================================================
-  // Agents Table (materialized view)
-  // ========================================================================
-  // IMPORTANT: This table structure MUST match db/schema/streams.ts (agentsTable)
-  await db.exec(`
+	// ========================================================================
+	// Agents Table (materialized view)
+	// ========================================================================
+	// IMPORTANT: This table structure MUST match db/schema/streams.ts (agentsTable)
+	await db.exec(`
     CREATE TABLE IF NOT EXISTS agents (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       project_key TEXT NOT NULL,
@@ -121,16 +123,16 @@ export async function createLibSQLStreamsSchema(db: DatabaseAdapter): Promise<vo
     )
   `);
 
-  await db.exec(`
+	await db.exec(`
     CREATE INDEX IF NOT EXISTS idx_agents_project 
     ON agents(project_key)
   `);
 
-  // ========================================================================
-  // Messages Table (materialized view)
-  // ========================================================================
-  // IMPORTANT: This table structure MUST match db/schema/streams.ts (messagesTable)
-  await db.exec(`
+	// ========================================================================
+	// Messages Table (materialized view)
+	// ========================================================================
+	// IMPORTANT: This table structure MUST match db/schema/streams.ts (messagesTable)
+	await db.exec(`
     CREATE TABLE IF NOT EXISTS messages (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       project_key TEXT NOT NULL,
@@ -144,26 +146,26 @@ export async function createLibSQLStreamsSchema(db: DatabaseAdapter): Promise<vo
     )
   `);
 
-  await db.exec(`
+	await db.exec(`
     CREATE INDEX IF NOT EXISTS idx_messages_project 
     ON messages(project_key)
   `);
 
-  await db.exec(`
+	await db.exec(`
     CREATE INDEX IF NOT EXISTS idx_messages_thread 
     ON messages(thread_id)
   `);
 
-  await db.exec(`
+	await db.exec(`
     CREATE INDEX IF NOT EXISTS idx_messages_created 
     ON messages(created_at DESC)
   `);
 
-  // ========================================================================
-  // Message Recipients Table (many-to-many)
-  // ========================================================================
-  // IMPORTANT: This table structure MUST match db/schema/streams.ts (messageRecipientsTable)
-  await db.exec(`
+	// ========================================================================
+	// Message Recipients Table (many-to-many)
+	// ========================================================================
+	// IMPORTANT: This table structure MUST match db/schema/streams.ts (messageRecipientsTable)
+	await db.exec(`
     CREATE TABLE IF NOT EXISTS message_recipients (
       message_id INTEGER NOT NULL,
       agent_name TEXT NOT NULL,
@@ -174,16 +176,16 @@ export async function createLibSQLStreamsSchema(db: DatabaseAdapter): Promise<vo
     )
   `);
 
-  await db.exec(`
+	await db.exec(`
     CREATE INDEX IF NOT EXISTS idx_recipients_agent 
     ON message_recipients(agent_name)
   `);
 
-  // ========================================================================
-  // Reservations Table (file locks)
-  // ========================================================================
-  // IMPORTANT: This table structure MUST match db/schema/streams.ts (reservationsTable)
-  await db.exec(`
+	// ========================================================================
+	// Reservations Table (file locks)
+	// ========================================================================
+	// IMPORTANT: This table structure MUST match db/schema/streams.ts (reservationsTable)
+	await db.exec(`
     CREATE TABLE IF NOT EXISTS reservations (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       project_key TEXT NOT NULL,
@@ -198,33 +200,33 @@ export async function createLibSQLStreamsSchema(db: DatabaseAdapter): Promise<vo
     )
   `);
 
-  await db.exec(`
+	await db.exec(`
     CREATE INDEX IF NOT EXISTS idx_reservations_project 
     ON reservations(project_key)
   `);
 
-  await db.exec(`
+	await db.exec(`
     CREATE INDEX IF NOT EXISTS idx_reservations_agent 
     ON reservations(agent_name)
   `);
 
-  await db.exec(`
+	await db.exec(`
     CREATE INDEX IF NOT EXISTS idx_reservations_expires 
     ON reservations(expires_at)
   `);
 
-  // Partial index for active reservations
-  await db.exec(`
+	// Partial index for active reservations
+	await db.exec(`
     CREATE INDEX IF NOT EXISTS idx_reservations_active 
     ON reservations(project_key, released_at) 
     WHERE released_at IS NULL
   `);
 
-  // ========================================================================
-  // Locks Table (distributed mutex)
-  // ========================================================================
-  // IMPORTANT: This table structure MUST match db/schema/streams.ts (locksTable)
-  await db.exec(`
+	// ========================================================================
+	// Locks Table (distributed mutex)
+	// ========================================================================
+	// IMPORTANT: This table structure MUST match db/schema/streams.ts (locksTable)
+	await db.exec(`
     CREATE TABLE IF NOT EXISTS locks (
       resource TEXT PRIMARY KEY,
       holder TEXT NOT NULL,
@@ -234,40 +236,40 @@ export async function createLibSQLStreamsSchema(db: DatabaseAdapter): Promise<vo
     )
   `);
 
-  await db.exec(`
+	await db.exec(`
     CREATE INDEX IF NOT EXISTS idx_locks_expires 
     ON locks(expires_at)
   `);
 
-  await db.exec(`
+	await db.exec(`
     CREATE INDEX IF NOT EXISTS idx_locks_holder 
     ON locks(holder)
   `);
 
-  // ========================================================================
-  // Cursors Table (stream positions) - matches Effect DurableCursor schema
-  // ========================================================================
-  // IMPORTANT: This table structure MUST match db/schema/streams.ts (cursorsTable)
-  
-  // Check if cursors table exists with old schema (stream_id instead of stream)
-  const cursorsExists = await db.query<{ name: string }>(
-    `SELECT name FROM sqlite_master WHERE type='table' AND name='cursors'`
-  );
-  
-  if (cursorsExists.rows.length > 0) {
-    // Check if it has the old schema (stream_id column)
-    const columns = await db.query<{ name: string }>(
-      `PRAGMA table_xinfo('cursors')`
-    );
-    const columnNames = columns.rows.map(r => r.name);
-    
-    if (columnNames.includes('stream_id') && !columnNames.includes('stream')) {
-      // Old schema detected - drop and recreate
-      await db.exec(`DROP TABLE cursors`);
-    }
-  }
-  
-  await db.exec(`
+	// ========================================================================
+	// Cursors Table (stream positions) - matches Effect DurableCursor schema
+	// ========================================================================
+	// IMPORTANT: This table structure MUST match db/schema/streams.ts (cursorsTable)
+
+	// Check if cursors table exists with old schema (stream_id instead of stream)
+	const cursorsExists = await db.query<{ name: string }>(
+		`SELECT name FROM sqlite_master WHERE type='table' AND name='cursors'`,
+	);
+
+	if (cursorsExists.rows.length > 0) {
+		// Check if it has the old schema (stream_id column)
+		const columns = await db.query<{ name: string }>(
+			`PRAGMA table_xinfo('cursors')`,
+		);
+		const columnNames = columns.rows.map((r) => r.name);
+
+		if (columnNames.includes("stream_id") && !columnNames.includes("stream")) {
+			// Old schema detected - drop and recreate
+			await db.exec(`DROP TABLE cursors`);
+		}
+	}
+
+	await db.exec(`
     CREATE TABLE IF NOT EXISTS cursors (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       stream TEXT NOT NULL,
@@ -278,26 +280,26 @@ export async function createLibSQLStreamsSchema(db: DatabaseAdapter): Promise<vo
     )
   `);
 
-  await db.exec(`
+	await db.exec(`
     CREATE INDEX IF NOT EXISTS idx_cursors_stream 
     ON cursors(stream)
   `);
 
-  await db.exec(`
+	await db.exec(`
     CREATE INDEX IF NOT EXISTS idx_cursors_checkpoint 
     ON cursors(checkpoint)
   `);
 
-  await db.exec(`
+	await db.exec(`
     CREATE INDEX IF NOT EXISTS idx_cursors_updated 
     ON cursors(updated_at)
   `);
 
-  // ========================================================================
-  // Eval Records Table (decomposition eval tracking)
-  // ========================================================================
-  // IMPORTANT: This table structure MUST match db/schema/streams.ts (evalRecordsTable)
-  await db.exec(`
+	// ========================================================================
+	// Eval Records Table (decomposition eval tracking)
+	// ========================================================================
+	// IMPORTANT: This table structure MUST match db/schema/streams.ts (evalRecordsTable)
+	await db.exec(`
     CREATE TABLE IF NOT EXISTS eval_records (
       id TEXT PRIMARY KEY,
       project_key TEXT NOT NULL,
@@ -321,16 +323,16 @@ export async function createLibSQLStreamsSchema(db: DatabaseAdapter): Promise<vo
     )
   `);
 
-  // ========================================================================
-  // Swarm Contexts Table (swarm checkpoint tracking)
-  // ========================================================================
-  // IMPORTANT: This table structure MUST match db/schema/streams.ts (swarmContextsTable)
-  await db.exec(`
+	// ========================================================================
+	// Swarm Contexts Table (swarm checkpoint tracking)
+	// ========================================================================
+	// IMPORTANT: This table structure MUST match db/schema/streams.ts (swarmContextsTable)
+	await db.exec(`
     CREATE TABLE IF NOT EXISTS swarm_contexts (
       id TEXT PRIMARY KEY,
       project_key TEXT NOT NULL,
       epic_id TEXT NOT NULL,
-      bead_id TEXT NOT NULL,
+      cell_id TEXT NOT NULL,
       strategy TEXT NOT NULL,
       files TEXT NOT NULL,
       dependencies TEXT NOT NULL,
@@ -344,16 +346,16 @@ export async function createLibSQLStreamsSchema(db: DatabaseAdapter): Promise<vo
     )
   `);
 
-  // ========================================================================
-  // Decision Traces Table (decision trace log)
-  // ========================================================================
-  // IMPORTANT: This table structure MUST match db/schema/streams.ts (decisionTracesTable)
-  await db.exec(`
+	// ========================================================================
+	// Decision Traces Table (decision trace log)
+	// ========================================================================
+	// IMPORTANT: This table structure MUST match db/schema/streams.ts (decisionTracesTable)
+	await db.exec(`
     CREATE TABLE IF NOT EXISTS decision_traces (
       id TEXT PRIMARY KEY,
       decision_type TEXT NOT NULL,
       epic_id TEXT,
-      bead_id TEXT,
+      cell_id TEXT,
       agent_name TEXT NOT NULL,
       project_key TEXT NOT NULL,
       decision TEXT NOT NULL,
@@ -368,31 +370,58 @@ export async function createLibSQLStreamsSchema(db: DatabaseAdapter): Promise<vo
     )
   `);
 
-  await db.exec(`
+	await db.exec(`
     CREATE INDEX IF NOT EXISTS idx_decision_traces_epic 
     ON decision_traces(epic_id)
   `);
 
-  await db.exec(`
+	await db.exec(`
     CREATE INDEX IF NOT EXISTS idx_decision_traces_type 
     ON decision_traces(decision_type)
   `);
 
-  await db.exec(`
+	await db.exec(`
     CREATE INDEX IF NOT EXISTS idx_decision_traces_agent 
     ON decision_traces(agent_name)
   `);
 
-  await db.exec(`
+	await db.exec(`
     CREATE INDEX IF NOT EXISTS idx_decision_traces_timestamp 
     ON decision_traces(timestamp)
   `);
 
-  // ========================================================================
-  // Entity Links Table (decision-entity relationships)
-  // ========================================================================
-  // IMPORTANT: This table structure MUST match db/schema/streams.ts (entityLinksTable)
-  await db.exec(`
+	// ========================================================================
+	// Deferred Table (DurableDeferred)
+	// ========================================================================
+	await db.exec(`
+    CREATE TABLE IF NOT EXISTS deferred (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      url TEXT NOT NULL UNIQUE,
+      resolved INTEGER NOT NULL DEFAULT 0,
+      value TEXT, -- JSON string
+      error TEXT,
+      expires_at INTEGER NOT NULL,
+      created_at INTEGER NOT NULL
+    )
+  `);
+
+	await db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_deferred_url ON deferred(url)
+  `);
+
+	await db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_deferred_expires ON deferred(expires_at)
+  `);
+
+	await db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_deferred_resolved ON deferred(resolved)
+  `);
+
+	// ========================================================================
+	// Entity Links Table (decision-entity relationships)
+	// ========================================================================
+	// IMPORTANT: This table structure MUST match db/schema/streams.ts (entityLinksTable)
+	await db.exec(`
     CREATE TABLE IF NOT EXISTS entity_links (
       id TEXT PRIMARY KEY,
       source_decision_id TEXT NOT NULL,
@@ -404,17 +433,17 @@ export async function createLibSQLStreamsSchema(db: DatabaseAdapter): Promise<vo
     )
   `);
 
-  await db.exec(`
+	await db.exec(`
     CREATE INDEX IF NOT EXISTS idx_entity_links_source 
     ON entity_links(source_decision_id)
   `);
 
-  await db.exec(`
+	await db.exec(`
     CREATE INDEX IF NOT EXISTS idx_entity_links_target 
     ON entity_links(target_entity_type, target_entity_id)
   `);
 
-  await db.exec(`
+	await db.exec(`
     CREATE INDEX IF NOT EXISTS idx_entity_links_type 
     ON entity_links(link_type)
   `);
@@ -428,19 +457,21 @@ export async function createLibSQLStreamsSchema(db: DatabaseAdapter): Promise<vo
  *
  * @param db - libSQL client instance
  */
-export async function dropLibSQLStreamsSchema(db: DatabaseAdapter): Promise<void> {
-  // Drop in reverse dependency order
-  await db.exec("DROP TABLE IF EXISTS entity_links");
-  await db.exec("DROP TABLE IF EXISTS decision_traces");
-  await db.exec("DROP TABLE IF EXISTS swarm_contexts");
-  await db.exec("DROP TABLE IF EXISTS eval_records");
-  await db.exec("DROP TABLE IF EXISTS cursors");
-  await db.exec("DROP TABLE IF EXISTS locks");
-  await db.exec("DROP TABLE IF EXISTS message_recipients");
-  await db.exec("DROP TABLE IF EXISTS reservations");
-  await db.exec("DROP TABLE IF EXISTS messages");
-  await db.exec("DROP TABLE IF EXISTS agents");
-  await db.exec("DROP TABLE IF EXISTS events");
+export async function dropLibSQLStreamsSchema(
+	db: DatabaseAdapter,
+): Promise<void> {
+	// Drop in reverse dependency order
+	await db.exec("DROP TABLE IF EXISTS entity_links");
+	await db.exec("DROP TABLE IF EXISTS decision_traces");
+	await db.exec("DROP TABLE IF EXISTS swarm_contexts");
+	await db.exec("DROP TABLE IF EXISTS eval_records");
+	await db.exec("DROP TABLE IF EXISTS cursors");
+	await db.exec("DROP TABLE IF EXISTS locks");
+	await db.exec("DROP TABLE IF EXISTS message_recipients");
+	await db.exec("DROP TABLE IF EXISTS reservations");
+	await db.exec("DROP TABLE IF EXISTS messages");
+	await db.exec("DROP TABLE IF EXISTS agents");
+	await db.exec("DROP TABLE IF EXISTS events");
 }
 
 /**
@@ -454,38 +485,47 @@ export async function dropLibSQLStreamsSchema(db: DatabaseAdapter): Promise<void
  * @param db - libSQL client instance
  * @returns True if schema is valid, false otherwise
  */
-export async function validateLibSQLStreamsSchema(db: DatabaseAdapter): Promise<boolean> {
-  try {
-    // Check all required tables exist
-    const tables = await db.query(`
+export async function validateLibSQLStreamsSchema(
+	db: DatabaseAdapter,
+): Promise<boolean> {
+	try {
+		// Check all required tables exist
+		const tables = await db.query(`
       SELECT name FROM sqlite_master 
       WHERE type='table' AND name IN ('events', 'agents', 'messages', 'message_recipients', 'reservations', 'locks', 'cursors', 'eval_records', 'swarm_contexts', 'decision_traces', 'entity_links')
     `);
 
-    if (tables.rows.length !== 11) return false;
+		if (tables.rows.length !== 11) return false;
 
-    // Check events table has required columns
-    // Use table_xinfo to include generated columns (like sequence)
-    const eventsCols = await db.query(`
+		// Check events table has required columns
+		// Use table_xinfo to include generated columns (like sequence)
+		const eventsCols = await db.query(`
       PRAGMA table_xinfo('events')
     `);
-    const eventsColNames = eventsCols.rows.map((r: any) => r.name as string);
-    const requiredEventsCols = ["id", "type", "project_key", "timestamp", "sequence", "data"];
-    
-    for (const col of requiredEventsCols) {
-      if (!eventsColNames.includes(col)) return false;
-    }
+		const eventsColNames = eventsCols.rows.map((r: any) => r.name as string);
+		const requiredEventsCols = [
+			"id",
+			"type",
+			"project_key",
+			"timestamp",
+			"sequence",
+			"data",
+		];
 
-    // Check agents table has UNIQUE constraint
-    const agentsIndexes = await db.query(`
+		for (const col of requiredEventsCols) {
+			if (!eventsColNames.includes(col)) return false;
+		}
+
+		// Check agents table has UNIQUE constraint
+		const agentsIndexes = await db.query(`
       SELECT sql FROM sqlite_master 
       WHERE type='table' AND name='agents'
     `);
-    const agentsSql = String((agentsIndexes.rows[0] as any)?.sql || "");
-    if (!agentsSql.includes("UNIQUE")) return false;
+		const agentsSql = String((agentsIndexes.rows[0] as any)?.sql || "");
+		if (!agentsSql.includes("UNIQUE")) return false;
 
-    return true;
-  } catch {
-    return false;
-  }
+		return true;
+	} catch {
+		return false;
+	}
 }

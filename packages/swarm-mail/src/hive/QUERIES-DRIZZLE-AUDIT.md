@@ -21,7 +21,7 @@ Pragmatic migration of `hive/queries.ts` to Drizzle ORM. **Simple CRUD queries m
 | Function | Complexity | Why Raw SQL Better |
 |----------|-----------|-------------------|
 | `getReadyWork` | High | Dynamic WHERE building, EXISTS subquery on cache table, complex CASE sorting, label filtering |
-| `getBlockedIssues` | Medium | JOIN with blocked_beads_cache, JSON parsing (SQLite doesn't have arrays) |
+| `getBlockedIssues` | Medium | JOIN with blocked_cells_cache, JSON parsing (SQLite doesn't have arrays) |
 | `getEpicsEligibleForClosure` | Medium | Self-JOIN, GROUP BY + HAVING, conditional COUNT with CASE |
 
 ## Decision Framework
@@ -37,7 +37,7 @@ Pragmatic migration of `hive/queries.ts` to Drizzle ORM. **Simple CRUD queries m
 - Window functions with complex partitioning
 - Queries with multiple CTEs
 - **Dynamic query building** (conditional WHERE clauses)
-- **Materialized view queries** (blocked_beads_cache)
+- **Materialized view queries** (blocked_cells_cache)
 
 ## Implementation Details
 
@@ -47,7 +47,7 @@ Created a hive-specific Drizzle client factory that only loads the hive schema:
 
 ```typescript
 function getHiveDrizzle(db: DatabaseAdapter) {
-  const hiveSchema = { beads };
+  const hiveSchema = { cells };
   // ...
   return drizzle(client, { schema: hiveSchema });
 }
@@ -66,12 +66,12 @@ const db = getHiveDrizzle(await adapter.getDatabase());
 
 const results = await db
   .select()
-  .from(beads)
+  .from(cells)
   .where(
     and(
-      eq(beads.project_key, projectKey),
-      isNull(beads.deleted_at),
-      like(beads.id, pattern)
+      eq(cells.project_key, projectKey),
+      isNull(cells.deleted_at),
+      like(cells.id, pattern)
     )
   );
 ```
@@ -90,8 +90,8 @@ Blocked/ready counts kept as raw SQL (needs EXISTS on cache table):
 ```typescript
 const blockedResult = await db.query<{ count: string }>(
   `SELECT COUNT(DISTINCT b.id) as count
-   FROM beads b
-   JOIN blocked_beads_cache bbc ON b.id = bbc.cell_id
+   FROM cells b
+   JOIN blocked_cells_cache bbc ON b.id = bbc.cell_id
    WHERE b.project_key = $1 AND b.deleted_at IS NULL`,
   [projectKey],
 );

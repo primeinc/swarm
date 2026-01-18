@@ -15,7 +15,7 @@ The consolidated swarm database reveals a **maturing multi-agent coordination sy
 
 | Issue | Impact | Count | Severity |
 |-------|--------|-------|----------|
-| **Beads with NULL IDs** | Primary key violations, breaks queries | 427 (32%) | 🔴 CRITICAL |
+| **cells with NULL IDs** | Primary key violations, breaks queries | 427 (32%) | 🔴 CRITICAL |
 | **Orphaned message recipients** | Foreign key violations, broken routing | 208 (90%) | 🔴 CRITICAL |
 | **Messages without recipients** | Undeliverable messages, data loss | 72 (25%) | 🔴 CRITICAL |
 | **Expired unreleased reservations** | Stale file locks, blocks legitimate work | 213 (87%) | 🔴 CRITICAL |
@@ -72,21 +72,21 @@ The consolidated swarm database reveals a **maturing multi-agent coordination sy
 | Table | Row Count | Health Status |
 |-------|-----------|---------------|
 | **events** | 9,576 | ✅ Clean (append-only, valid JSON) |
-| **beads** | 1,343 | ⚠️ 427 NULL IDs (32% corrupt) |
+| **cells** | 1,343 | ⚠️ 427 NULL IDs (32% corrupt) |
 | **agents** | 103 | ✅ Clean (no duplicates) |
 | **messages** | 286 | ⚠️ 72 orphaned (25%) |
 | **message_recipients** | 232 | 🔴 208 orphaned (90%) |
 | **reservations** | 244 | 🔴 213 expired unreleased (87%) |
 | **eval_records** | 29 | ⚠️ Incomplete data (0ms durations) |
-| **bead_dependencies** | 0 | ✅ Empty (no relationships created) |
-| **bead_labels** | 0 | ✅ Empty |
-| **bead_comments** | 0 | ✅ Empty |
+| **cell_dependencies** | 0 | ✅ Empty (no relationships created) |
+| **cell_labels** | 0 | ✅ Empty |
+| **cell_comments** | 0 | ✅ Empty |
 
-### 🔴 CRITICAL: NULL Bead IDs (427 records)
+### 🔴 CRITICAL: NULL cell IDs (427 records)
 
 **Impact:** Primary key violations, duplicate records  
 **Details:**
-- 427 beads have `NULL` id but valid data (32% of total)
+- 427 cells have `NULL` id but valid data (32% of total)
 - All are closed epics with duplicate titles
 - Examples: "Pino Logging Infrastructure + Compaction Instrumentation", "P0 Security Fixes + Analytics Queries"
 
@@ -94,7 +94,7 @@ The consolidated swarm database reveals a **maturing multi-agent coordination sy
 
 **SQL Fix:**
 ```sql
-DELETE FROM beads WHERE id IS NULL;
+DELETE FROM cells WHERE id IS NULL;
 ```
 
 **Severity:** 🔴 CRITICAL - Violates table constraints, breaks queries
@@ -222,8 +222,8 @@ AND released_at IS NULL;
 | Table | Checks Passed | Checks Failed |
 |-------|---------------|---------------|
 | **events** | ✅ No NULL values, valid JSON, monotonic timestamps | None |
-| **beads** | ✅ No NULL titles/status/type, valid enums, no orphaned parents | ❌ 427 NULL IDs |
-| **bead_dependencies** | ✅ No orphaned FK references | None (empty) |
+| **cells** | ✅ No NULL titles/status/type, valid enums, no orphaned parents | ❌ 427 NULL IDs |
+| **cell_dependencies** | ✅ No orphaned FK references | None (empty) |
 | **messages** | ⚠️ Syntax valid | ❌ 72 orphaned (no recipients) |
 | **message_recipients** | ⚠️ Syntax valid | ❌ 208 orphaned (agents missing) |
 | **reservations** | ⚠️ Syntax valid | ❌ 213 expired unreleased |
@@ -686,7 +686,7 @@ Possible explanations:
 **Total Blocked:** 2 cells (status='blocked')  
 **Blocked Cells Cache:** Empty (0 entries)
 
-**Issue:** Cells marked as blocked but not tracked in `blocked_beads_cache`. Suggests:
+**Issue:** Cells marked as blocked but not tracked in `blocked_cells_cache`. Suggests:
 - Dependency tracking incomplete
 - Manual blocks without dependency metadata
 - Need to populate cache when cells transition to blocked status
@@ -732,9 +732,9 @@ Would need to parse `events.data` JSON to get:
 PRAGMA foreign_keys = ON;
 ```
 
-**Clean NULL Bead IDs:**
+**Clean NULL cell IDs:**
 ```sql
-DELETE FROM beads WHERE id IS NULL;
+DELETE FROM cells WHERE id IS NULL;
 -- Expected: 427 rows deleted
 ```
 
@@ -769,7 +769,7 @@ AND released_at IS NULL;
 **Verify Cleanup:**
 ```sql
 SELECT 
-  (SELECT COUNT(*) FROM beads WHERE id IS NULL) as null_bead_ids,
+  (SELECT COUNT(*) FROM cells WHERE id IS NULL) as null_cell_ids,
   (SELECT COUNT(*) FROM message_recipients mr 
    WHERE NOT EXISTS (SELECT 1 FROM agents WHERE name = mr.agent_name)) as orphaned_recipients,
   (SELECT COUNT(*) FROM messages m 
@@ -780,7 +780,7 @@ SELECT
 
 **Expected Result (post-cleanup):**
 ```
-null_bead_ids: 0
+null_cell_ids: 0
 orphaned_recipients: 0
 orphaned_messages: 72 (requires manual review)
 stale_reservations: 0
@@ -813,7 +813,7 @@ swarm cleanup --stale-reservations --execute  # Execute
 
 **Add logging to `swarm_record_outcome`:**
 ```typescript
-console.log(`[swarm_record_outcome] bead_id=${bead_id} duration=${duration_ms}ms errors=${error_count} success=${success}`);
+console.log(`[swarm_record_outcome] cell_id=${cell_id} duration=${duration_ms}ms errors=${error_count} success=${success}`);
 ```
 
 **Test with minimal swarm:**
@@ -901,9 +901,9 @@ if (!reviewCompleted) {
 **Auto-Call Review:**
 ```typescript
 // Option 1: swarm_complete automatically calls swarm_review
-async function swarm_complete({ bead_id, ... }) {
+async function swarm_complete({ cell_id, ... }) {
   // Auto-generate review if not done
-  const review = await swarm_review({ bead_id, files_touched });
+  const review = await swarm_review({ cell_id, files_touched });
   // Block if review rejects
   if (review.status === 'needs_changes') {
     throw new Error(`Review failed: ${review.issues}`);
@@ -1000,11 +1000,11 @@ SELECT project_key, COUNT(*) FROM reservations GROUP BY project_key;
 **Define Error Events:**
 ```typescript
 type ErrorEvent = 
-  | { type: 'worker_failed', bead_id: string, error: string, stack: string }
+  | { type: 'worker_failed', cell_id: string, error: string, stack: string }
   | { type: 'decomposition_failed', task: string, reason: string }
   | { type: 'test_failed', file: string, test_name: string, error: string }
   | { type: 'reservation_conflict', file: string, agent1: string, agent2: string }
-  | { type: 'review_rejected', bead_id: string, attempt: number, issues: Array<...> };
+  | { type: 'review_rejected', cell_id: string, attempt: number, issues: Array<...> };
 ```
 
 **Emit from Error Handlers:**
@@ -1014,7 +1014,7 @@ try {
 } catch (error) {
   await emitEvent({
     type: 'worker_failed',
-    bead_id,
+    cell_id,
     error: error.message,
     stack: error.stack
   });
@@ -1035,12 +1035,12 @@ ORDER BY count DESC;
 
 #### 10. Implement Blocked Cell Dependency Tracking
 
-**Populate `blocked_beads_cache` on Status Change:**
+**Populate `blocked_cells_cache` on Status Change:**
 ```typescript
 async function updateCellStatus(id: string, status: 'blocked', blocker_id: string, reason: string) {
-  await db.execute(`UPDATE beads SET status='blocked' WHERE id=?`, [id]);
+  await db.execute(`UPDATE cells SET status='blocked' WHERE id=?`, [id]);
   await db.execute(`
-    INSERT INTO blocked_beads_cache (cell_id, blocked_by_id, reason, blocked_at)
+    INSERT INTO blocked_cells_cache (cell_id, blocked_by_id, reason, blocked_at)
     VALUES (?, ?, ?, ?)
   `, [id, blocker_id, reason, Date.now()]);
 }
@@ -1049,26 +1049,26 @@ async function updateCellStatus(id: string, status: 'blocked', blocker_id: strin
 **Query Blockers:**
 ```sql
 SELECT b.id, b.title, bbc.blocked_by_id, b2.title as blocker_title, bbc.reason
-FROM beads b
-JOIN blocked_beads_cache bbc ON b.id = bbc.cell_id
-JOIN beads b2 ON bbc.blocked_by_id = b2.id
+FROM cells b
+JOIN blocked_cells_cache bbc ON b.id = bbc.cell_id
+JOIN cells b2 ON bbc.blocked_by_id = b2.id
 WHERE b.status='blocked';
 ```
 
 **Auto-Unblock When Blocker Closes:**
 ```typescript
 async function closeCell(id: string) {
-  await db.execute(`UPDATE beads SET status='closed' WHERE id=?`, [id]);
+  await db.execute(`UPDATE cells SET status='closed' WHERE id=?`, [id]);
   
   // Find cells blocked by this one
   const blocked = await db.query(`
-    SELECT cell_id FROM blocked_beads_cache WHERE blocked_by_id=?
+    SELECT cell_id FROM blocked_cells_cache WHERE blocked_by_id=?
   `, [id]);
   
   // Unblock them
   for (const row of blocked) {
-    await db.execute(`UPDATE beads SET status='open' WHERE id=?`, [row.cell_id]);
-    await db.execute(`DELETE FROM blocked_beads_cache WHERE cell_id=?`, [row.cell_id]);
+    await db.execute(`UPDATE cells SET status='open' WHERE id=?`, [row.cell_id]);
+    await db.execute(`DELETE FROM blocked_cells_cache WHERE cell_id=?`, [row.cell_id]);
   }
 }
 ```
@@ -1160,7 +1160,7 @@ WHERE agent_name IN (
 ```sql
 SELECT 
   -- Data integrity
-  (SELECT COUNT(*) FROM beads WHERE id IS NULL) as null_bead_ids,
+  (SELECT COUNT(*) FROM cells WHERE id IS NULL) as null_cell_ids,
   (SELECT COUNT(*) FROM message_recipients mr 
    WHERE NOT EXISTS (SELECT 1 FROM agents WHERE name = mr.agent_name)) as orphaned_recipients,
   (SELECT COUNT(*) FROM messages m 
@@ -1169,8 +1169,8 @@ SELECT
    WHERE expires_at < (strftime('%s', 'now') * 1000) AND released_at IS NULL) as stale_reservations,
   
   -- Activity metrics
-  (SELECT COUNT(*) FROM beads WHERE status='open') as open_cells,
-  (SELECT COUNT(*) FROM beads WHERE status='blocked') as blocked_cells,
+  (SELECT COUNT(*) FROM cells WHERE status='open') as open_cells,
+  (SELECT COUNT(*) FROM cells WHERE status='blocked') as blocked_cells,
   (SELECT COUNT(*) FROM reservations WHERE released_at IS NULL) as active_reservations,
   
   -- Quality metrics
@@ -1182,7 +1182,7 @@ SELECT
 
 **Expected Healthy Values:**
 ```
-null_bead_ids: 0
+null_cell_ids: 0
 orphaned_recipients: 0
 orphaned_messages: 0
 stale_reservations: <10
@@ -1233,13 +1233,13 @@ ORDER BY date DESC;
 SELECT a.name as agent, b.title as task, b.status, r.path_pattern as file
 FROM agents a
 LEFT JOIN reservations r ON a.name = r.agent_name AND r.released_at IS NULL
-LEFT JOIN beads b ON b.status='in_progress'
+LEFT JOIN cells b ON b.status='in_progress'
 WHERE a.last_active_at > (strftime('%s', 'now', '-1 hour') * 1000)
 ORDER BY a.last_active_at DESC;
 
 -- Recent completions
 SELECT b.title, b.closed_at, b.priority, b.type
-FROM beads b
+FROM cells b
 WHERE b.status='closed'
 AND b.closed_at > (strftime('%s', 'now', '-24 hours') * 1000)
 ORDER BY b.closed_at DESC;
@@ -1276,7 +1276,7 @@ LIMIT 20;
 
 | Metric | Current | Target | Status |
 |--------|---------|--------|--------|
-| NULL Bead IDs | 427 | 0 | 🔴 |
+| NULL cell IDs | 427 | 0 | 🔴 |
 | Stale Reservations | 213 | <10 | 🔴 |
 | Coordinator Violations | 19.6% | <10% | 🟡 |
 | Decomposition Success | 13.8% | >50% | 🔴 |

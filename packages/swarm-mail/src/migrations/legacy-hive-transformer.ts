@@ -5,7 +5,7 @@
  *
  * ## Context
  * The .hive/swarm-mail.db contains 519 historical issues from Dec 7-17 2025 that are NOT
- * in the global database. These have bd-lf2p4u-* IDs and need to be migrated to preserve
+ * in the global database. These have cell-lf2p4u-* IDs and need to be migrated to preserve
  * project history.
  *
  * ## Schema Differences
@@ -17,10 +17,10 @@
  * - `dependencies` table with issue_id references
  *
  * **New Schema (in global swarm.db):**
- * - `beads` table with epoch milliseconds timestamps (BIGINT)
+ * - `cells` table with epoch milliseconds timestamps (BIGINT)
  * - Requires project_key, has created_by, deleted_at fields
- * - `cell_events` table with cell_id reference (note: cell_id, not bead_id)
- * - `bead_dependencies` table with cell_id references
+ * - `cell_events` table with cell_id reference (note: cell_id, not cell_id)
+ * - `cell_dependencies` table with cell_id references
  *
  * ## Usage Examples
  *
@@ -30,7 +30,7 @@
  *
  * // Transform a single issue
  * const legacyIssue = {
- *   id: "bd-lf2p4u-abc123",
+ *   id: "cell-lf2p4u-abc123",
  *   title: "Fix auth bug",
  *   type: "bug",
  *   status: "closed",
@@ -38,22 +38,22 @@
  *   // ... other fields
  * };
  *
- * const newBead = transformIssue(legacyIssue, '/Users/joel/Code/joelhooks/opencode-swarm-plugin');
- * // newBead.created_at is now epoch milliseconds
- * // newBead.project_key is "/Users/joel/Code/joelhooks/opencode-swarm-plugin"
- * // newBead.created_by is "HistoricalImport"
+ * const newcell = transformIssue(legacyIssue, '/Users/joel/Code/joelhooks/opencode-swarm-plugin');
+ * // newcell.created_at is now epoch milliseconds
+ * // newcell.project_key is "/Users/joel/Code/joelhooks/opencode-swarm-plugin"
+ * // newcell.created_by is "HistoricalImport"
  *
  * // Transform an event
  * const legacyEvent = {
  *   id: 1,
- *   issue_id: "bd-lf2p4u-abc123",
+ *   issue_id: "cell-lf2p4u-abc123",
  *   event_type: "status_changed",
  *   payload: JSON.stringify({ old: "open", new: "closed" }),
  *   created_at: "2025-12-15T11:00:00.000Z",
  * };
  *
  * const newEvent = transformEvent(legacyEvent);
- * // newEvent.cell_id is "bd-lf2p4u-abc123" (note: cell_id, not bead_id)
+ * // newEvent.cell_id is "cell-lf2p4u-abc123" (note: cell_id, not cell_id)
  * // newEvent.created_at is epoch milliseconds
  * ```
  *
@@ -68,7 +68,7 @@
  *   '/Users/joel/Code/joelhooks/opencode-swarm-plugin'
  * );
  *
- * console.log(`Migrated ${summary.beads.migrated} beads`);
+ * console.log(`Migrated ${summary.cells.migrated} cells`);
  * console.log(`Migrated ${summary.events.migrated} events`);
  * console.log(`Migrated ${summary.dependencies.migrated} dependencies`);
  * if (summary.errors.length > 0) {
@@ -79,13 +79,17 @@
  * @module migrations/legacy-hive-transformer
  */
 
-import type { NewBead, NewCellEvent, NewBeadDependency } from "../db/schema/hive.js";
+import type {
+	NewCell,
+	NewCellDependency,
+	NewCellEvent,
+} from "../db/schema/hive.js";
 
 /**
  * Legacy issue schema (from .hive/swarm-mail.db)
  */
 export interface LegacyIssue {
-	id: string; // bd-lf2p4u-* format
+	id: string; // cell-lf2p4u-* format
 	title: string;
 	description: string | null;
 	type: "task" | "bug" | "feature" | "epic" | "chore";
@@ -130,19 +134,22 @@ function iso8601ToEpochMs(iso8601: string): number {
 }
 
 /**
- * Transform legacy issue to modern bead
+ * Transform legacy issue to modern cell
  *
- * Maps fields from old `issues` table to new `beads` table:
+ * Maps fields from old `issues` table to new `cells` table:
  * - Converts ISO8601 timestamps to epoch milliseconds
  * - Adds project_key (from project path)
  * - Adds created_by = "HistoricalImport"
- * - Preserves original ID (bd-lf2p4u-* format)
+ * - Preserves original ID (cell-lf2p4u-* format)
  *
  * @param issue - Legacy issue record
  * @param projectPath - Project path to use as project_key
- * @returns Transformed bead ready for insertion
+ * @returns Transformed cell ready for insertion
  */
-export function transformIssue(issue: LegacyIssue, projectPath: string): NewBead {
+export function transformIssue(
+	issue: LegacyIssue,
+	projectPath: string,
+): NewCell {
 	return {
 		id: issue.id,
 		project_key: projectPath,
@@ -165,20 +172,22 @@ export function transformIssue(issue: LegacyIssue, projectPath: string): NewBead
 }
 
 /**
- * Transform legacy event to modern bead event
+ * Transform legacy event to modern cell event
  *
- * Maps fields from old `events` table to new `bead_events` table:
+ * Maps fields from old `events` table to new `cell_events` table:
  * - Converts ISO8601 timestamp to epoch milliseconds
- * - Maps issue_id → bead_id
+ * - Maps issue_id → cell_id
  * - Preserves event_type and payload
  *
  * @param event - Legacy event record
- * @returns Transformed bead event ready for insertion
+ * @returns Transformed cell event ready for insertion
  */
-export function transformEvent(event: LegacyEvent): Omit<NewCellEvent, "created_at"> & { created_at: number } {
+export function transformEvent(
+	event: LegacyEvent,
+): Omit<NewCellEvent, "created_at"> & { created_at: number } {
 	return {
 		id: event.id,
-		cell_id: event.issue_id, // Map issue_id → bead_id
+		cell_id: event.issue_id, // Map issue_id → cell_id
 		event_type: event.event_type,
 		payload: event.payload,
 		created_at: iso8601ToEpochMs(event.created_at),
@@ -186,19 +195,19 @@ export function transformEvent(event: LegacyEvent): Omit<NewCellEvent, "created_
 }
 
 /**
- * Transform legacy dependency to modern bead dependency
+ * Transform legacy dependency to modern cell dependency
  *
- * Maps fields from old `dependencies` table to new `bead_dependencies` table:
+ * Maps fields from old `dependencies` table to new `cell_dependencies` table:
  * - Converts ISO8601 timestamp to epoch milliseconds
- * - Maps issue_id → bead_id
+ * - Maps issue_id → cell_id
  * - Adds created_by = "HistoricalImport"
  *
  * @param dep - Legacy dependency record
- * @returns Transformed bead dependency ready for insertion
+ * @returns Transformed cell dependency ready for insertion
  */
-export function transformDependency(dep: LegacyDependency): NewBeadDependency {
+export function transformDependency(dep: LegacyDependency): NewCellDependency {
 	return {
-		cell_id: dep.issue_id, // Map issue_id → bead_id
+		cell_id: dep.issue_id, // Map issue_id → cell_id
 		depends_on_id: dep.depends_on_id,
 		relationship: dep.relationship,
 		created_at: iso8601ToEpochMs(dep.created_at),
@@ -210,7 +219,7 @@ export function transformDependency(dep: LegacyDependency): NewBeadDependency {
  * Migration result summary
  */
 export interface MigrationSummary {
-	beads: { migrated: number; skipped: number; failed: number };
+	cells: { migrated: number; skipped: number; failed: number };
 	events: { migrated: number; skipped: number; failed: number };
 	dependencies: { migrated: number; skipped: number; failed: number };
 	errors: string[];
@@ -249,14 +258,14 @@ export interface MigrationSummary {
  *   '/path/to/project'
  * );
  *
- * console.log(`Migrated ${summary.beads.migrated} beads`);
+ * console.log(`Migrated ${summary.cells.migrated} cells`);
  * ```
  */
 export async function migrateLegacyHive(
 	legacyDbPath: string,
 	// biome-ignore lint/suspicious/noExplicitAny: Database type depends on Drizzle ORM setup
 	globalDb: any,
-	projectPath: string
+	projectPath: string,
 ): Promise<MigrationSummary> {
 	// TODO: Implement database migration
 	// This requires:
@@ -267,5 +276,7 @@ export async function migrateLegacyHive(
 	// 5. Handle transaction rollback on errors
 	// 6. Return summary
 
-	throw new Error("migrateLegacyHive not yet implemented - see function JSDoc for design");
+	throw new Error(
+		"migrateLegacyHive not yet implemented - see function JSDoc for design",
+	);
 }

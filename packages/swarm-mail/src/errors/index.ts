@@ -3,7 +3,7 @@
  *
  * All errors include:
  * - Agent name (if available)
- * - Cell/bead ID and epic ID (for correlation)
+ * - Cell/cell ID and epic ID (for correlation)
  * - Timestamp and sequence number
  * - Recent events from event log (last 5)
  * - Actionable suggestions for resolution
@@ -14,11 +14,11 @@
  *
  * throw new ReservationError("File already reserved", {
  *   agent: "WiseStone",
- *   bead_id: "bd-123",
+ *   cell_id: "cell-123",
  *   current_holder: {
  *     agent: "OtherAgent",
  *     expires_at: Date.now() + 3600000,
- *     reason: "Working on bd-456"
+ *     reason: "Working on cell-456"
  *   },
  *   suggestions: ["Wait for expiry", "Request access via swarm mail"]
  * });

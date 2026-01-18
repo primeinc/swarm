@@ -97,7 +97,7 @@ Options:
 ## Schema Version Detection
 
 - **Modern:** Has `events`, `agents`, `messages` tables
-- **Legacy:** Has `bead_events` table
+- **Legacy:** Has `cell_events` table
 - **Unknown:** Neither
 
 ## Files Created

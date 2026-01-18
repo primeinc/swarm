@@ -545,7 +545,7 @@ if (recentDrops.length >= 3) {
 │                                                             │
 │  1. Coordinator calls swarm tool                            │
 │     ├─ swarm_decompose(task="Add auth")                     │
-│     ├─ swarm_spawn_subtask(bead_id="bd-123.1")              │
+│     ├─ swarm_spawn_subtask(cell_id="bd-123.1")              │
 │     └─ swarm_review(task_id="bd-123.1")                     │
 │                                                             │
 │  2. Tool execution                                          │

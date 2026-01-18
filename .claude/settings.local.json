@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__context7__resolve-library-id",
+      "WebSearch",
+      "mcp__context7__query-docs",
+      "mcp__microsoftdocs_mcp__microsoft_docs_fetch",
+      "Bash(ls:*)",
+      "mcp__sequential-thinking__sequentialthinking",
+      "Bash(npx tsc:*)",
+      "Bash(bun test:*)",
+      "Bash(bun run build)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(bun scripts/scope-packages.ts:*)",
+      "Bash(bun run typecheck:*)",
+      "Bash(bun turbo build:*)",
+      "Bash(bun turbo test:*)",
+      "Bash(bun turbo typecheck:*)",
+      "mcp__microsoftdocs_mcp__microsoft_docs_search",
+      "mcp__visioncraft__vision-query",
+      "WebFetch(domain:github.com)",
+      "Bash(bunx:*)"
+    ]
+  },
+  "outputStyle": "default"
+}

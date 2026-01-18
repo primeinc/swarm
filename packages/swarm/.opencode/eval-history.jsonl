@@ -1,0 +1,834 @@
+{"timestamp":"2025-12-25T04:28:42.041Z","eval_name":"compaction-prompt","score":0.85,"run_count":1}
+{"timestamp":"2025-12-25T04:28:42.041Z","eval_name":"coordinator-behavior","score":0.85,"run_count":1}
+{"timestamp":"2025-12-25T04:28:42.042Z","eval_name":"coordinator-session","score":0.85,"run_count":1}
+{"timestamp":"2025-12-25T04:28:42.042Z","eval_name":"swarm-decomposition","score":0.85,"run_count":1}
+{"timestamp":"2025-12-25T04:28:52.405Z","eval_name":"compaction-prompt","score":0.85,"run_count":2}
+{"timestamp":"2025-12-25T04:28:52.405Z","eval_name":"coordinator-behavior","score":0.85,"run_count":2}
+{"timestamp":"2025-12-25T04:28:52.405Z","eval_name":"coordinator-session","score":0.85,"run_count":2}
+{"timestamp":"2025-12-25T04:28:52.405Z","eval_name":"swarm-decomposition","score":0.85,"run_count":2}
+{"timestamp":"2025-12-25T05:11:18.469Z","eval_name":"compaction-prompt","score":0.85,"run_count":3}
+{"timestamp":"2025-12-25T05:11:18.469Z","eval_name":"coordinator-behavior","score":0.85,"run_count":3}
+{"timestamp":"2025-12-25T05:11:18.469Z","eval_name":"coordinator-session","score":0.85,"run_count":3}
+{"timestamp":"2025-12-25T05:11:18.469Z","eval_name":"swarm-decomposition","score":0.85,"run_count":3}
+{"timestamp":"2025-12-25T16:30:42.957Z","eval_name":"Coordinator Discipline - Synthetic Fixtures","score":0.6354444444444443,"run_count":1}
+{"timestamp":"2025-12-25T16:30:42.957Z","eval_name":"Coordinator Discipline - Real Sessions","score":0,"run_count":1}
+{"timestamp":"2025-12-25T16:30:42.957Z","eval_name":"Coordinator Discipline - Perfect vs Bad","score":0.5416666666666666,"run_count":1}
+{"timestamp":"2025-12-25T16:30:42.957Z","eval_name":"Swarm Decomposition Quality","score":0.7213888888888889,"run_count":1}
+{"timestamp":"2025-12-25T16:30:42.957Z","eval_name":"Decomposition Edge Cases","score":0.775,"run_count":1}
+{"timestamp":"2025-12-25T16:30:42.957Z","eval_name":"Compaction Hook Coordinator Resumption","score":0.95,"run_count":1}
+{"timestamp":"2025-12-25T16:30:42.957Z","eval_name":"Epic ID Specificity","score":0.5,"run_count":1}
+{"timestamp":"2025-12-25T16:30:42.958Z","eval_name":"No False Positives","score":1,"run_count":1}
+{"timestamp":"2025-12-25T16:30:42.958Z","eval_name":"Example: Basic scorer test","score":1,"run_count":1}
+{"timestamp":"2025-12-25T16:30:42.958Z","eval_name":"Perfect Prompt Scores 100%","score":1,"run_count":1}
+{"timestamp":"2025-12-25T16:30:42.958Z","eval_name":"Placeholder Detection","score":0,"run_count":1}
+{"timestamp":"2025-12-25T16:30:42.958Z","eval_name":"Generic Instructions Fail","score":0,"run_count":1}
+{"timestamp":"2025-12-25T16:30:42.958Z","eval_name":"First Tool Discipline","score":0,"run_count":1}
+{"timestamp":"2025-12-25T16:30:42.958Z","eval_name":"Compaction Prompt Quality","score":0.6342857142857142,"run_count":1}
+{"timestamp":"2025-12-25T16:30:42.958Z","eval_name":"Coordinator Resists Direct Implementation","score":1,"run_count":1}
+{"timestamp":"2025-12-25T16:30:42.958Z","eval_name":"Coordinator Behavior After Compaction","score":0.8645833333333333,"run_count":1}
+{"timestamp":"2025-12-25T16:30:43.088Z","eval_name":"Example: Basic scorer test","score":1,"run_count":2}
+{"timestamp":"2025-12-25T16:30:43.202Z","eval_name":"Example: Basic scorer test","score":1,"run_count":3}
+{"timestamp":"2025-12-25T16:30:43.316Z","eval_name":"Example: Basic scorer test","score":1,"run_count":4}
+{"timestamp":"2025-12-25T16:31:17.738Z","eval_name":"Coordinator Discipline - Synthetic Fixtures","score":0.6354444444444443,"run_count":2}
+{"timestamp":"2025-12-25T16:31:17.738Z","eval_name":"Coordinator Discipline - Real Sessions","score":0,"run_count":2}
+{"timestamp":"2025-12-25T16:31:17.738Z","eval_name":"Coordinator Discipline - Perfect vs Bad","score":0.5416666666666666,"run_count":2}
+{"timestamp":"2025-12-25T16:31:17.738Z","eval_name":"Swarm Decomposition Quality","score":0.6748148148148146,"run_count":2}
+{"timestamp":"2025-12-25T16:31:17.738Z","eval_name":"Decomposition Edge Cases","score":0.775,"run_count":2}
+{"timestamp":"2025-12-25T16:31:17.738Z","eval_name":"Compaction Hook Coordinator Resumption","score":0.95,"run_count":2}
+{"timestamp":"2025-12-25T16:31:17.738Z","eval_name":"Epic ID Specificity","score":0.5,"run_count":2}
+{"timestamp":"2025-12-25T16:31:17.738Z","eval_name":"No False Positives","score":1,"run_count":2}
+{"timestamp":"2025-12-25T16:31:17.738Z","eval_name":"Example: Basic scorer test","score":1,"run_count":5}
+{"timestamp":"2025-12-25T16:31:17.738Z","eval_name":"Coordinator Behavior After Compaction","score":1,"run_count":2}
+{"timestamp":"2025-12-25T16:31:17.738Z","eval_name":"Coordinator Resists Direct Implementation","score":1,"run_count":2}
+{"timestamp":"2025-12-25T16:31:17.738Z","eval_name":"Perfect Prompt Scores 100%","score":1,"run_count":2}
+{"timestamp":"2025-12-25T16:31:17.738Z","eval_name":"Placeholder Detection","score":0,"run_count":2}
+{"timestamp":"2025-12-25T16:31:17.738Z","eval_name":"Generic Instructions Fail","score":0,"run_count":2}
+{"timestamp":"2025-12-25T16:31:17.738Z","eval_name":"First Tool Discipline","score":0,"run_count":2}
+{"timestamp":"2025-12-25T16:31:17.738Z","eval_name":"Compaction Prompt Quality","score":0.6342857142857142,"run_count":2}
+{"timestamp":"2025-12-25T16:31:17.874Z","eval_name":"Example: Basic scorer test","score":1,"run_count":6}
+{"timestamp":"2025-12-25T16:31:17.995Z","eval_name":"Example: Basic scorer test","score":1,"run_count":7}
+{"timestamp":"2025-12-25T16:31:18.113Z","eval_name":"Example: Basic scorer test","score":1,"run_count":8}
+{"timestamp":"2025-12-25T16:32:49.807Z","eval_name":"Coordinator Discipline - Synthetic Fixtures","score":0.6354444444444443,"run_count":3}
+{"timestamp":"2025-12-25T16:32:49.807Z","eval_name":"Coordinator Discipline - Real Sessions","score":0,"run_count":3}
+{"timestamp":"2025-12-25T16:32:49.807Z","eval_name":"Coordinator Discipline - Perfect vs Bad","score":0.5416666666666666,"run_count":3}
+{"timestamp":"2025-12-25T16:32:49.807Z","eval_name":"Swarm Decomposition Quality","score":0.6988888888888889,"run_count":3}
+{"timestamp":"2025-12-25T16:32:49.807Z","eval_name":"Decomposition Edge Cases","score":0.775,"run_count":3}
+{"timestamp":"2025-12-25T16:32:49.807Z","eval_name":"Compaction Hook Coordinator Resumption","score":0.95,"run_count":3}
+{"timestamp":"2025-12-25T16:32:49.807Z","eval_name":"Epic ID Specificity","score":0.5,"run_count":3}
+{"timestamp":"2025-12-25T16:32:49.807Z","eval_name":"No False Positives","score":1,"run_count":3}
+{"timestamp":"2025-12-25T16:32:49.807Z","eval_name":"Example: Basic scorer test","score":1,"run_count":9}
+{"timestamp":"2025-12-25T16:32:49.807Z","eval_name":"Compaction Prompt Quality","score":0.6342857142857142,"run_count":3}
+{"timestamp":"2025-12-25T16:32:49.807Z","eval_name":"Perfect Prompt Scores 100%","score":1,"run_count":3}
+{"timestamp":"2025-12-25T16:32:49.807Z","eval_name":"Placeholder Detection","score":0,"run_count":3}
+{"timestamp":"2025-12-25T16:32:49.808Z","eval_name":"Generic Instructions Fail","score":0,"run_count":3}
+{"timestamp":"2025-12-25T16:32:49.808Z","eval_name":"First Tool Discipline","score":0,"run_count":3}
+{"timestamp":"2025-12-25T16:32:49.808Z","eval_name":"Coordinator Behavior After Compaction","score":1,"run_count":3}
+{"timestamp":"2025-12-25T16:32:49.808Z","eval_name":"Coordinator Resists Direct Implementation","score":0.9375,"run_count":3}
+{"timestamp":"2025-12-25T16:32:49.943Z","eval_name":"Example: Basic scorer test","score":1,"run_count":10}
+{"timestamp":"2025-12-25T16:32:50.073Z","eval_name":"Example: Basic scorer test","score":1,"run_count":11}
+{"timestamp":"2025-12-25T16:32:50.199Z","eval_name":"Example: Basic scorer test","score":1,"run_count":12}
+{"timestamp":"2025-12-25T16:35:31.083Z","eval_name":"Coordinator Discipline - Synthetic Fixtures","score":0.6354444444444443,"run_count":4}
+{"timestamp":"2025-12-25T16:35:31.083Z","eval_name":"Coordinator Discipline - Real Sessions","score":0,"run_count":4}
+{"timestamp":"2025-12-25T16:35:31.083Z","eval_name":"Coordinator Discipline - Perfect vs Bad","score":0.5416666666666666,"run_count":4}
+{"timestamp":"2025-12-25T16:35:31.083Z","eval_name":"Swarm Decomposition Quality","score":0.6798611111111109,"run_count":4}
+{"timestamp":"2025-12-25T16:35:31.083Z","eval_name":"Decomposition Edge Cases","score":0.775,"run_count":4}
+{"timestamp":"2025-12-25T16:35:31.083Z","eval_name":"Compaction Hook Coordinator Resumption","score":0.95,"run_count":4}
+{"timestamp":"2025-12-25T16:35:31.083Z","eval_name":"Epic ID Specificity","score":0.5,"run_count":4}
+{"timestamp":"2025-12-25T16:35:31.083Z","eval_name":"No False Positives","score":1,"run_count":4}
+{"timestamp":"2025-12-25T16:35:31.083Z","eval_name":"Example: Basic scorer test","score":1,"run_count":13}
+{"timestamp":"2025-12-25T16:35:31.084Z","eval_name":"Compaction Prompt Quality","score":0.6342857142857142,"run_count":4}
+{"timestamp":"2025-12-25T16:35:31.084Z","eval_name":"Perfect Prompt Scores 100%","score":1,"run_count":4}
+{"timestamp":"2025-12-25T16:35:31.084Z","eval_name":"Placeholder Detection","score":0,"run_count":4}
+{"timestamp":"2025-12-25T16:35:31.084Z","eval_name":"Generic Instructions Fail","score":0,"run_count":4}
+{"timestamp":"2025-12-25T16:35:31.084Z","eval_name":"First Tool Discipline","score":0,"run_count":4}
+{"timestamp":"2025-12-25T16:35:31.084Z","eval_name":"Coordinator Resists Direct Implementation","score":0.9375,"run_count":4}
+{"timestamp":"2025-12-25T16:35:31.084Z","eval_name":"Coordinator Behavior After Compaction","score":0.8645833333333333,"run_count":4}
+{"timestamp":"2025-12-25T16:35:31.221Z","eval_name":"Example: Basic scorer test","score":1,"run_count":14}
+{"timestamp":"2025-12-25T16:35:31.329Z","eval_name":"Example: Basic scorer test","score":1,"run_count":15}
+{"timestamp":"2025-12-25T16:35:31.444Z","eval_name":"Example: Basic scorer test","score":1,"run_count":16}
+{"timestamp":"2025-12-25T16:35:31.685Z","eval_name":"Example: Basic scorer test","score":1,"run_count":17}
+{"timestamp":"2025-12-25T16:35:31.843Z","eval_name":"Example: Basic scorer test","score":1,"run_count":18}
+{"timestamp":"2025-12-25T16:35:31.962Z","eval_name":"Example: Basic scorer test","score":1,"run_count":19}
+{"timestamp":"2025-12-25T16:35:32.076Z","eval_name":"Example: Basic scorer test","score":1,"run_count":20}
+{"timestamp":"2025-12-25T16:36:03.596Z","eval_name":"Coordinator Discipline - Synthetic Fixtures","score":0.6354444444444443,"run_count":5}
+{"timestamp":"2025-12-25T16:36:03.596Z","eval_name":"Coordinator Discipline - Real Sessions","score":0,"run_count":5}
+{"timestamp":"2025-12-25T16:36:03.597Z","eval_name":"Coordinator Discipline - Perfect vs Bad","score":0.5416666666666666,"run_count":5}
+{"timestamp":"2025-12-25T16:36:03.597Z","eval_name":"Swarm Decomposition Quality","score":0.6845833333333333,"run_count":5}
+{"timestamp":"2025-12-25T16:36:03.597Z","eval_name":"Decomposition Edge Cases","score":0.775,"run_count":5}
+{"timestamp":"2025-12-25T16:36:03.597Z","eval_name":"Compaction Hook Coordinator Resumption","score":0.95,"run_count":5}
+{"timestamp":"2025-12-25T16:36:03.597Z","eval_name":"Epic ID Specificity","score":0.5,"run_count":5}
+{"timestamp":"2025-12-25T16:36:03.597Z","eval_name":"No False Positives","score":1,"run_count":5}
+{"timestamp":"2025-12-25T16:36:03.597Z","eval_name":"Example: Basic scorer test","score":1,"run_count":21}
+{"timestamp":"2025-12-25T16:36:03.597Z","eval_name":"Compaction Prompt Quality","score":0.6342857142857142,"run_count":5}
+{"timestamp":"2025-12-25T16:36:03.597Z","eval_name":"Perfect Prompt Scores 100%","score":1,"run_count":5}
+{"timestamp":"2025-12-25T16:36:03.597Z","eval_name":"Placeholder Detection","score":0,"run_count":5}
+{"timestamp":"2025-12-25T16:36:03.597Z","eval_name":"Generic Instructions Fail","score":0,"run_count":5}
+{"timestamp":"2025-12-25T16:36:03.597Z","eval_name":"First Tool Discipline","score":0,"run_count":5}
+{"timestamp":"2025-12-25T16:36:03.597Z","eval_name":"Coordinator Behavior After Compaction","score":1,"run_count":5}
+{"timestamp":"2025-12-25T16:36:03.597Z","eval_name":"Coordinator Resists Direct Implementation","score":1,"run_count":5}
+{"timestamp":"2025-12-25T16:36:03.727Z","eval_name":"Example: Basic scorer test","score":1,"run_count":22}
+{"timestamp":"2025-12-25T16:36:03.842Z","eval_name":"Example: Basic scorer test","score":1,"run_count":23}
+{"timestamp":"2025-12-25T16:36:03.951Z","eval_name":"Example: Basic scorer test","score":1,"run_count":24}
+{"timestamp":"2025-12-25T16:36:04.183Z","eval_name":"Example: Basic scorer test","score":1,"run_count":25}
+{"timestamp":"2025-12-25T16:36:04.330Z","eval_name":"Example: Basic scorer test","score":1,"run_count":26}
+{"timestamp":"2025-12-25T16:36:04.445Z","eval_name":"Example: Basic scorer test","score":1,"run_count":27}
+{"timestamp":"2025-12-25T16:36:04.555Z","eval_name":"Example: Basic scorer test","score":1,"run_count":28}
+{"timestamp":"2025-12-25T16:36:32.176Z","eval_name":"Coordinator Discipline - Synthetic Fixtures","score":0.6354444444444443,"run_count":6}
+{"timestamp":"2025-12-25T16:36:32.176Z","eval_name":"Coordinator Discipline - Real Sessions","score":0,"run_count":6}
+{"timestamp":"2025-12-25T16:36:32.176Z","eval_name":"Coordinator Discipline - Perfect vs Bad","score":0.5416666666666666,"run_count":6}
+{"timestamp":"2025-12-25T16:36:32.176Z","eval_name":"Swarm Decomposition Quality","score":0.6852777777777778,"run_count":6}
+{"timestamp":"2025-12-25T16:36:32.176Z","eval_name":"Decomposition Edge Cases","score":0.775,"run_count":6}
+{"timestamp":"2025-12-25T16:36:32.176Z","eval_name":"Epic ID Specificity","score":0.5,"run_count":6}
+{"timestamp":"2025-12-25T16:36:32.176Z","eval_name":"No False Positives","score":1,"run_count":6}
+{"timestamp":"2025-12-25T16:36:32.177Z","eval_name":"Example: Basic scorer test","score":1,"run_count":29}
+{"timestamp":"2025-12-25T16:36:32.177Z","eval_name":"Compaction Hook Coordinator Resumption","score":0.95,"run_count":6}
+{"timestamp":"2025-12-25T16:36:32.177Z","eval_name":"Perfect Prompt Scores 100%","score":1,"run_count":6}
+{"timestamp":"2025-12-25T16:36:32.177Z","eval_name":"Placeholder Detection","score":0,"run_count":6}
+{"timestamp":"2025-12-25T16:36:32.177Z","eval_name":"Generic Instructions Fail","score":0,"run_count":6}
+{"timestamp":"2025-12-25T16:36:32.177Z","eval_name":"First Tool Discipline","score":0,"run_count":6}
+{"timestamp":"2025-12-25T16:36:32.177Z","eval_name":"Coordinator Behavior After Compaction","score":0.978125,"run_count":6}
+{"timestamp":"2025-12-25T16:36:32.177Z","eval_name":"Coordinator Resists Direct Implementation","score":1,"run_count":6}
+{"timestamp":"2025-12-25T16:36:32.177Z","eval_name":"Compaction Prompt Quality","score":0.6342857142857142,"run_count":6}
+{"timestamp":"2025-12-25T16:36:32.305Z","eval_name":"Example: Basic scorer test","score":1,"run_count":30}
+{"timestamp":"2025-12-25T16:36:32.416Z","eval_name":"Example: Basic scorer test","score":1,"run_count":31}
+{"timestamp":"2025-12-25T16:36:32.527Z","eval_name":"Example: Basic scorer test","score":1,"run_count":32}
+{"timestamp":"2025-12-25T16:36:32.755Z","eval_name":"Example: Basic scorer test","score":1,"run_count":33}
+{"timestamp":"2025-12-25T16:36:32.957Z","eval_name":"Example: Basic scorer test","score":1,"run_count":34}
+{"timestamp":"2025-12-25T16:36:33.071Z","eval_name":"Example: Basic scorer test","score":1,"run_count":35}
+{"timestamp":"2025-12-25T16:36:33.180Z","eval_name":"Example: Basic scorer test","score":1,"run_count":36}
+{"timestamp":"2025-12-25T16:38:02.146Z","eval_name":"Coordinator Discipline - Perfect vs Bad","score":0.5416666666666666,"run_count":7}
+{"timestamp":"2025-12-25T16:38:02.147Z","eval_name":"Coordinator Discipline - Synthetic Fixtures","score":0.6354444444444443,"run_count":7}
+{"timestamp":"2025-12-25T16:38:02.147Z","eval_name":"Coordinator Discipline - Real Sessions","score":0,"run_count":7}
+{"timestamp":"2025-12-25T16:38:02.147Z","eval_name":"Swarm Decomposition Quality","score":0.6726388888888888,"run_count":7}
+{"timestamp":"2025-12-25T16:38:02.147Z","eval_name":"Decomposition Edge Cases","score":0.775,"run_count":7}
+{"timestamp":"2025-12-25T16:38:02.147Z","eval_name":"Compaction Hook Coordinator Resumption","score":0.95,"run_count":7}
+{"timestamp":"2025-12-25T16:38:02.147Z","eval_name":"Epic ID Specificity","score":0.5,"run_count":7}
+{"timestamp":"2025-12-25T16:38:02.147Z","eval_name":"No False Positives","score":1,"run_count":7}
+{"timestamp":"2025-12-25T16:38:02.147Z","eval_name":"Example: Basic scorer test","score":1,"run_count":37}
+{"timestamp":"2025-12-25T16:38:02.147Z","eval_name":"Compaction Prompt Quality","score":0.6342857142857142,"run_count":7}
+{"timestamp":"2025-12-25T16:38:02.147Z","eval_name":"Perfect Prompt Scores 100%","score":1,"run_count":7}
+{"timestamp":"2025-12-25T16:38:02.147Z","eval_name":"Placeholder Detection","score":0,"run_count":7}
+{"timestamp":"2025-12-25T16:38:02.147Z","eval_name":"Generic Instructions Fail","score":0,"run_count":7}
+{"timestamp":"2025-12-25T16:38:02.147Z","eval_name":"First Tool Discipline","score":0,"run_count":7}
+{"timestamp":"2025-12-25T16:38:02.148Z","eval_name":"Coordinator Behavior After Compaction","score":0.8645833333333333,"run_count":7}
+{"timestamp":"2025-12-25T16:38:02.148Z","eval_name":"Coordinator Resists Direct Implementation","score":1,"run_count":7}
+{"timestamp":"2025-12-25T16:38:02.276Z","eval_name":"Example: Basic scorer test","score":1,"run_count":38}
+{"timestamp":"2025-12-25T16:38:02.428Z","eval_name":"Example: Basic scorer test","score":1,"run_count":39}
+{"timestamp":"2025-12-25T16:38:02.547Z","eval_name":"Example: Basic scorer test","score":1,"run_count":40}
+{"timestamp":"2025-12-25T16:38:02.782Z","eval_name":"Example: Basic scorer test","score":1,"run_count":41}
+{"timestamp":"2025-12-25T16:38:02.933Z","eval_name":"Example: Basic scorer test","score":1,"run_count":42}
+{"timestamp":"2025-12-25T16:38:03.050Z","eval_name":"Example: Basic scorer test","score":1,"run_count":43}
+{"timestamp":"2025-12-25T16:38:03.165Z","eval_name":"Example: Basic scorer test","score":1,"run_count":44}
+{"timestamp":"2025-12-25T16:38:52.756Z","eval_name":"Coordinator Discipline - Real Sessions","score":0,"run_count":8}
+{"timestamp":"2025-12-25T16:38:52.757Z","eval_name":"Coordinator Discipline - Perfect vs Bad","score":0.5416666666666666,"run_count":8}
+{"timestamp":"2025-12-25T16:38:52.757Z","eval_name":"Coordinator Discipline - Synthetic Fixtures","score":0.6354444444444443,"run_count":8}
+{"timestamp":"2025-12-25T16:38:52.757Z","eval_name":"Swarm Decomposition Quality","score":0.695,"run_count":8}
+{"timestamp":"2025-12-25T16:38:52.757Z","eval_name":"Decomposition Edge Cases","score":0.775,"run_count":8}
+{"timestamp":"2025-12-25T16:38:52.757Z","eval_name":"Compaction Hook Coordinator Resumption","score":0.95,"run_count":8}
+{"timestamp":"2025-12-25T16:38:52.757Z","eval_name":"Epic ID Specificity","score":0.5,"run_count":8}
+{"timestamp":"2025-12-25T16:38:52.757Z","eval_name":"No False Positives","score":1,"run_count":8}
+{"timestamp":"2025-12-25T16:38:52.757Z","eval_name":"Example: Basic scorer test","score":1,"run_count":45}
+{"timestamp":"2025-12-25T16:38:52.757Z","eval_name":"Perfect Prompt Scores 100%","score":1,"run_count":8}
+{"timestamp":"2025-12-25T16:38:52.757Z","eval_name":"Placeholder Detection","score":0,"run_count":8}
+{"timestamp":"2025-12-25T16:38:52.757Z","eval_name":"Generic Instructions Fail","score":0,"run_count":8}
+{"timestamp":"2025-12-25T16:38:52.757Z","eval_name":"First Tool Discipline","score":0,"run_count":8}
+{"timestamp":"2025-12-25T16:38:52.757Z","eval_name":"Compaction Prompt Quality","score":0.6342857142857142,"run_count":8}
+{"timestamp":"2025-12-25T16:38:52.757Z","eval_name":"Coordinator Behavior After Compaction","score":0.9526041666666667,"run_count":8}
+{"timestamp":"2025-12-25T16:38:52.758Z","eval_name":"Coordinator Resists Direct Implementation","score":1,"run_count":8}
+{"timestamp":"2025-12-25T16:38:52.903Z","eval_name":"Example: Basic scorer test","score":1,"run_count":46}
+{"timestamp":"2025-12-25T16:38:53.020Z","eval_name":"Example: Basic scorer test","score":1,"run_count":47}
+{"timestamp":"2025-12-25T16:38:53.136Z","eval_name":"Example: Basic scorer test","score":1,"run_count":48}
+{"timestamp":"2025-12-25T16:38:53.367Z","eval_name":"Example: Basic scorer test","score":1,"run_count":49}
+{"timestamp":"2025-12-25T16:38:53.511Z","eval_name":"Example: Basic scorer test","score":1,"run_count":50}
+{"timestamp":"2025-12-25T16:38:53.624Z","eval_name":"Example: Basic scorer test","score":1,"run_count":51}
+{"timestamp":"2025-12-25T16:38:53.737Z","eval_name":"Example: Basic scorer test","score":1,"run_count":52}
+{"timestamp":"2025-12-25T16:40:39.219Z","eval_name":"Coordinator Discipline - Synthetic Fixtures","score":0.6354444444444443,"run_count":9}
+{"timestamp":"2025-12-25T16:40:39.219Z","eval_name":"Coordinator Discipline - Real Sessions","score":0,"run_count":9}
+{"timestamp":"2025-12-25T16:40:39.219Z","eval_name":"Coordinator Discipline - Perfect vs Bad","score":0.5416666666666666,"run_count":9}
+{"timestamp":"2025-12-25T16:40:39.219Z","eval_name":"Decomposition Edge Cases","score":0.775,"run_count":9}
+{"timestamp":"2025-12-25T16:40:39.220Z","eval_name":"Swarm Decomposition Quality","score":0.7020833333333334,"run_count":9}
+{"timestamp":"2025-12-25T16:40:39.220Z","eval_name":"Epic ID Specificity","score":0.5,"run_count":9}
+{"timestamp":"2025-12-25T16:40:39.220Z","eval_name":"No False Positives","score":1,"run_count":9}
+{"timestamp":"2025-12-25T16:40:39.220Z","eval_name":"Compaction Hook Coordinator Resumption","score":0.95,"run_count":9}
+{"timestamp":"2025-12-25T16:40:39.220Z","eval_name":"Example: Basic scorer test","score":1,"run_count":53}
+{"timestamp":"2025-12-25T16:40:39.220Z","eval_name":"Coordinator Behavior After Compaction","score":0.7291666666666666,"run_count":9}
+{"timestamp":"2025-12-25T16:40:39.220Z","eval_name":"Coordinator Resists Direct Implementation","score":1,"run_count":9}
+{"timestamp":"2025-12-25T16:40:39.220Z","eval_name":"Compaction Prompt Quality","score":0.6342857142857142,"run_count":9}
+{"timestamp":"2025-12-25T16:40:39.220Z","eval_name":"Perfect Prompt Scores 100%","score":1,"run_count":9}
+{"timestamp":"2025-12-25T16:40:39.220Z","eval_name":"Placeholder Detection","score":0,"run_count":9}
+{"timestamp":"2025-12-25T16:40:39.220Z","eval_name":"Generic Instructions Fail","score":0,"run_count":9}
+{"timestamp":"2025-12-25T16:40:39.220Z","eval_name":"First Tool Discipline","score":0,"run_count":9}
+{"timestamp":"2025-12-25T16:40:39.352Z","eval_name":"Example: Basic scorer test","score":1,"run_count":54}
+{"timestamp":"2025-12-25T16:40:39.460Z","eval_name":"Example: Basic scorer test","score":1,"run_count":55}
+{"timestamp":"2025-12-25T16:40:39.572Z","eval_name":"Example: Basic scorer test","score":1,"run_count":56}
+{"timestamp":"2025-12-25T16:40:39.816Z","eval_name":"Example: Basic scorer test","score":1,"run_count":57}
+{"timestamp":"2025-12-25T16:40:39.947Z","eval_name":"Example: Basic scorer test","score":1,"run_count":58}
+{"timestamp":"2025-12-25T16:40:40.084Z","eval_name":"Example: Basic scorer test","score":1,"run_count":59}
+{"timestamp":"2025-12-25T16:40:40.202Z","eval_name":"Example: Basic scorer test","score":1,"run_count":60}
+{"timestamp":"2025-12-25T16:43:12.851Z","eval_name":"Example: Basic scorer test","score":1,"run_count":61}
+{"timestamp":"2025-12-25T16:43:43.041Z","eval_name":"Coordinator Discipline - Synthetic Fixtures","score":0.6354444444444443,"run_count":10}
+{"timestamp":"2025-12-25T16:43:43.041Z","eval_name":"Coordinator Discipline - Real Sessions","score":0,"run_count":10}
+{"timestamp":"2025-12-25T16:43:43.041Z","eval_name":"Coordinator Discipline - Perfect vs Bad","score":0.5416666666666666,"run_count":10}
+{"timestamp":"2025-12-25T16:43:43.042Z","eval_name":"Swarm Decomposition Quality","score":0.6909722222222222,"run_count":10}
+{"timestamp":"2025-12-25T16:43:43.042Z","eval_name":"Decomposition Edge Cases","score":0.775,"run_count":10}
+{"timestamp":"2025-12-25T16:43:43.042Z","eval_name":"Compaction Hook Coordinator Resumption","score":0.95,"run_count":10}
+{"timestamp":"2025-12-25T16:43:43.042Z","eval_name":"Epic ID Specificity","score":0.5,"run_count":10}
+{"timestamp":"2025-12-25T16:43:43.042Z","eval_name":"No False Positives","score":1,"run_count":10}
+{"timestamp":"2025-12-25T16:43:43.042Z","eval_name":"Example: Basic scorer test","score":1,"run_count":62}
+{"timestamp":"2025-12-25T16:43:43.042Z","eval_name":"Perfect Prompt Scores 100%","score":1,"run_count":10}
+{"timestamp":"2025-12-25T16:43:43.042Z","eval_name":"Placeholder Detection","score":0,"run_count":10}
+{"timestamp":"2025-12-25T16:43:43.042Z","eval_name":"Generic Instructions Fail","score":0,"run_count":10}
+{"timestamp":"2025-12-25T16:43:43.042Z","eval_name":"First Tool Discipline","score":0,"run_count":10}
+{"timestamp":"2025-12-25T16:43:43.042Z","eval_name":"Coordinator Resists Direct Implementation","score":1,"run_count":10}
+{"timestamp":"2025-12-25T16:43:43.042Z","eval_name":"Compaction Prompt Quality","score":0.6342857142857142,"run_count":10}
+{"timestamp":"2025-12-25T16:43:43.043Z","eval_name":"Coordinator Behavior After Compaction","score":1,"run_count":10}
+{"timestamp":"2025-12-25T16:44:12.471Z","eval_name":"Coordinator Discipline - Synthetic Fixtures","score":0.6354444444444443,"run_count":11}
+{"timestamp":"2025-12-25T16:44:12.471Z","eval_name":"Coordinator Discipline - Real Sessions","score":0,"run_count":11}
+{"timestamp":"2025-12-25T16:44:12.471Z","eval_name":"Coordinator Discipline - Perfect vs Bad","score":0.5416666666666666,"run_count":11}
+{"timestamp":"2025-12-25T16:44:12.471Z","eval_name":"Swarm Decomposition Quality","score":0.6720833333333333,"run_count":11}
+{"timestamp":"2025-12-25T16:44:12.471Z","eval_name":"Decomposition Edge Cases","score":0.775,"run_count":11}
+{"timestamp":"2025-12-25T16:44:12.471Z","eval_name":"Example: Basic scorer test","score":1,"run_count":63}
+{"timestamp":"2025-12-25T16:44:12.471Z","eval_name":"Compaction Hook Coordinator Resumption","score":0.95,"run_count":11}
+{"timestamp":"2025-12-25T16:44:12.472Z","eval_name":"Epic ID Specificity","score":0.5,"run_count":11}
+{"timestamp":"2025-12-25T16:44:12.472Z","eval_name":"No False Positives","score":1,"run_count":11}
+{"timestamp":"2025-12-25T16:44:12.472Z","eval_name":"Coordinator Behavior After Compaction","score":0.9796875,"run_count":11}
+{"timestamp":"2025-12-25T16:44:12.472Z","eval_name":"Coordinator Resists Direct Implementation","score":1,"run_count":11}
+{"timestamp":"2025-12-25T16:44:12.472Z","eval_name":"Compaction Prompt Quality","score":0.6342857142857142,"run_count":11}
+{"timestamp":"2025-12-25T16:44:12.472Z","eval_name":"Perfect Prompt Scores 100%","score":1,"run_count":11}
+{"timestamp":"2025-12-25T16:44:12.472Z","eval_name":"Placeholder Detection","score":0,"run_count":11}
+{"timestamp":"2025-12-25T16:44:12.472Z","eval_name":"Generic Instructions Fail","score":0,"run_count":11}
+{"timestamp":"2025-12-25T16:44:12.472Z","eval_name":"First Tool Discipline","score":0,"run_count":11}
+{"timestamp":"2025-12-25T16:49:55.548Z","eval_name":"Coordinator Discipline - Synthetic Fixtures","score":0.6354444444444443,"run_count":12}
+{"timestamp":"2025-12-25T16:49:55.549Z","eval_name":"Coordinator Discipline - Real Sessions","score":0,"run_count":12}
+{"timestamp":"2025-12-25T16:49:55.555Z","eval_name":"Coordinator Discipline - Perfect vs Bad","score":0.5416666666666666,"run_count":12}
+{"timestamp":"2025-12-25T16:49:55.555Z","eval_name":"Decomposition Edge Cases","score":0.775,"run_count":12}
+{"timestamp":"2025-12-25T16:49:55.555Z","eval_name":"Swarm Decomposition Quality","score":0.7001388888888888,"run_count":12}
+{"timestamp":"2025-12-25T16:49:55.555Z","eval_name":"Compaction Hook Coordinator Resumption","score":0.95,"run_count":12}
+{"timestamp":"2025-12-25T16:49:55.556Z","eval_name":"Epic ID Specificity","score":0.5,"run_count":12}
+{"timestamp":"2025-12-25T16:49:55.557Z","eval_name":"No False Positives","score":1,"run_count":12}
+{"timestamp":"2025-12-25T16:49:55.557Z","eval_name":"Example: Basic scorer test","score":1,"run_count":64}
+{"timestamp":"2025-12-25T16:49:55.557Z","eval_name":"Generic Instructions Fail","score":0,"run_count":12}
+{"timestamp":"2025-12-25T16:49:55.557Z","eval_name":"First Tool Discipline","score":0,"run_count":12}
+{"timestamp":"2025-12-25T16:49:55.561Z","eval_name":"Compaction Prompt Quality","score":0.6342857142857142,"run_count":12}
+{"timestamp":"2025-12-25T16:49:55.561Z","eval_name":"Perfect Prompt Scores 100%","score":1,"run_count":12}
+{"timestamp":"2025-12-25T16:49:55.561Z","eval_name":"Placeholder Detection","score":0,"run_count":12}
+{"timestamp":"2025-12-25T16:49:55.561Z","eval_name":"Coordinator Behavior After Compaction","score":1,"run_count":12}
+{"timestamp":"2025-12-25T16:49:55.565Z","eval_name":"Coordinator Resists Direct Implementation","score":0.9375,"run_count":12}
+{"timestamp":"2025-12-25T16:49:55.697Z","eval_name":"Example: Basic scorer test","score":1,"run_count":65}
+{"timestamp":"2025-12-25T16:49:55.813Z","eval_name":"Example: Basic scorer test","score":1,"run_count":66}
+{"timestamp":"2025-12-25T16:49:55.934Z","eval_name":"Example: Basic scorer test","score":1,"run_count":67}
+{"timestamp":"2025-12-25T16:49:56.178Z","eval_name":"Example: Basic scorer test","score":1,"run_count":68}
+{"timestamp":"2025-12-25T16:49:56.327Z","eval_name":"Example: Basic scorer test","score":1,"run_count":69}
+{"timestamp":"2025-12-25T16:49:56.446Z","eval_name":"Example: Basic scorer test","score":1,"run_count":70}
+{"timestamp":"2025-12-25T16:49:56.556Z","eval_name":"Example: Basic scorer test","score":1,"run_count":71}
+{"timestamp":"2025-12-25T17:06:10.610Z","eval_name":"Coordinator Discipline - Synthetic Fixtures","score":0.6354444444444443,"run_count":13}
+{"timestamp":"2025-12-25T17:06:10.610Z","eval_name":"Coordinator Discipline - Real Sessions","score":0,"run_count":13}
+{"timestamp":"2025-12-25T17:06:10.610Z","eval_name":"Coordinator Discipline - Perfect vs Bad","score":0.5416666666666666,"run_count":13}
+{"timestamp":"2025-12-25T17:06:10.610Z","eval_name":"Decomposition Edge Cases","score":0.775,"run_count":13}
+{"timestamp":"2025-12-25T17:06:10.610Z","eval_name":"Swarm Decomposition Quality","score":0.6847222222222221,"run_count":13}
+{"timestamp":"2025-12-25T17:06:10.610Z","eval_name":"Compaction Hook Coordinator Resumption","score":0.95,"run_count":13}
+{"timestamp":"2025-12-25T17:06:10.610Z","eval_name":"Epic ID Specificity","score":0.5,"run_count":13}
+{"timestamp":"2025-12-25T17:06:10.610Z","eval_name":"No False Positives","score":1,"run_count":13}
+{"timestamp":"2025-12-25T17:06:10.611Z","eval_name":"Example: Basic scorer test","score":1,"run_count":72}
+{"timestamp":"2025-12-25T17:06:10.611Z","eval_name":"Perfect Prompt Scores 100%","score":1,"run_count":13}
+{"timestamp":"2025-12-25T17:06:10.611Z","eval_name":"Placeholder Detection","score":0,"run_count":13}
+{"timestamp":"2025-12-25T17:06:10.611Z","eval_name":"Generic Instructions Fail","score":0,"run_count":13}
+{"timestamp":"2025-12-25T17:06:10.611Z","eval_name":"First Tool Discipline","score":0,"run_count":13}
+{"timestamp":"2025-12-25T17:06:10.611Z","eval_name":"Compaction Prompt Quality","score":0.6342857142857142,"run_count":13}
+{"timestamp":"2025-12-25T17:06:10.611Z","eval_name":"Coordinator Behavior After Compaction","score":0.8645833333333333,"run_count":13}
+{"timestamp":"2025-12-25T17:06:10.611Z","eval_name":"Coordinator Resists Direct Implementation","score":0.9375,"run_count":13}
+{"timestamp":"2025-12-25T18:58:44.923Z","eval_name":"Coordinator Discipline - Synthetic Fixtures","score":0.6354444444444443,"run_count":14}
+{"timestamp":"2025-12-25T18:58:44.923Z","eval_name":"Coordinator Discipline - Real Sessions","score":0,"run_count":14}
+{"timestamp":"2025-12-25T18:58:44.923Z","eval_name":"Coordinator Discipline - Perfect vs Bad","score":0.5416666666666666,"run_count":14}
+{"timestamp":"2025-12-25T18:58:44.924Z","eval_name":"Swarm Decomposition Quality","score":0.7095833333333333,"run_count":14}
+{"timestamp":"2025-12-25T18:58:44.924Z","eval_name":"Decomposition Edge Cases","score":0.775,"run_count":14}
+{"timestamp":"2025-12-25T18:58:44.924Z","eval_name":"Compaction Hook Coordinator Resumption","score":0.95,"run_count":14}
+{"timestamp":"2025-12-25T18:58:44.924Z","eval_name":"Epic ID Specificity","score":0.5,"run_count":14}
+{"timestamp":"2025-12-25T18:58:44.924Z","eval_name":"No False Positives","score":1,"run_count":14}
+{"timestamp":"2025-12-25T18:58:44.924Z","eval_name":"Example: Basic scorer test","score":1,"run_count":73}
+{"timestamp":"2025-12-25T18:58:44.924Z","eval_name":"Generic Instructions Fail","score":0,"run_count":14}
+{"timestamp":"2025-12-25T18:58:44.924Z","eval_name":"First Tool Discipline","score":0,"run_count":14}
+{"timestamp":"2025-12-25T18:58:44.924Z","eval_name":"Compaction Prompt Quality","score":0.6342857142857142,"run_count":14}
+{"timestamp":"2025-12-25T18:58:44.925Z","eval_name":"Perfect Prompt Scores 100%","score":1,"run_count":14}
+{"timestamp":"2025-12-25T18:58:44.925Z","eval_name":"Placeholder Detection","score":0,"run_count":14}
+{"timestamp":"2025-12-25T18:58:44.925Z","eval_name":"Coordinator Behavior After Compaction","score":0.9375,"run_count":14}
+{"timestamp":"2025-12-25T18:58:44.925Z","eval_name":"Coordinator Resists Direct Implementation","score":1,"run_count":14}
+{"timestamp":"2025-12-25T18:59:58.928Z","eval_name":"Coordinator Discipline - Synthetic Fixtures","score":0.6354444444444443,"run_count":15}
+{"timestamp":"2025-12-25T18:59:58.929Z","eval_name":"Coordinator Discipline - Real Sessions","score":0,"run_count":15}
+{"timestamp":"2025-12-25T18:59:58.929Z","eval_name":"Coordinator Discipline - Perfect vs Bad","score":0.5416666666666666,"run_count":15}
+{"timestamp":"2025-12-25T18:59:58.929Z","eval_name":"Swarm Decomposition Quality","score":0.6944444444444443,"run_count":15}
+{"timestamp":"2025-12-25T18:59:58.929Z","eval_name":"Decomposition Edge Cases","score":0.775,"run_count":15}
+{"timestamp":"2025-12-25T18:59:58.929Z","eval_name":"Compaction Hook Coordinator Resumption","score":0.95,"run_count":15}
+{"timestamp":"2025-12-25T18:59:58.929Z","eval_name":"Epic ID Specificity","score":0.5,"run_count":15}
+{"timestamp":"2025-12-25T18:59:58.929Z","eval_name":"No False Positives","score":1,"run_count":15}
+{"timestamp":"2025-12-25T18:59:58.929Z","eval_name":"Example: Basic scorer test","score":1,"run_count":74}
+{"timestamp":"2025-12-25T18:59:58.929Z","eval_name":"Compaction Prompt Quality","score":0.6342857142857142,"run_count":15}
+{"timestamp":"2025-12-25T18:59:58.929Z","eval_name":"Perfect Prompt Scores 100%","score":1,"run_count":15}
+{"timestamp":"2025-12-25T18:59:58.930Z","eval_name":"Placeholder Detection","score":0,"run_count":15}
+{"timestamp":"2025-12-25T18:59:58.930Z","eval_name":"Generic Instructions Fail","score":0,"run_count":15}
+{"timestamp":"2025-12-25T18:59:58.930Z","eval_name":"First Tool Discipline","score":0,"run_count":15}
+{"timestamp":"2025-12-25T18:59:58.930Z","eval_name":"Coordinator Behavior After Compaction","score":0.9171875,"run_count":15}
+{"timestamp":"2025-12-25T18:59:58.930Z","eval_name":"Coordinator Resists Direct Implementation","score":1,"run_count":15}
+{"timestamp":"2025-12-25T19:00:48.709Z","eval_name":"Coordinator Discipline - Synthetic Fixtures","score":0.6354444444444443,"run_count":16}
+{"timestamp":"2025-12-25T19:00:48.709Z","eval_name":"Coordinator Discipline - Real Sessions","score":0,"run_count":16}
+{"timestamp":"2025-12-25T19:00:48.710Z","eval_name":"Coordinator Discipline - Perfect vs Bad","score":0.5416666666666666,"run_count":16}
+{"timestamp":"2025-12-25T19:00:48.710Z","eval_name":"Swarm Decomposition Quality","score":0.5464583333333334,"run_count":16}
+{"timestamp":"2025-12-25T19:00:48.710Z","eval_name":"Decomposition Edge Cases","score":0.775,"run_count":16}
+{"timestamp":"2025-12-25T19:00:48.710Z","eval_name":"Compaction Hook Coordinator Resumption","score":0.95,"run_count":16}
+{"timestamp":"2025-12-25T19:00:48.710Z","eval_name":"Epic ID Specificity","score":0.5,"run_count":16}
+{"timestamp":"2025-12-25T19:00:48.710Z","eval_name":"No False Positives","score":1,"run_count":16}
+{"timestamp":"2025-12-25T19:00:48.710Z","eval_name":"Example: Basic scorer test","score":1,"run_count":75}
+{"timestamp":"2025-12-25T19:00:48.710Z","eval_name":"Perfect Prompt Scores 100%","score":1,"run_count":16}
+{"timestamp":"2025-12-25T19:00:48.711Z","eval_name":"Placeholder Detection","score":0,"run_count":16}
+{"timestamp":"2025-12-25T19:00:48.711Z","eval_name":"Generic Instructions Fail","score":0,"run_count":16}
+{"timestamp":"2025-12-25T19:00:48.711Z","eval_name":"First Tool Discipline","score":0,"run_count":16}
+{"timestamp":"2025-12-25T19:00:48.711Z","eval_name":"Compaction Prompt Quality","score":0.6342857142857142,"run_count":16}
+{"timestamp":"2025-12-25T19:00:48.711Z","eval_name":"Coordinator Behavior After Compaction","score":1,"run_count":16}
+{"timestamp":"2025-12-25T19:00:48.711Z","eval_name":"Coordinator Resists Direct Implementation","score":1,"run_count":16}
+{"timestamp":"2025-12-28T18:48:22.318Z","eval_name":"example","score":0.95,"run_count":1}
+{"timestamp":"2025-12-28T18:48:33.698Z","eval_name":"example","score":0.95,"run_count":2}
+{"timestamp":"2025-12-28T18:49:01.537Z","eval_name":"example","score":0.95,"run_count":3}
+{"timestamp":"2025-12-28T18:49:29.462Z","eval_name":"example","score":0.95,"run_count":4}
+{"timestamp":"2025-12-28T18:49:29.469Z","eval_name":"example","score":0.95,"run_count":5}
+{"timestamp":"2025-12-28T18:49:29.470Z","eval_name":"example","score":0.95,"run_count":6}
+{"timestamp":"2025-12-28T18:49:29.470Z","eval_name":"example","score":0.95,"run_count":7}
+{"timestamp":"2025-12-28T18:49:29.472Z","eval_name":"example","score":0.95,"run_count":8}
+{"timestamp":"2025-12-28T18:49:29.473Z","eval_name":"example","score":0.95,"run_count":9}
+{"timestamp":"2025-12-28T18:49:29.474Z","eval_name":"example","score":0.95,"run_count":10}
+{"timestamp":"2025-12-28T18:49:29.474Z","eval_name":"example","score":0.95,"run_count":11}
+{"timestamp":"2025-12-28T18:49:34.774Z","eval_name":"example","score":0.95,"run_count":12}
+{"timestamp":"2025-12-28T18:49:34.775Z","eval_name":"example","score":0.95,"run_count":13}
+{"timestamp":"2025-12-28T18:49:34.776Z","eval_name":"example","score":0.95,"run_count":14}
+{"timestamp":"2025-12-28T18:49:34.782Z","eval_name":"example","score":0.95,"run_count":15}
+{"timestamp":"2025-12-28T18:49:34.784Z","eval_name":"example","score":0.95,"run_count":16}
+{"timestamp":"2025-12-28T18:49:34.785Z","eval_name":"example","score":0.95,"run_count":17}
+{"timestamp":"2025-12-28T18:49:34.786Z","eval_name":"example","score":0.95,"run_count":18}
+{"timestamp":"2025-12-28T18:49:34.786Z","eval_name":"example","score":0.95,"run_count":19}
+{"timestamp":"2025-12-28T18:49:34.790Z","eval_name":"example","score":0.95,"run_count":20}
+{"timestamp":"2025-12-28T18:49:34.791Z","eval_name":"example","score":0.95,"run_count":21}
+{"timestamp":"2025-12-28T18:49:34.792Z","eval_name":"example","score":0.95,"run_count":22}
+{"timestamp":"2025-12-28T18:49:34.792Z","eval_name":"example","score":0.95,"run_count":23}
+{"timestamp":"2025-12-28T18:49:34.794Z","eval_name":"example","score":0.95,"run_count":24}
+{"timestamp":"2025-12-28T18:49:34.794Z","eval_name":"example","score":0.95,"run_count":25}
+{"timestamp":"2025-12-28T18:49:34.795Z","eval_name":"example","score":0.95,"run_count":26}
+{"timestamp":"2025-12-28T18:49:34.796Z","eval_name":"example","score":0.95,"run_count":27}
+{"timestamp":"2025-12-28T18:49:34.798Z","eval_name":"example","score":0.95,"run_count":28}
+{"timestamp":"2025-12-28T18:49:34.799Z","eval_name":"example","score":0.95,"run_count":29}
+{"timestamp":"2025-12-28T18:49:34.800Z","eval_name":"example","score":0.95,"run_count":30}
+{"timestamp":"2025-12-28T18:49:34.801Z","eval_name":"example","score":0.95,"run_count":31}
+{"timestamp":"2025-12-28T18:49:34.802Z","eval_name":"example","score":0.95,"run_count":32}
+{"timestamp":"2025-12-28T18:49:34.803Z","eval_name":"example","score":0.95,"run_count":33}
+{"timestamp":"2025-12-28T18:49:34.804Z","eval_name":"example","score":0.95,"run_count":34}
+{"timestamp":"2025-12-28T18:49:34.804Z","eval_name":"example","score":0.95,"run_count":35}
+{"timestamp":"2025-12-28T18:59:42.126Z","eval_name":"example","score":0.95,"run_count":36}
+{"timestamp":"2025-12-28T18:59:42.127Z","eval_name":"example","score":0.95,"run_count":37}
+{"timestamp":"2025-12-28T18:59:42.128Z","eval_name":"example","score":0.95,"run_count":38}
+{"timestamp":"2025-12-28T18:59:42.129Z","eval_name":"example","score":0.95,"run_count":39}
+{"timestamp":"2025-12-28T18:59:42.130Z","eval_name":"example","score":0.95,"run_count":40}
+{"timestamp":"2025-12-28T18:59:42.131Z","eval_name":"example","score":0.95,"run_count":41}
+{"timestamp":"2025-12-28T18:59:42.132Z","eval_name":"example","score":0.95,"run_count":42}
+{"timestamp":"2025-12-28T18:59:42.132Z","eval_name":"example","score":0.95,"run_count":43}
+{"timestamp":"2025-12-28T19:01:16.385Z","eval_name":"example","score":0.95,"run_count":44}
+{"timestamp":"2025-12-28T19:01:16.385Z","eval_name":"example","score":0.95,"run_count":45}
+{"timestamp":"2025-12-28T19:01:16.386Z","eval_name":"example","score":0.95,"run_count":46}
+{"timestamp":"2025-12-28T19:01:16.387Z","eval_name":"example","score":0.95,"run_count":47}
+{"timestamp":"2025-12-28T19:01:16.389Z","eval_name":"example","score":0.95,"run_count":48}
+{"timestamp":"2025-12-28T19:01:16.389Z","eval_name":"example","score":0.95,"run_count":49}
+{"timestamp":"2025-12-28T19:01:16.390Z","eval_name":"example","score":0.95,"run_count":50}
+{"timestamp":"2025-12-28T19:01:16.391Z","eval_name":"example","score":0.95,"run_count":51}
+{"timestamp":"2025-12-28T19:03:57.003Z","eval_name":"example","score":0.95,"run_count":52}
+{"timestamp":"2025-12-28T19:03:57.004Z","eval_name":"example","score":0.95,"run_count":53}
+{"timestamp":"2025-12-28T19:03:57.005Z","eval_name":"example","score":0.95,"run_count":54}
+{"timestamp":"2025-12-28T19:03:57.006Z","eval_name":"example","score":0.95,"run_count":55}
+{"timestamp":"2025-12-28T19:03:57.008Z","eval_name":"example","score":0.95,"run_count":56}
+{"timestamp":"2025-12-28T19:03:57.008Z","eval_name":"example","score":0.95,"run_count":57}
+{"timestamp":"2025-12-28T19:03:57.009Z","eval_name":"example","score":0.95,"run_count":58}
+{"timestamp":"2025-12-28T19:03:57.010Z","eval_name":"example","score":0.95,"run_count":59}
+{"timestamp":"2025-12-28T19:05:30.475Z","eval_name":"example","score":0.95,"run_count":60}
+{"timestamp":"2025-12-28T19:05:30.476Z","eval_name":"example","score":0.95,"run_count":61}
+{"timestamp":"2025-12-28T19:05:30.476Z","eval_name":"example","score":0.95,"run_count":62}
+{"timestamp":"2025-12-28T19:05:30.477Z","eval_name":"example","score":0.95,"run_count":63}
+{"timestamp":"2025-12-28T19:05:30.479Z","eval_name":"example","score":0.95,"run_count":64}
+{"timestamp":"2025-12-28T19:05:30.480Z","eval_name":"example","score":0.95,"run_count":65}
+{"timestamp":"2025-12-28T19:05:30.481Z","eval_name":"example","score":0.95,"run_count":66}
+{"timestamp":"2025-12-28T19:05:30.482Z","eval_name":"example","score":0.95,"run_count":67}
+{"timestamp":"2025-12-28T19:08:42.803Z","eval_name":"example","score":0.95,"run_count":68}
+{"timestamp":"2025-12-28T19:08:42.804Z","eval_name":"example","score":0.95,"run_count":69}
+{"timestamp":"2025-12-28T19:08:42.805Z","eval_name":"example","score":0.95,"run_count":70}
+{"timestamp":"2025-12-28T19:08:42.805Z","eval_name":"example","score":0.95,"run_count":71}
+{"timestamp":"2025-12-28T19:08:42.807Z","eval_name":"example","score":0.95,"run_count":72}
+{"timestamp":"2025-12-28T19:08:42.808Z","eval_name":"example","score":0.95,"run_count":73}
+{"timestamp":"2025-12-28T19:08:42.808Z","eval_name":"example","score":0.95,"run_count":74}
+{"timestamp":"2025-12-28T19:08:42.809Z","eval_name":"example","score":0.95,"run_count":75}
+{"timestamp":"2025-12-28T19:11:31.663Z","eval_name":"example","score":0.95,"run_count":76}
+{"timestamp":"2025-12-28T19:11:31.664Z","eval_name":"example","score":0.95,"run_count":77}
+{"timestamp":"2025-12-28T19:11:31.665Z","eval_name":"example","score":0.95,"run_count":78}
+{"timestamp":"2025-12-28T19:11:31.666Z","eval_name":"example","score":0.95,"run_count":79}
+{"timestamp":"2025-12-28T19:11:31.667Z","eval_name":"example","score":0.95,"run_count":80}
+{"timestamp":"2025-12-28T19:11:31.668Z","eval_name":"example","score":0.95,"run_count":81}
+{"timestamp":"2025-12-28T19:11:31.669Z","eval_name":"example","score":0.95,"run_count":82}
+{"timestamp":"2025-12-28T19:11:31.670Z","eval_name":"example","score":0.95,"run_count":83}
+{"timestamp":"2025-12-28T19:13:09.011Z","eval_name":"example","score":0.95,"run_count":84}
+{"timestamp":"2025-12-28T19:13:09.011Z","eval_name":"example","score":0.95,"run_count":85}
+{"timestamp":"2025-12-28T19:13:09.012Z","eval_name":"example","score":0.95,"run_count":86}
+{"timestamp":"2025-12-28T19:13:09.013Z","eval_name":"example","score":0.95,"run_count":87}
+{"timestamp":"2025-12-28T19:13:09.015Z","eval_name":"example","score":0.95,"run_count":88}
+{"timestamp":"2025-12-28T19:13:09.016Z","eval_name":"example","score":0.95,"run_count":89}
+{"timestamp":"2025-12-28T19:13:09.017Z","eval_name":"example","score":0.95,"run_count":90}
+{"timestamp":"2025-12-28T19:13:09.017Z","eval_name":"example","score":0.95,"run_count":91}
+{"timestamp":"2025-12-28T19:18:46.158Z","eval_name":"example","score":0.95,"run_count":92}
+{"timestamp":"2025-12-28T19:18:46.159Z","eval_name":"example","score":0.95,"run_count":93}
+{"timestamp":"2025-12-28T19:18:46.160Z","eval_name":"example","score":0.95,"run_count":94}
+{"timestamp":"2025-12-28T19:18:46.160Z","eval_name":"example","score":0.95,"run_count":95}
+{"timestamp":"2025-12-28T19:18:46.162Z","eval_name":"example","score":0.95,"run_count":96}
+{"timestamp":"2025-12-28T19:18:46.163Z","eval_name":"example","score":0.95,"run_count":97}
+{"timestamp":"2025-12-28T19:18:46.164Z","eval_name":"example","score":0.95,"run_count":98}
+{"timestamp":"2025-12-28T19:18:46.165Z","eval_name":"example","score":0.95,"run_count":99}
+{"timestamp":"2025-12-28T19:20:29.153Z","eval_name":"example","score":0.95,"run_count":100}
+{"timestamp":"2025-12-28T19:20:29.154Z","eval_name":"example","score":0.95,"run_count":101}
+{"timestamp":"2025-12-28T19:20:29.155Z","eval_name":"example","score":0.95,"run_count":102}
+{"timestamp":"2025-12-28T19:20:29.156Z","eval_name":"example","score":0.95,"run_count":103}
+{"timestamp":"2025-12-28T19:20:29.158Z","eval_name":"example","score":0.95,"run_count":104}
+{"timestamp":"2025-12-28T19:20:29.158Z","eval_name":"example","score":0.95,"run_count":105}
+{"timestamp":"2025-12-28T19:20:29.159Z","eval_name":"example","score":0.95,"run_count":106}
+{"timestamp":"2025-12-28T19:20:29.160Z","eval_name":"example","score":0.95,"run_count":107}
+{"timestamp":"2025-12-28T19:22:02.152Z","eval_name":"example","score":0.95,"run_count":108}
+{"timestamp":"2025-12-28T19:22:02.153Z","eval_name":"example","score":0.95,"run_count":109}
+{"timestamp":"2025-12-28T19:22:02.154Z","eval_name":"example","score":0.95,"run_count":110}
+{"timestamp":"2025-12-28T19:22:02.155Z","eval_name":"example","score":0.95,"run_count":111}
+{"timestamp":"2025-12-28T19:22:02.157Z","eval_name":"example","score":0.95,"run_count":112}
+{"timestamp":"2025-12-28T19:22:02.158Z","eval_name":"example","score":0.95,"run_count":113}
+{"timestamp":"2025-12-28T19:22:02.159Z","eval_name":"example","score":0.95,"run_count":114}
+{"timestamp":"2025-12-28T19:22:02.160Z","eval_name":"example","score":0.95,"run_count":115}
+{"timestamp":"2025-12-28T19:23:35.082Z","eval_name":"example","score":0.95,"run_count":116}
+{"timestamp":"2025-12-28T19:23:35.083Z","eval_name":"example","score":0.95,"run_count":117}
+{"timestamp":"2025-12-28T19:23:35.083Z","eval_name":"example","score":0.95,"run_count":118}
+{"timestamp":"2025-12-28T19:23:35.084Z","eval_name":"example","score":0.95,"run_count":119}
+{"timestamp":"2025-12-28T19:23:35.086Z","eval_name":"example","score":0.95,"run_count":120}
+{"timestamp":"2025-12-28T19:23:35.087Z","eval_name":"example","score":0.95,"run_count":121}
+{"timestamp":"2025-12-28T19:23:35.088Z","eval_name":"example","score":0.95,"run_count":122}
+{"timestamp":"2025-12-28T19:23:35.089Z","eval_name":"example","score":0.95,"run_count":123}
+{"timestamp":"2025-12-28T19:26:41.275Z","eval_name":"example","score":0.95,"run_count":124}
+{"timestamp":"2025-12-28T19:26:41.276Z","eval_name":"example","score":0.95,"run_count":125}
+{"timestamp":"2025-12-28T19:26:41.277Z","eval_name":"example","score":0.95,"run_count":126}
+{"timestamp":"2025-12-28T19:26:41.278Z","eval_name":"example","score":0.95,"run_count":127}
+{"timestamp":"2025-12-28T19:26:41.280Z","eval_name":"example","score":0.95,"run_count":128}
+{"timestamp":"2025-12-28T19:26:41.281Z","eval_name":"example","score":0.95,"run_count":129}
+{"timestamp":"2025-12-28T19:26:41.282Z","eval_name":"example","score":0.95,"run_count":130}
+{"timestamp":"2025-12-28T19:26:41.282Z","eval_name":"example","score":0.95,"run_count":131}
+{"timestamp":"2025-12-28T20:58:47.104Z","eval_name":"example","score":0.95,"run_count":132}
+{"timestamp":"2025-12-28T20:58:47.105Z","eval_name":"example","score":0.95,"run_count":133}
+{"timestamp":"2025-12-28T20:58:47.106Z","eval_name":"example","score":0.95,"run_count":134}
+{"timestamp":"2025-12-28T20:58:47.107Z","eval_name":"example","score":0.95,"run_count":135}
+{"timestamp":"2025-12-28T20:58:47.109Z","eval_name":"example","score":0.95,"run_count":136}
+{"timestamp":"2025-12-28T20:58:47.116Z","eval_name":"example","score":0.95,"run_count":137}
+{"timestamp":"2025-12-28T20:58:47.117Z","eval_name":"example","score":0.95,"run_count":138}
+{"timestamp":"2025-12-28T20:58:47.117Z","eval_name":"example","score":0.95,"run_count":139}
+{"timestamp":"2025-12-28T21:00:50.349Z","eval_name":"example","score":0.95,"run_count":140}
+{"timestamp":"2025-12-28T21:00:50.350Z","eval_name":"example","score":0.95,"run_count":141}
+{"timestamp":"2025-12-28T21:00:50.351Z","eval_name":"example","score":0.95,"run_count":142}
+{"timestamp":"2025-12-28T21:00:50.351Z","eval_name":"example","score":0.95,"run_count":143}
+{"timestamp":"2025-12-28T21:00:50.353Z","eval_name":"example","score":0.95,"run_count":144}
+{"timestamp":"2025-12-28T21:00:50.354Z","eval_name":"example","score":0.95,"run_count":145}
+{"timestamp":"2025-12-28T21:00:50.355Z","eval_name":"example","score":0.95,"run_count":146}
+{"timestamp":"2025-12-28T21:00:50.355Z","eval_name":"example","score":0.95,"run_count":147}
+{"timestamp":"2025-12-28T21:03:07.809Z","eval_name":"example","score":0.95,"run_count":148}
+{"timestamp":"2025-12-28T21:03:07.810Z","eval_name":"example","score":0.95,"run_count":149}
+{"timestamp":"2025-12-28T21:03:07.811Z","eval_name":"example","score":0.95,"run_count":150}
+{"timestamp":"2025-12-28T21:03:07.812Z","eval_name":"example","score":0.95,"run_count":151}
+{"timestamp":"2025-12-28T21:03:07.814Z","eval_name":"example","score":0.95,"run_count":152}
+{"timestamp":"2025-12-28T21:03:07.815Z","eval_name":"example","score":0.95,"run_count":153}
+{"timestamp":"2025-12-28T21:03:07.816Z","eval_name":"example","score":0.95,"run_count":154}
+{"timestamp":"2025-12-28T21:03:07.817Z","eval_name":"example","score":0.95,"run_count":155}
+{"timestamp":"2025-12-28T21:04:41.516Z","eval_name":"example","score":0.95,"run_count":156}
+{"timestamp":"2025-12-28T21:04:41.517Z","eval_name":"example","score":0.95,"run_count":157}
+{"timestamp":"2025-12-28T21:04:41.518Z","eval_name":"example","score":0.95,"run_count":158}
+{"timestamp":"2025-12-28T21:04:41.519Z","eval_name":"example","score":0.95,"run_count":159}
+{"timestamp":"2025-12-28T21:04:41.528Z","eval_name":"example","score":0.95,"run_count":160}
+{"timestamp":"2025-12-28T21:04:41.529Z","eval_name":"example","score":0.95,"run_count":161}
+{"timestamp":"2025-12-28T21:04:41.529Z","eval_name":"example","score":0.95,"run_count":162}
+{"timestamp":"2025-12-28T21:04:41.530Z","eval_name":"example","score":0.95,"run_count":163}
+{"timestamp":"2025-12-28T21:06:14.404Z","eval_name":"example","score":0.95,"run_count":164}
+{"timestamp":"2025-12-28T21:06:14.405Z","eval_name":"example","score":0.95,"run_count":165}
+{"timestamp":"2025-12-28T21:06:14.405Z","eval_name":"example","score":0.95,"run_count":166}
+{"timestamp":"2025-12-28T21:06:14.406Z","eval_name":"example","score":0.95,"run_count":167}
+{"timestamp":"2025-12-28T21:06:14.408Z","eval_name":"example","score":0.95,"run_count":168}
+{"timestamp":"2025-12-28T21:06:14.409Z","eval_name":"example","score":0.95,"run_count":169}
+{"timestamp":"2025-12-28T21:06:14.410Z","eval_name":"example","score":0.95,"run_count":170}
+{"timestamp":"2025-12-28T21:06:14.411Z","eval_name":"example","score":0.95,"run_count":171}
+{"timestamp":"2025-12-28T21:07:49.473Z","eval_name":"example","score":0.95,"run_count":172}
+{"timestamp":"2025-12-28T21:07:49.474Z","eval_name":"example","score":0.95,"run_count":173}
+{"timestamp":"2025-12-28T21:07:49.475Z","eval_name":"example","score":0.95,"run_count":174}
+{"timestamp":"2025-12-28T21:07:49.476Z","eval_name":"example","score":0.95,"run_count":175}
+{"timestamp":"2025-12-28T21:07:49.478Z","eval_name":"example","score":0.95,"run_count":176}
+{"timestamp":"2025-12-28T21:07:49.479Z","eval_name":"example","score":0.95,"run_count":177}
+{"timestamp":"2025-12-28T21:07:49.479Z","eval_name":"example","score":0.95,"run_count":178}
+{"timestamp":"2025-12-28T21:07:49.480Z","eval_name":"example","score":0.95,"run_count":179}
+{"timestamp":"2025-12-28T21:09:28.370Z","eval_name":"example","score":0.95,"run_count":180}
+{"timestamp":"2025-12-28T21:09:28.371Z","eval_name":"example","score":0.95,"run_count":181}
+{"timestamp":"2025-12-28T21:09:28.372Z","eval_name":"example","score":0.95,"run_count":182}
+{"timestamp":"2025-12-28T21:09:28.373Z","eval_name":"example","score":0.95,"run_count":183}
+{"timestamp":"2025-12-28T21:09:28.375Z","eval_name":"example","score":0.95,"run_count":184}
+{"timestamp":"2025-12-28T21:09:28.376Z","eval_name":"example","score":0.95,"run_count":185}
+{"timestamp":"2025-12-28T21:09:28.377Z","eval_name":"example","score":0.95,"run_count":186}
+{"timestamp":"2025-12-28T21:09:28.378Z","eval_name":"example","score":0.95,"run_count":187}
+{"timestamp":"2025-12-28T21:13:21.336Z","eval_name":"example","score":0.95,"run_count":188}
+{"timestamp":"2025-12-28T21:13:21.337Z","eval_name":"example","score":0.95,"run_count":189}
+{"timestamp":"2025-12-28T21:13:21.338Z","eval_name":"example","score":0.95,"run_count":190}
+{"timestamp":"2025-12-28T21:13:21.339Z","eval_name":"example","score":0.95,"run_count":191}
+{"timestamp":"2025-12-28T21:13:21.341Z","eval_name":"example","score":0.95,"run_count":192}
+{"timestamp":"2025-12-28T21:13:21.341Z","eval_name":"example","score":0.95,"run_count":193}
+{"timestamp":"2025-12-28T21:13:21.342Z","eval_name":"example","score":0.95,"run_count":194}
+{"timestamp":"2025-12-28T21:13:21.343Z","eval_name":"example","score":0.95,"run_count":195}
+{"timestamp":"2025-12-28T21:14:52.747Z","eval_name":"example","score":0.95,"run_count":196}
+{"timestamp":"2025-12-28T21:14:52.748Z","eval_name":"example","score":0.95,"run_count":197}
+{"timestamp":"2025-12-28T21:14:52.748Z","eval_name":"example","score":0.95,"run_count":198}
+{"timestamp":"2025-12-28T21:14:52.749Z","eval_name":"example","score":0.95,"run_count":199}
+{"timestamp":"2025-12-28T21:14:52.751Z","eval_name":"example","score":0.95,"run_count":200}
+{"timestamp":"2025-12-28T21:14:52.752Z","eval_name":"example","score":0.95,"run_count":201}
+{"timestamp":"2025-12-28T21:14:52.753Z","eval_name":"example","score":0.95,"run_count":202}
+{"timestamp":"2025-12-28T21:14:52.754Z","eval_name":"example","score":0.95,"run_count":203}
+{"timestamp":"2025-12-28T21:16:26.544Z","eval_name":"example","score":0.95,"run_count":204}
+{"timestamp":"2025-12-28T21:16:26.545Z","eval_name":"example","score":0.95,"run_count":205}
+{"timestamp":"2025-12-28T21:16:26.546Z","eval_name":"example","score":0.95,"run_count":206}
+{"timestamp":"2025-12-28T21:16:26.547Z","eval_name":"example","score":0.95,"run_count":207}
+{"timestamp":"2025-12-28T21:16:26.549Z","eval_name":"example","score":0.95,"run_count":208}
+{"timestamp":"2025-12-28T21:16:26.550Z","eval_name":"example","score":0.95,"run_count":209}
+{"timestamp":"2025-12-28T21:16:26.557Z","eval_name":"example","score":0.95,"run_count":210}
+{"timestamp":"2025-12-28T21:16:26.558Z","eval_name":"example","score":0.95,"run_count":211}
+{"timestamp":"2025-12-28T21:18:37.904Z","eval_name":"example","score":0.95,"run_count":212}
+{"timestamp":"2025-12-28T21:18:37.905Z","eval_name":"example","score":0.95,"run_count":213}
+{"timestamp":"2025-12-28T21:18:37.906Z","eval_name":"example","score":0.95,"run_count":214}
+{"timestamp":"2025-12-28T21:18:37.907Z","eval_name":"example","score":0.95,"run_count":215}
+{"timestamp":"2025-12-28T21:18:37.908Z","eval_name":"example","score":0.95,"run_count":216}
+{"timestamp":"2025-12-28T21:18:37.909Z","eval_name":"example","score":0.95,"run_count":217}
+{"timestamp":"2025-12-28T21:18:37.910Z","eval_name":"example","score":0.95,"run_count":218}
+{"timestamp":"2025-12-28T21:18:37.910Z","eval_name":"example","score":0.95,"run_count":219}
+{"timestamp":"2025-12-28T21:20:43.246Z","eval_name":"example","score":0.95,"run_count":220}
+{"timestamp":"2025-12-28T21:20:43.247Z","eval_name":"example","score":0.95,"run_count":221}
+{"timestamp":"2025-12-28T21:20:43.248Z","eval_name":"example","score":0.95,"run_count":222}
+{"timestamp":"2025-12-28T21:20:43.249Z","eval_name":"example","score":0.95,"run_count":223}
+{"timestamp":"2025-12-28T21:20:43.251Z","eval_name":"example","score":0.95,"run_count":224}
+{"timestamp":"2025-12-28T21:20:43.251Z","eval_name":"example","score":0.95,"run_count":225}
+{"timestamp":"2025-12-28T21:20:43.252Z","eval_name":"example","score":0.95,"run_count":226}
+{"timestamp":"2025-12-28T21:20:43.253Z","eval_name":"example","score":0.95,"run_count":227}
+{"timestamp":"2025-12-28T21:22:19.020Z","eval_name":"example","score":0.95,"run_count":228}
+{"timestamp":"2025-12-28T21:22:19.021Z","eval_name":"example","score":0.95,"run_count":229}
+{"timestamp":"2025-12-28T21:22:19.022Z","eval_name":"example","score":0.95,"run_count":230}
+{"timestamp":"2025-12-28T21:22:19.022Z","eval_name":"example","score":0.95,"run_count":231}
+{"timestamp":"2025-12-28T21:22:19.024Z","eval_name":"example","score":0.95,"run_count":232}
+{"timestamp":"2025-12-28T21:22:19.025Z","eval_name":"example","score":0.95,"run_count":233}
+{"timestamp":"2025-12-28T21:22:19.026Z","eval_name":"example","score":0.95,"run_count":234}
+{"timestamp":"2025-12-28T21:22:19.026Z","eval_name":"example","score":0.95,"run_count":235}
+{"timestamp":"2025-12-28T21:24:47.389Z","eval_name":"example","score":0.95,"run_count":236}
+{"timestamp":"2025-12-28T21:24:47.390Z","eval_name":"example","score":0.95,"run_count":237}
+{"timestamp":"2025-12-28T21:24:47.391Z","eval_name":"example","score":0.95,"run_count":238}
+{"timestamp":"2025-12-28T21:24:47.392Z","eval_name":"example","score":0.95,"run_count":239}
+{"timestamp":"2025-12-28T21:24:47.394Z","eval_name":"example","score":0.95,"run_count":240}
+{"timestamp":"2025-12-28T21:24:47.400Z","eval_name":"example","score":0.95,"run_count":241}
+{"timestamp":"2025-12-28T21:24:47.401Z","eval_name":"example","score":0.95,"run_count":242}
+{"timestamp":"2025-12-28T21:24:47.402Z","eval_name":"example","score":0.95,"run_count":243}
+{"timestamp":"2025-12-28T21:26:28.180Z","eval_name":"example","score":0.95,"run_count":244}
+{"timestamp":"2025-12-28T21:26:28.181Z","eval_name":"example","score":0.95,"run_count":245}
+{"timestamp":"2025-12-28T21:26:28.182Z","eval_name":"example","score":0.95,"run_count":246}
+{"timestamp":"2025-12-28T21:26:28.182Z","eval_name":"example","score":0.95,"run_count":247}
+{"timestamp":"2025-12-28T21:26:28.185Z","eval_name":"example","score":0.95,"run_count":248}
+{"timestamp":"2025-12-28T21:26:28.186Z","eval_name":"example","score":0.95,"run_count":249}
+{"timestamp":"2025-12-28T21:26:28.186Z","eval_name":"example","score":0.95,"run_count":250}
+{"timestamp":"2025-12-28T21:26:28.187Z","eval_name":"example","score":0.95,"run_count":251}
+{"timestamp":"2025-12-28T21:28:12.763Z","eval_name":"example","score":0.95,"run_count":252}
+{"timestamp":"2025-12-28T21:28:12.764Z","eval_name":"example","score":0.95,"run_count":253}
+{"timestamp":"2025-12-28T21:28:12.764Z","eval_name":"example","score":0.95,"run_count":254}
+{"timestamp":"2025-12-28T21:28:12.765Z","eval_name":"example","score":0.95,"run_count":255}
+{"timestamp":"2025-12-28T21:28:12.767Z","eval_name":"example","score":0.95,"run_count":256}
+{"timestamp":"2025-12-28T21:28:12.768Z","eval_name":"example","score":0.95,"run_count":257}
+{"timestamp":"2025-12-28T21:28:12.769Z","eval_name":"example","score":0.95,"run_count":258}
+{"timestamp":"2025-12-28T21:28:12.770Z","eval_name":"example","score":0.95,"run_count":259}
+{"timestamp":"2025-12-28T21:33:11.191Z","eval_name":"example","score":0.95,"run_count":260}
+{"timestamp":"2025-12-28T21:33:11.192Z","eval_name":"example","score":0.95,"run_count":261}
+{"timestamp":"2025-12-28T21:33:11.193Z","eval_name":"example","score":0.95,"run_count":262}
+{"timestamp":"2025-12-28T21:33:11.194Z","eval_name":"example","score":0.95,"run_count":263}
+{"timestamp":"2025-12-28T21:33:11.196Z","eval_name":"example","score":0.95,"run_count":264}
+{"timestamp":"2025-12-28T21:33:11.196Z","eval_name":"example","score":0.95,"run_count":265}
+{"timestamp":"2025-12-28T21:33:11.197Z","eval_name":"example","score":0.95,"run_count":266}
+{"timestamp":"2025-12-28T21:33:11.198Z","eval_name":"example","score":0.95,"run_count":267}
+{"timestamp":"2025-12-28T21:34:43.975Z","eval_name":"example","score":0.95,"run_count":268}
+{"timestamp":"2025-12-28T21:34:43.976Z","eval_name":"example","score":0.95,"run_count":269}
+{"timestamp":"2025-12-28T21:34:43.977Z","eval_name":"example","score":0.95,"run_count":270}
+{"timestamp":"2025-12-28T21:34:43.978Z","eval_name":"example","score":0.95,"run_count":271}
+{"timestamp":"2025-12-28T21:34:43.980Z","eval_name":"example","score":0.95,"run_count":272}
+{"timestamp":"2025-12-28T21:34:43.981Z","eval_name":"example","score":0.95,"run_count":273}
+{"timestamp":"2025-12-28T21:34:43.982Z","eval_name":"example","score":0.95,"run_count":274}
+{"timestamp":"2025-12-28T21:34:43.983Z","eval_name":"example","score":0.95,"run_count":275}
+{"timestamp":"2025-12-28T21:35:33.206Z","eval_name":"example","score":0.95,"run_count":276}
+{"timestamp":"2025-12-28T21:35:33.211Z","eval_name":"example","score":0.95,"run_count":277}
+{"timestamp":"2025-12-28T21:35:33.212Z","eval_name":"example","score":0.95,"run_count":278}
+{"timestamp":"2025-12-28T21:35:33.220Z","eval_name":"example","score":0.95,"run_count":279}
+{"timestamp":"2025-12-28T21:35:33.236Z","eval_name":"example","score":0.95,"run_count":280}
+{"timestamp":"2025-12-28T21:35:33.240Z","eval_name":"example","score":0.95,"run_count":281}
+{"timestamp":"2025-12-28T21:35:33.244Z","eval_name":"example","score":0.95,"run_count":282}
+{"timestamp":"2025-12-28T21:35:33.249Z","eval_name":"example","score":0.95,"run_count":283}
+{"timestamp":"2025-12-28T21:37:26.097Z","eval_name":"example","score":0.95,"run_count":284}
+{"timestamp":"2025-12-28T21:37:26.099Z","eval_name":"example","score":0.95,"run_count":285}
+{"timestamp":"2025-12-28T21:37:26.105Z","eval_name":"example","score":0.95,"run_count":286}
+{"timestamp":"2025-12-28T21:37:26.106Z","eval_name":"example","score":0.95,"run_count":287}
+{"timestamp":"2025-12-28T21:37:26.108Z","eval_name":"example","score":0.95,"run_count":288}
+{"timestamp":"2025-12-28T21:37:26.110Z","eval_name":"example","score":0.95,"run_count":289}
+{"timestamp":"2025-12-28T21:37:26.110Z","eval_name":"example","score":0.95,"run_count":290}
+{"timestamp":"2025-12-28T21:37:26.111Z","eval_name":"example","score":0.95,"run_count":291}
+{"timestamp":"2025-12-28T21:38:55.513Z","eval_name":"example","score":0.95,"run_count":292}
+{"timestamp":"2025-12-28T21:38:55.514Z","eval_name":"example","score":0.95,"run_count":293}
+{"timestamp":"2025-12-28T21:38:55.515Z","eval_name":"example","score":0.95,"run_count":294}
+{"timestamp":"2025-12-28T21:38:55.516Z","eval_name":"example","score":0.95,"run_count":295}
+{"timestamp":"2025-12-28T21:38:55.518Z","eval_name":"example","score":0.95,"run_count":296}
+{"timestamp":"2025-12-28T21:38:55.519Z","eval_name":"example","score":0.95,"run_count":297}
+{"timestamp":"2025-12-28T21:38:55.519Z","eval_name":"example","score":0.95,"run_count":298}
+{"timestamp":"2025-12-28T21:38:55.520Z","eval_name":"example","score":0.95,"run_count":299}
+{"timestamp":"2025-12-28T21:43:22.370Z","eval_name":"example","score":0.95,"run_count":300}
+{"timestamp":"2025-12-28T21:43:22.371Z","eval_name":"example","score":0.95,"run_count":301}
+{"timestamp":"2025-12-28T21:43:22.372Z","eval_name":"example","score":0.95,"run_count":302}
+{"timestamp":"2025-12-28T21:43:22.373Z","eval_name":"example","score":0.95,"run_count":303}
+{"timestamp":"2025-12-28T21:43:22.375Z","eval_name":"example","score":0.95,"run_count":304}
+{"timestamp":"2025-12-28T21:43:22.376Z","eval_name":"example","score":0.95,"run_count":305}
+{"timestamp":"2025-12-28T21:43:22.377Z","eval_name":"example","score":0.95,"run_count":306}
+{"timestamp":"2025-12-28T21:43:22.378Z","eval_name":"example","score":0.95,"run_count":307}
+{"timestamp":"2025-12-28T21:45:04.646Z","eval_name":"example","score":0.95,"run_count":308}
+{"timestamp":"2025-12-28T21:45:04.647Z","eval_name":"example","score":0.95,"run_count":309}
+{"timestamp":"2025-12-28T21:45:04.648Z","eval_name":"example","score":0.95,"run_count":310}
+{"timestamp":"2025-12-28T21:45:04.649Z","eval_name":"example","score":0.95,"run_count":311}
+{"timestamp":"2025-12-28T21:45:04.656Z","eval_name":"example","score":0.95,"run_count":312}
+{"timestamp":"2025-12-28T21:45:04.657Z","eval_name":"example","score":0.95,"run_count":313}
+{"timestamp":"2025-12-28T21:45:04.658Z","eval_name":"example","score":0.95,"run_count":314}
+{"timestamp":"2025-12-28T21:45:04.659Z","eval_name":"example","score":0.95,"run_count":315}
+{"timestamp":"2025-12-28T21:46:37.753Z","eval_name":"example","score":0.95,"run_count":316}
+{"timestamp":"2025-12-28T21:46:37.754Z","eval_name":"example","score":0.95,"run_count":317}
+{"timestamp":"2025-12-28T21:46:37.755Z","eval_name":"example","score":0.95,"run_count":318}
+{"timestamp":"2025-12-28T21:46:37.756Z","eval_name":"example","score":0.95,"run_count":319}
+{"timestamp":"2025-12-28T21:46:37.758Z","eval_name":"example","score":0.95,"run_count":320}
+{"timestamp":"2025-12-28T21:46:37.759Z","eval_name":"example","score":0.95,"run_count":321}
+{"timestamp":"2025-12-28T21:46:37.759Z","eval_name":"example","score":0.95,"run_count":322}
+{"timestamp":"2025-12-28T21:46:37.760Z","eval_name":"example","score":0.95,"run_count":323}
+{"timestamp":"2025-12-28T21:48:11.749Z","eval_name":"example","score":0.95,"run_count":324}
+{"timestamp":"2025-12-28T21:48:11.751Z","eval_name":"example","score":0.95,"run_count":325}
+{"timestamp":"2025-12-28T21:48:11.752Z","eval_name":"example","score":0.95,"run_count":326}
+{"timestamp":"2025-12-28T21:48:11.753Z","eval_name":"example","score":0.95,"run_count":327}
+{"timestamp":"2025-12-28T21:48:11.755Z","eval_name":"example","score":0.95,"run_count":328}
+{"timestamp":"2025-12-28T21:48:11.756Z","eval_name":"example","score":0.95,"run_count":329}
+{"timestamp":"2025-12-28T21:48:11.757Z","eval_name":"example","score":0.95,"run_count":330}
+{"timestamp":"2025-12-28T21:48:11.758Z","eval_name":"example","score":0.95,"run_count":331}
+{"timestamp":"2025-12-28T21:52:37.424Z","eval_name":"example","score":0.95,"run_count":332}
+{"timestamp":"2025-12-28T21:52:37.428Z","eval_name":"example","score":0.95,"run_count":333}
+{"timestamp":"2025-12-28T21:52:37.430Z","eval_name":"example","score":0.95,"run_count":334}
+{"timestamp":"2025-12-28T21:52:37.432Z","eval_name":"example","score":0.95,"run_count":335}
+{"timestamp":"2025-12-28T21:52:37.440Z","eval_name":"example","score":0.95,"run_count":336}
+{"timestamp":"2025-12-28T21:52:37.443Z","eval_name":"example","score":0.95,"run_count":337}
+{"timestamp":"2025-12-28T21:52:37.445Z","eval_name":"example","score":0.95,"run_count":338}
+{"timestamp":"2025-12-28T21:52:37.446Z","eval_name":"example","score":0.95,"run_count":339}
+{"timestamp":"2025-12-28T21:57:08.617Z","eval_name":"example","score":0.95,"run_count":340}
+{"timestamp":"2025-12-28T21:57:08.644Z","eval_name":"example","score":0.95,"run_count":341}
+{"timestamp":"2025-12-28T21:57:08.646Z","eval_name":"example","score":0.95,"run_count":342}
+{"timestamp":"2025-12-28T21:57:08.649Z","eval_name":"example","score":0.95,"run_count":343}
+{"timestamp":"2025-12-28T21:57:08.654Z","eval_name":"example","score":0.95,"run_count":344}
+{"timestamp":"2025-12-28T21:57:08.655Z","eval_name":"example","score":0.95,"run_count":345}
+{"timestamp":"2025-12-28T21:57:08.656Z","eval_name":"example","score":0.95,"run_count":346}
+{"timestamp":"2025-12-28T21:57:08.660Z","eval_name":"example","score":0.95,"run_count":347}
+{"timestamp":"2025-12-28T22:00:12.345Z","eval_name":"example","score":0.95,"run_count":348}
+{"timestamp":"2025-12-28T22:00:12.346Z","eval_name":"example","score":0.95,"run_count":349}
+{"timestamp":"2025-12-28T22:00:12.348Z","eval_name":"example","score":0.95,"run_count":350}
+{"timestamp":"2025-12-28T22:00:12.349Z","eval_name":"example","score":0.95,"run_count":351}
+{"timestamp":"2025-12-28T22:00:12.351Z","eval_name":"example","score":0.95,"run_count":352}
+{"timestamp":"2025-12-28T22:00:12.357Z","eval_name":"example","score":0.95,"run_count":353}
+{"timestamp":"2025-12-28T22:00:12.358Z","eval_name":"example","score":0.95,"run_count":354}
+{"timestamp":"2025-12-28T22:00:12.360Z","eval_name":"example","score":0.95,"run_count":355}
+{"timestamp":"2025-12-28T22:01:48.075Z","eval_name":"example","score":0.95,"run_count":356}
+{"timestamp":"2025-12-28T22:01:48.076Z","eval_name":"example","score":0.95,"run_count":357}
+{"timestamp":"2025-12-28T22:01:48.077Z","eval_name":"example","score":0.95,"run_count":358}
+{"timestamp":"2025-12-28T22:01:48.078Z","eval_name":"example","score":0.95,"run_count":359}
+{"timestamp":"2025-12-28T22:01:48.080Z","eval_name":"example","score":0.95,"run_count":360}
+{"timestamp":"2025-12-28T22:01:48.081Z","eval_name":"example","score":0.95,"run_count":361}
+{"timestamp":"2025-12-28T22:01:48.081Z","eval_name":"example","score":0.95,"run_count":362}
+{"timestamp":"2025-12-28T22:01:48.082Z","eval_name":"example","score":0.95,"run_count":363}
+{"timestamp":"2025-12-28T22:04:42.750Z","eval_name":"example","score":0.95,"run_count":364}
+{"timestamp":"2025-12-28T22:04:42.751Z","eval_name":"example","score":0.95,"run_count":365}
+{"timestamp":"2025-12-28T22:04:42.752Z","eval_name":"example","score":0.95,"run_count":366}
+{"timestamp":"2025-12-28T22:04:42.753Z","eval_name":"example","score":0.95,"run_count":367}
+{"timestamp":"2025-12-28T22:04:42.755Z","eval_name":"example","score":0.95,"run_count":368}
+{"timestamp":"2025-12-28T22:04:42.756Z","eval_name":"example","score":0.95,"run_count":369}
+{"timestamp":"2025-12-28T22:04:42.757Z","eval_name":"example","score":0.95,"run_count":370}
+{"timestamp":"2025-12-28T22:04:42.758Z","eval_name":"example","score":0.95,"run_count":371}
+{"timestamp":"2025-12-28T22:15:20.215Z","eval_name":"example","score":0.95,"run_count":372}
+{"timestamp":"2025-12-28T22:15:20.218Z","eval_name":"example","score":0.95,"run_count":373}
+{"timestamp":"2025-12-28T22:15:20.222Z","eval_name":"example","score":0.95,"run_count":374}
+{"timestamp":"2025-12-28T22:15:20.226Z","eval_name":"example","score":0.95,"run_count":375}
+{"timestamp":"2025-12-28T22:15:20.237Z","eval_name":"example","score":0.95,"run_count":376}
+{"timestamp":"2025-12-28T22:15:20.240Z","eval_name":"example","score":0.95,"run_count":377}
+{"timestamp":"2025-12-28T22:15:20.243Z","eval_name":"example","score":0.95,"run_count":378}
+{"timestamp":"2025-12-28T22:15:20.245Z","eval_name":"example","score":0.95,"run_count":379}
+{"timestamp":"2025-12-28T22:17:01.295Z","eval_name":"example","score":0.95,"run_count":380}
+{"timestamp":"2025-12-28T22:17:01.296Z","eval_name":"example","score":0.95,"run_count":381}
+{"timestamp":"2025-12-28T22:17:01.297Z","eval_name":"example","score":0.95,"run_count":382}
+{"timestamp":"2025-12-28T22:17:01.298Z","eval_name":"example","score":0.95,"run_count":383}
+{"timestamp":"2025-12-28T22:17:01.301Z","eval_name":"example","score":0.95,"run_count":384}
+{"timestamp":"2025-12-28T22:17:01.302Z","eval_name":"example","score":0.95,"run_count":385}
+{"timestamp":"2025-12-28T22:17:01.303Z","eval_name":"example","score":0.95,"run_count":386}
+{"timestamp":"2025-12-28T22:17:01.304Z","eval_name":"example","score":0.95,"run_count":387}
+{"timestamp":"2025-12-28T22:19:52.279Z","eval_name":"example","score":0.95,"run_count":388}
+{"timestamp":"2025-12-28T22:19:52.281Z","eval_name":"example","score":0.95,"run_count":389}
+{"timestamp":"2025-12-28T22:19:52.282Z","eval_name":"example","score":0.95,"run_count":390}
+{"timestamp":"2025-12-28T22:19:52.283Z","eval_name":"example","score":0.95,"run_count":391}
+{"timestamp":"2025-12-28T22:19:52.285Z","eval_name":"example","score":0.95,"run_count":392}
+{"timestamp":"2025-12-28T22:19:52.286Z","eval_name":"example","score":0.95,"run_count":393}
+{"timestamp":"2025-12-28T22:19:52.287Z","eval_name":"example","score":0.95,"run_count":394}
+{"timestamp":"2025-12-28T22:19:52.288Z","eval_name":"example","score":0.95,"run_count":395}
+{"timestamp":"2025-12-28T22:21:29.419Z","eval_name":"example","score":0.95,"run_count":396}
+{"timestamp":"2025-12-28T22:21:29.420Z","eval_name":"example","score":0.95,"run_count":397}
+{"timestamp":"2025-12-28T22:21:29.421Z","eval_name":"example","score":0.95,"run_count":398}
+{"timestamp":"2025-12-28T22:21:29.422Z","eval_name":"example","score":0.95,"run_count":399}
+{"timestamp":"2025-12-28T22:21:29.424Z","eval_name":"example","score":0.95,"run_count":400}
+{"timestamp":"2025-12-28T22:21:29.425Z","eval_name":"example","score":0.95,"run_count":401}
+{"timestamp":"2025-12-28T22:21:29.426Z","eval_name":"example","score":0.95,"run_count":402}
+{"timestamp":"2025-12-28T22:21:29.427Z","eval_name":"example","score":0.95,"run_count":403}
+{"timestamp":"2025-12-28T22:27:03.126Z","eval_name":"example","score":0.95,"run_count":404}
+{"timestamp":"2025-12-28T22:27:03.127Z","eval_name":"example","score":0.95,"run_count":405}
+{"timestamp":"2025-12-28T22:27:03.128Z","eval_name":"example","score":0.95,"run_count":406}
+{"timestamp":"2025-12-28T22:27:03.129Z","eval_name":"example","score":0.95,"run_count":407}
+{"timestamp":"2025-12-28T22:27:03.132Z","eval_name":"example","score":0.95,"run_count":408}
+{"timestamp":"2025-12-28T22:27:03.133Z","eval_name":"example","score":0.95,"run_count":409}
+{"timestamp":"2025-12-28T22:27:03.135Z","eval_name":"example","score":0.95,"run_count":410}
+{"timestamp":"2025-12-28T22:27:03.136Z","eval_name":"example","score":0.95,"run_count":411}
+{"timestamp":"2025-12-28T22:28:42.233Z","eval_name":"example","score":0.95,"run_count":412}
+{"timestamp":"2025-12-28T22:28:42.234Z","eval_name":"example","score":0.95,"run_count":413}
+{"timestamp":"2025-12-28T22:28:42.235Z","eval_name":"example","score":0.95,"run_count":414}
+{"timestamp":"2025-12-28T22:28:42.235Z","eval_name":"example","score":0.95,"run_count":415}
+{"timestamp":"2025-12-28T22:28:42.238Z","eval_name":"example","score":0.95,"run_count":416}
+{"timestamp":"2025-12-28T22:28:42.240Z","eval_name":"example","score":0.95,"run_count":417}
+{"timestamp":"2025-12-28T22:28:42.241Z","eval_name":"example","score":0.95,"run_count":418}
+{"timestamp":"2025-12-28T22:28:42.242Z","eval_name":"example","score":0.95,"run_count":419}
+{"timestamp":"2025-12-28T22:32:08.354Z","eval_name":"example","score":0.95,"run_count":420}
+{"timestamp":"2025-12-28T22:32:08.355Z","eval_name":"example","score":0.95,"run_count":421}
+{"timestamp":"2025-12-28T22:32:08.357Z","eval_name":"example","score":0.95,"run_count":422}
+{"timestamp":"2025-12-28T22:32:08.358Z","eval_name":"example","score":0.95,"run_count":423}
+{"timestamp":"2025-12-28T22:32:08.360Z","eval_name":"example","score":0.95,"run_count":424}
+{"timestamp":"2025-12-28T22:32:08.367Z","eval_name":"example","score":0.95,"run_count":425}
+{"timestamp":"2025-12-28T22:32:08.368Z","eval_name":"example","score":0.95,"run_count":426}
+{"timestamp":"2025-12-28T22:32:08.369Z","eval_name":"example","score":0.95,"run_count":427}
+{"timestamp":"2025-12-30T02:46:33.903Z","eval_name":"example","score":0.95,"run_count":428}
+{"timestamp":"2025-12-30T02:46:33.905Z","eval_name":"example","score":0.95,"run_count":429}
+{"timestamp":"2025-12-30T02:46:33.907Z","eval_name":"example","score":0.95,"run_count":430}
+{"timestamp":"2025-12-30T02:46:33.915Z","eval_name":"example","score":0.95,"run_count":431}
+{"timestamp":"2025-12-30T02:46:33.922Z","eval_name":"example","score":0.95,"run_count":432}
+{"timestamp":"2025-12-30T02:46:33.924Z","eval_name":"example","score":0.95,"run_count":433}
+{"timestamp":"2025-12-30T02:46:33.925Z","eval_name":"example","score":0.95,"run_count":434}
+{"timestamp":"2025-12-30T02:46:33.926Z","eval_name":"example","score":0.95,"run_count":435}
+{"timestamp":"2025-12-30T02:48:09.042Z","eval_name":"example","score":0.95,"run_count":436}
+{"timestamp":"2025-12-30T02:48:09.043Z","eval_name":"example","score":0.95,"run_count":437}
+{"timestamp":"2025-12-30T02:48:09.045Z","eval_name":"example","score":0.95,"run_count":438}
+{"timestamp":"2025-12-30T02:48:09.046Z","eval_name":"example","score":0.95,"run_count":439}
+{"timestamp":"2025-12-30T02:48:09.049Z","eval_name":"example","score":0.95,"run_count":440}
+{"timestamp":"2025-12-30T02:48:09.050Z","eval_name":"example","score":0.95,"run_count":441}
+{"timestamp":"2025-12-30T02:48:09.051Z","eval_name":"example","score":0.95,"run_count":442}
+{"timestamp":"2025-12-30T02:48:09.052Z","eval_name":"example","score":0.95,"run_count":443}
+{"timestamp":"2025-12-30T18:12:53.469Z","eval_name":"example","score":0.95,"run_count":444}
+{"timestamp":"2025-12-30T18:12:53.472Z","eval_name":"example","score":0.95,"run_count":445}
+{"timestamp":"2025-12-30T18:12:53.473Z","eval_name":"example","score":0.95,"run_count":446}
+{"timestamp":"2025-12-30T18:12:53.475Z","eval_name":"example","score":0.95,"run_count":447}
+{"timestamp":"2025-12-30T18:12:53.477Z","eval_name":"example","score":0.95,"run_count":448}
+{"timestamp":"2025-12-30T18:12:53.478Z","eval_name":"example","score":0.95,"run_count":449}
+{"timestamp":"2025-12-30T18:12:53.479Z","eval_name":"example","score":0.95,"run_count":450}
+{"timestamp":"2025-12-30T18:12:53.480Z","eval_name":"example","score":0.95,"run_count":451}
+{"timestamp":"2026-01-06T18:51:03.837Z","eval_name":"example","score":0.95,"run_count":452}
+{"timestamp":"2026-01-06T18:51:03.838Z","eval_name":"example","score":0.95,"run_count":453}
+{"timestamp":"2026-01-06T18:51:03.839Z","eval_name":"example","score":0.95,"run_count":454}
+{"timestamp":"2026-01-06T18:51:03.840Z","eval_name":"example","score":0.95,"run_count":455}
+{"timestamp":"2026-01-06T18:51:03.843Z","eval_name":"example","score":0.95,"run_count":456}
+{"timestamp":"2026-01-06T18:51:03.844Z","eval_name":"example","score":0.95,"run_count":457}
+{"timestamp":"2026-01-06T18:51:03.845Z","eval_name":"example","score":0.95,"run_count":458}
+{"timestamp":"2026-01-06T18:51:03.846Z","eval_name":"example","score":0.95,"run_count":459}
+{"timestamp":"2026-01-16T06:28:06.934Z","eval_name":"example","score":0.95,"run_count":460}
+{"timestamp":"2026-01-16T06:28:06.939Z","eval_name":"example","score":0.95,"run_count":461}
+{"timestamp":"2026-01-16T06:28:06.947Z","eval_name":"example","score":0.95,"run_count":462}
+{"timestamp":"2026-01-16T06:28:06.955Z","eval_name":"example","score":0.95,"run_count":463}
+{"timestamp":"2026-01-16T06:28:06.973Z","eval_name":"example","score":0.95,"run_count":464}
+{"timestamp":"2026-01-16T06:28:06.978Z","eval_name":"example","score":0.95,"run_count":465}
+{"timestamp":"2026-01-16T06:28:06.983Z","eval_name":"example","score":0.95,"run_count":466}
+{"timestamp":"2026-01-16T06:28:06.988Z","eval_name":"example","score":0.95,"run_count":467}
+{"timestamp":"2026-01-16T07:02:57.301Z","eval_name":"example","score":0.95,"run_count":468}
+{"timestamp":"2026-01-16T07:02:57.306Z","eval_name":"example","score":0.95,"run_count":469}
+{"timestamp":"2026-01-16T07:02:57.310Z","eval_name":"example","score":0.95,"run_count":470}
+{"timestamp":"2026-01-16T07:02:57.316Z","eval_name":"example","score":0.95,"run_count":471}
+{"timestamp":"2026-01-16T07:02:57.339Z","eval_name":"example","score":0.95,"run_count":472}
+{"timestamp":"2026-01-16T07:02:57.344Z","eval_name":"example","score":0.95,"run_count":473}
+{"timestamp":"2026-01-16T07:02:57.350Z","eval_name":"example","score":0.95,"run_count":474}
+{"timestamp":"2026-01-16T07:02:57.355Z","eval_name":"example","score":0.95,"run_count":475}
+{"timestamp":"2026-01-16T11:55:07.526Z","eval_name":"example","score":0.95,"run_count":476}
+{"timestamp":"2026-01-16T11:55:07.533Z","eval_name":"example","score":0.95,"run_count":477}
+{"timestamp":"2026-01-16T11:55:07.540Z","eval_name":"example","score":0.95,"run_count":478}
+{"timestamp":"2026-01-16T11:55:07.548Z","eval_name":"example","score":0.95,"run_count":479}
+{"timestamp":"2026-01-16T11:55:07.567Z","eval_name":"example","score":0.95,"run_count":480}
+{"timestamp":"2026-01-16T11:55:07.576Z","eval_name":"example","score":0.95,"run_count":481}
+{"timestamp":"2026-01-16T11:55:07.585Z","eval_name":"example","score":0.95,"run_count":482}
+{"timestamp":"2026-01-16T11:55:07.592Z","eval_name":"example","score":0.95,"run_count":483}
+{"timestamp":"2026-01-16T11:56:08.374Z","eval_name":"example","score":0.95,"run_count":484}
+{"timestamp":"2026-01-16T11:56:08.379Z","eval_name":"example","score":0.95,"run_count":485}
+{"timestamp":"2026-01-16T11:56:08.383Z","eval_name":"example","score":0.95,"run_count":486}
+{"timestamp":"2026-01-16T11:56:08.388Z","eval_name":"example","score":0.95,"run_count":487}
+{"timestamp":"2026-01-16T11:56:08.401Z","eval_name":"example","score":0.95,"run_count":488}
+{"timestamp":"2026-01-16T11:56:08.405Z","eval_name":"example","score":0.95,"run_count":489}
+{"timestamp":"2026-01-16T11:56:08.409Z","eval_name":"example","score":0.95,"run_count":490}
+{"timestamp":"2026-01-16T11:56:08.413Z","eval_name":"example","score":0.95,"run_count":491}
+{"timestamp":"2026-01-16T12:24:01.571Z","eval_name":"example","score":0.95,"run_count":492}
+{"timestamp":"2026-01-16T12:24:01.576Z","eval_name":"example","score":0.95,"run_count":493}
+{"timestamp":"2026-01-16T12:24:01.580Z","eval_name":"example","score":0.95,"run_count":494}
+{"timestamp":"2026-01-16T12:24:01.584Z","eval_name":"example","score":0.95,"run_count":495}
+{"timestamp":"2026-01-16T12:24:01.597Z","eval_name":"example","score":0.95,"run_count":496}
+{"timestamp":"2026-01-16T12:24:01.601Z","eval_name":"example","score":0.95,"run_count":497}
+{"timestamp":"2026-01-16T12:24:01.605Z","eval_name":"example","score":0.95,"run_count":498}
+{"timestamp":"2026-01-16T12:24:01.610Z","eval_name":"example","score":0.95,"run_count":499}
+{"timestamp":"2026-01-16T12:41:02.258Z","eval_name":"example","score":0.95,"run_count":500}
+{"timestamp":"2026-01-16T12:41:02.263Z","eval_name":"example","score":0.95,"run_count":501}
+{"timestamp":"2026-01-16T12:41:02.269Z","eval_name":"example","score":0.95,"run_count":502}
+{"timestamp":"2026-01-16T12:41:02.273Z","eval_name":"example","score":0.95,"run_count":503}
+{"timestamp":"2026-01-16T12:41:02.290Z","eval_name":"example","score":0.95,"run_count":504}
+{"timestamp":"2026-01-16T12:41:02.296Z","eval_name":"example","score":0.95,"run_count":505}
+{"timestamp":"2026-01-16T12:41:02.302Z","eval_name":"example","score":0.95,"run_count":506}
+{"timestamp":"2026-01-16T12:41:02.309Z","eval_name":"example","score":0.95,"run_count":507}

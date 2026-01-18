@@ -171,7 +171,7 @@ $ grep -r "scoreOutcome" packages/opencode-swarm-plugin/src --exclude="*.test.ts
 ```typescript
 // SHOULD happen in swarm_complete:
 const outcome: OutcomeSignals = {
-  bead_id: subtaskId,
+  cell_id: subtaskId,
   duration_ms: endTime - startTime,
   error_count: errors.length,
   retry_count: retries,
@@ -187,7 +187,7 @@ await storage.storeFeedback({
   criterion: scored.signals.strategy,
   type: scored.type, // 'helpful' or 'harmful'
   timestamp: outcome.timestamp,
-  bead_id: outcome.bead_id,
+  cell_id: outcome.cell_id,
   raw_value: scored.decayed_value
 });
 ```
@@ -702,7 +702,7 @@ CREATE TABLE decision_traces (
   id TEXT PRIMARY KEY,
   decision_type TEXT NOT NULL,
   epic_id TEXT,
-  bead_id TEXT,
+  cell_id TEXT,
   agent_name TEXT NOT NULL,
   project_key TEXT NOT NULL,
   decision TEXT NOT NULL,

@@ -201,7 +201,7 @@ export const DecisionRecordedEventSchema = BaseEventSchema.extend({
   decision_id: z.string(),
   decision_type: z.string(),
   epic_id: z.string().optional(),
-  bead_id: z.string().optional(),
+  cell_id: z.string().optional(),
   rationale_length: z.number().int().min(0),
   precedent_count: z.number().int().min(0),
 });

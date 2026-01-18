@@ -39,27 +39,27 @@ export const EMBEDDING_DIM = 1024;
 
 /** Memory data structure */
 export interface Memory {
-  readonly id: string;
-  readonly content: string;
-  readonly metadata: Record<string, unknown>;
-  readonly collection: string;
-  readonly createdAt: Date;
-  /** Confidence level (0.0-1.0) affecting decay rate. Higher = slower decay. Default 0.7 */
-  readonly confidence?: number;
+	readonly id: string;
+	readonly content: string;
+	readonly metadata: Record<string, unknown>;
+	readonly collection: string;
+	readonly createdAt: Date;
+	/** Confidence level (0.0-1.0) affecting decay rate. Higher = slower decay. Default 0.7 */
+	readonly confidence?: number;
 }
 
 /** Search result with similarity score */
 export interface SearchResult {
-  readonly memory: Memory;
-  readonly score: number;
-  readonly matchType: "vector" | "fts";
+	readonly memory: Memory;
+	readonly score: number;
+	readonly matchType: "vector" | "fts";
 }
 
 /** Search options for queries */
 export interface SearchOptions {
-  readonly limit?: number;
-  readonly threshold?: number;
-  readonly collection?: string;
+	readonly limit?: number;
+	readonly threshold?: number;
+	readonly collection?: string;
 }
 
 // ============================================================================
@@ -86,118 +86,118 @@ export interface SearchOptions {
  * ```
  */
 export function createMemoryStore(db: SwarmDb) {
-  /**
-   * Helper to parse memory row from database
-   * Handles TEXT storage of JSON (metadata) and timestamps
-   */
-  const parseMemoryRow = (row: typeof memories.$inferSelect): Memory => {
-    // libSQL stores metadata as TEXT (JSON string)
-    const metadata =
-      typeof row.metadata === "string"
-        ? JSON.parse(row.metadata)
-        : row.metadata ?? {};
+	/**
+	 * Helper to parse memory row from database
+	 * Handles TEXT storage of JSON (metadata) and timestamps
+	 */
+	const parseMemoryRow = (row: typeof memories.$inferSelect): Memory => {
+		// libSQL stores metadata as TEXT (JSON string)
+		const metadata =
+			typeof row.metadata === "string"
+				? JSON.parse(row.metadata)
+				: (row.metadata ?? {});
 
-    // Parse created_at, falling back to current time if null/undefined/invalid
-    //  row.created_at can be: null, undefined, valid ISO string, or malformed string
-    // Only use row.created_at if it's a non-empty string that creates a valid Date
-    let createdAt: Date;
-    if (row.created_at && typeof row.created_at === "string") {
-      const parsed = new Date(row.created_at);
-      createdAt = isNaN(parsed.getTime()) ? new Date() : parsed;
-    } else {
-      createdAt = new Date();
-    }
+		// Parse created_at, falling back to current time if null/undefined/invalid
+		//  row.created_at can be: null, undefined, valid ISO string, or malformed string
+		// Only use row.created_at if it's a non-empty string that creates a valid Date
+		let createdAt: Date;
+		if (row.created_at && typeof row.created_at === "string") {
+			const parsed = new Date(row.created_at);
+			createdAt = isNaN(parsed.getTime()) ? new Date() : parsed;
+		} else {
+			createdAt = new Date();
+		}
 
-    return {
-      id: row.id,
-      content: row.content,
-      metadata,
-      collection: row.collection ?? "default",
-      createdAt,
-      confidence: row.decay_factor ?? 0.7,
-    };
-  };
+		return {
+			id: row.id,
+			content: row.content,
+			metadata,
+			collection: row.collection ?? "default",
+			createdAt,
+			confidence: row.decay_factor ?? 0.7,
+		};
+	};
 
-  return {
-    /**
-     * Store a memory with its embedding
-     *
-     * Uses Drizzle's onConflictDoUpdate for UPSERT behavior.
-     * Vector embedding stored via sql`` template with vector() function.
-     *
-     * @param memory - Memory to store
-     * @param embedding - 1024-dimensional vector
-     * @throws Error if database operation fails
-     */
-    async store(memory: Memory, embedding: number[]): Promise<void> {
-      const vectorStr = JSON.stringify(embedding);
+	return {
+		/**
+		 * Store a memory with its embedding
+		 *
+		 * Uses Drizzle's onConflictDoUpdate for UPSERT behavior.
+		 * Vector embedding stored via sql`` template with vector() function.
+		 *
+		 * @param memory - Memory to store
+		 * @param embedding - 1024-dimensional vector
+		 * @throws Error if database operation fails
+		 */
+		async store(memory: Memory, embedding: number[]): Promise<void> {
+			const vectorStr = JSON.stringify(embedding);
 
-      await db
-        .insert(memories)
-        .values({
-          id: memory.id,
-          content: memory.content,
-          metadata: JSON.stringify(memory.metadata),
-          collection: memory.collection,
-          created_at: memory.createdAt.toISOString(),
-          decay_factor: memory.confidence ?? 0.7,
-          embedding: sql`vector(${vectorStr})`,
-        })
-        .onConflictDoUpdate({
-          target: memories.id,
-          set: {
-            content: memory.content,
-            metadata: JSON.stringify(memory.metadata),
-            collection: memory.collection,
-            decay_factor: memory.confidence ?? 0.7,
-            embedding: sql`vector(${vectorStr})`,
-          },
-        });
-    },
+			await db
+				.insert(memories)
+				.values({
+					id: memory.id,
+					content: memory.content,
+					metadata: JSON.stringify(memory.metadata),
+					collection: memory.collection,
+					created_at: memory.createdAt.toISOString(),
+					decay_factor: memory.confidence ?? 0.7,
+					embedding: sql`vector(${vectorStr})`,
+				})
+				.onConflictDoUpdate({
+					target: memories.id,
+					set: {
+						content: memory.content,
+						metadata: JSON.stringify(memory.metadata),
+						collection: memory.collection,
+						decay_factor: memory.confidence ?? 0.7,
+						embedding: sql`vector(${vectorStr})`,
+					},
+				});
+		},
 
-    /**
-     * Vector similarity search
-     *
-     * Uses vector_top_k() function with libsql_vector_idx for efficient ANN search.
-     * Returns results sorted by similarity (highest first).
-     *
-     * libSQL vector search requires:
-     * 1. A vector index: CREATE INDEX ... ON table(libsql_vector_idx(column))
-     * 2. Using vector_top_k() which returns a virtual table with just (id) - the rowid
-     * 3. Joining the virtual table back to get full rows
-     * 4. Calculating distance separately with vector_distance_cos()
-     *
-     * @param queryEmbedding - 1024-dimensional query vector
-     * @param options - Search options (limit, threshold, collection)
-     * @returns Array of search results sorted by similarity (highest first)
-     */
-    async search(
-      queryEmbedding: number[],
-      options: SearchOptions = {}
-    ): Promise<SearchResult[]> {
-      const { limit = 10, threshold = 0.3, collection } = options;
-      const vectorStr = JSON.stringify(queryEmbedding);
+		/**
+		 * Vector similarity search
+		 *
+		 * Uses vector_top_k() function with libsql_vector_idx for efficient ANN search.
+		 * Returns results sorted by similarity (highest first).
+		 *
+		 * libSQL vector search requires:
+		 * 1. A vector index: CREATE INDEX ... ON table(libsql_vector_idx(column))
+		 * 2. Using vector_top_k() which returns a virtual table with just (id) - the rowid
+		 * 3. Joining the virtual table back to get full rows
+		 * 4. Calculating distance separately with vector_distance_cos()
+		 *
+		 * @param queryEmbedding - 1024-dimensional query vector
+		 * @param options - Search options (limit, threshold, collection)
+		 * @returns Array of search results sorted by similarity (highest first)
+		 */
+		async search(
+			queryEmbedding: number[],
+			options: SearchOptions = {},
+		): Promise<SearchResult[]> {
+			const { limit = 10, threshold = 0.3, collection } = options;
+			const vectorStr = JSON.stringify(queryEmbedding);
 
-      // Use vector_top_k for efficient ANN search via the vector index
-      // vector_top_k returns a virtual table with just (id) column - the rowid
-      // Results are already ordered by distance (nearest first)
-      // We calculate distance separately with vector_distance_cos()
-      //
-      // Note: cosine distance (0 = identical, 2 = opposite)
-      // Score = 1 - distance (so 1 = identical, -1 = opposite)
-      const collectionFilter = collection
-        ? sql`AND m.collection = ${collection}`
-        : sql``;
+			// Use vector_top_k for efficient ANN search via the vector index
+			// vector_top_k returns a virtual table with just (id) column - the rowid
+			// Results are already ordered by distance (nearest first)
+			// We calculate distance separately with vector_distance_cos()
+			//
+			// Note: cosine distance (0 = identical, 2 = opposite)
+			// Score = 1 - distance (so 1 = identical, -1 = opposite)
+			const collectionFilter = collection
+				? sql`AND m.collection = ${collection}`
+				: sql``;
 
-      const results = await db.all<{
-        id: string;
-        content: string;
-        metadata: string;
-        collection: string;
-        created_at: string;
-        decay_factor: number;
-        distance: number;
-      }>(sql`
+			const results = await db.all<{
+				id: string;
+				content: string;
+				metadata: string;
+				collection: string;
+				created_at: string;
+				decay_factor: number;
+				distance: number;
+			}>(sql`
         SELECT 
           m.id,
           m.content,
@@ -212,48 +212,48 @@ export function createMemoryStore(db: SwarmDb) {
         LIMIT ${limit}
       `);
 
-      return results.map((row) => ({
-        memory: parseMemoryRow(row as unknown as typeof memories.$inferSelect),
-        score: 1 - row.distance, // Convert distance to similarity score
-        matchType: "vector" as const,
-      }));
-    },
+			return results.map((row) => ({
+				memory: parseMemoryRow(row as unknown as typeof memories.$inferSelect),
+				score: 1 - row.distance, // Convert distance to similarity score
+				matchType: "vector" as const,
+			}));
+		},
 
-    /**
-     * Full-text search
-     *
-     * Uses FTS5 virtual table (memories_fts) for text search.
-     * Falls back to raw SQL since FTS5 isn't yet in Drizzle.
-     *
-     * @param searchQuery - Text query string
-     * @param options - Search options (limit, collection)
-     * @returns Array of search results ranked by relevance
-     */
-    async ftsSearch(
-      searchQuery: string,
-      options: SearchOptions = {}
-    ): Promise<SearchResult[]> {
-      const { limit = 10, collection } = options;
+		/**
+		 * Full-text search
+		 *
+		 * Uses FTS5 virtual table (memories_fts) for text search.
+		 * Falls back to raw SQL since FTS5 isn't yet in Drizzle.
+		 *
+		 * @param searchQuery - Text query string
+		 * @param options - Search options (limit, collection)
+		 * @returns Array of search results ranked by relevance
+		 */
+		async ftsSearch(
+			searchQuery: string,
+			options: SearchOptions = {},
+		): Promise<SearchResult[]> {
+			const { limit = 10, collection } = options;
 
-      // FTS5 requires raw SQL - not yet in Drizzle's type-safe API
-      // Quote search query to escape FTS5 operators (hyphens, etc.)
-      // Without quotes, "unique-keyword-12345" → "unique" MINUS "keyword" → error
-      const quotedQuery = `"${searchQuery.replace(/"/g, '""')}"`;
-      
-      // Build query dynamically based on collection filter
-      const conditions = collection
-        ? sql`fts.content MATCH ${quotedQuery} AND m.collection = ${collection}`
-        : sql`fts.content MATCH ${quotedQuery}`;
+			// FTS5 requires raw SQL - not yet in Drizzle's type-safe API
+			// Quote search query to escape FTS5 operators (hyphens, etc.)
+			// Without quotes, "unique-keyword-12345" → "unique" MINUS "keyword" → error
+			const quotedQuery = `"${searchQuery.replace(/"/g, '""')}"`;
 
-      const results = await db.all<{
-        id: string;
-        content: string;
-        metadata: string;
-        collection: string;
-        created_at: string;
-        decay_factor: number;
-        score: number;
-      }>(sql`
+			// Build query dynamically based on collection filter
+			const conditions = collection
+				? sql`fts.content MATCH ${quotedQuery} AND m.collection = ${collection}`
+				: sql`fts.content MATCH ${quotedQuery}`;
+
+			const results = await db.all<{
+				id: string;
+				content: string;
+				metadata: string;
+				collection: string;
+				created_at: string;
+				decay_factor: number;
+				score: number;
+			}>(sql`
         SELECT 
           m.id,
           m.content,
@@ -269,78 +269,78 @@ export function createMemoryStore(db: SwarmDb) {
         LIMIT ${limit}
       `);
 
-      return results.map((row) => ({
-        memory: parseMemoryRow(row as unknown as typeof memories.$inferSelect),
-        score: Math.abs(row.score), // FTS5 rank is negative, normalize
-        matchType: "fts" as const,
-      }));
-    },
+			return results.map((row) => ({
+				memory: parseMemoryRow(row as unknown as typeof memories.$inferSelect),
+				score: Math.abs(row.score), // FTS5 rank is negative, normalize
+				matchType: "fts" as const,
+			}));
+		},
 
-    /**
-     * List memories
-     *
-     * @param collection - Optional collection filter
-     * @returns Array of memories sorted by created_at DESC
-     */
-    async list(collection?: string): Promise<Memory[]> {
-      const results = collection
-        ? await db
-            .select()
-            .from(memories)
-            .where(eq(memories.collection, collection))
-            .orderBy(desc(memories.created_at))
-        : await db.select().from(memories).orderBy(desc(memories.created_at));
+		/**
+		 * List memories
+		 *
+		 * @param collection - Optional collection filter
+		 * @returns Array of memories sorted by created_at DESC
+		 */
+		async list(collection?: string): Promise<Memory[]> {
+			const results = collection
+				? await db
+						.select()
+						.from(memories)
+						.where(eq(memories.collection, collection))
+						.orderBy(desc(memories.created_at))
+				: await db.select().from(memories).orderBy(desc(memories.created_at));
 
-      return results.map(parseMemoryRow);
-    },
+			return results.map(parseMemoryRow);
+		},
 
-    /**
-     * Get a single memory by ID
-     *
-     * @param id - Memory ID
-     * @returns Memory or null if not found
-     */
-    async get(id: string): Promise<Memory | null> {
-      const results = await db
-        .select()
-        .from(memories)
-        .where(eq(memories.id, id));
+		/**
+		 * Get a single memory by ID
+		 *
+		 * @param id - Memory ID
+		 * @returns Memory or null if not found
+		 */
+		async get(id: string): Promise<Memory | null> {
+			const results = await db
+				.select()
+				.from(memories)
+				.where(eq(memories.id, id));
 
-      return results.length > 0 ? parseMemoryRow(results[0]) : null;
-    },
+			return results.length > 0 ? parseMemoryRow(results[0]) : null;
+		},
 
-    /**
-     * Delete a memory
-     *
-     * Embedding stored inline in same table, single DELETE works.
-     *
-     * @param id - Memory ID
-     */
-    async delete(id: string): Promise<void> {
-      await db.delete(memories).where(eq(memories.id, id));
-    },
+		/**
+		 * Delete a memory
+		 *
+		 * Embedding stored inline in same table, single DELETE works.
+		 *
+		 * @param id - Memory ID
+		 */
+		async delete(id: string): Promise<void> {
+			await db.delete(memories).where(eq(memories.id, id));
+		},
 
-    /**
-     * Get database statistics
-     *
-     * Counts memories and embeddings (embeddings in same table).
-     *
-     * @returns Memory and embedding counts
-     */
-    async getStats(): Promise<{ memories: number; embeddings: number }> {
-      const memoryCount = await db
-        .select({ count: sql<number>`COUNT(id)` })
-        .from(memories);
+		/**
+		 * Get database statistics
+		 *
+		 * Counts memories and embeddings (embeddings in same table).
+		 *
+		 * @returns Memory and embedding counts
+		 */
+		async getStats(): Promise<{ memories: number; embeddings: number }> {
+			const memoryCount = await db
+				.select({ count: sql<number>`COUNT(id)` })
+				.from(memories);
 
-      const embeddingCount = await db
-        .select({ count: sql<number>`COUNT(id)` })
-        .from(memories)
-        .where(sql`embedding IS NOT NULL`);
+			const embeddingCount = await db
+				.select({ count: sql<number>`COUNT(id)` })
+				.from(memories)
+				.where(sql`embedding IS NOT NULL`);
 
-      return {
-        memories: Number(memoryCount[0].count),
-        embeddings: Number(embeddingCount[0].count),
-      };
-    },
-  };
+			return {
+				memories: Number(memoryCount[0].count),
+				embeddings: Number(embeddingCount[0].count),
+			};
+		},
+	};
 }

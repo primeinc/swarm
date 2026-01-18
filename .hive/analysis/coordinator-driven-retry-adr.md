@@ -140,7 +140,7 @@ Coordinators call `swarm_spawn_retry` to generate a fresh prompt for the next wo
 
 ```typescript
 swarm_spawn_retry({
-  bead_id: "bd-123.2",
+  cell_id: "bd-123.2",
   epic_id: "bd-123",
   original_prompt: "<original subtask prompt>",
   attempt: 2, // Incremented from retry_context
@@ -186,7 +186,7 @@ IF APPROVED:
   - Spawn next worker
 
 IF NEEDS_CHANGES:
-  - swarm_spawn_retry(bead_id, epic_id, attempt, issues, diff)
+  - swarm_spawn_retry(cell_id, epic_id, attempt, issues, diff)
   - Spawn NEW worker with Task(retry_prompt)
   - Increment attempt counter
 
@@ -345,7 +345,7 @@ interface RetryContext {
  * Generate retry prompt for failed review
  */
 swarm_spawn_retry({
-  bead_id: string;
+  cell_id: string;
   epic_id: string;
   original_prompt: string;
   attempt: number; // 1, 2, or 3 (throws on 4+)
@@ -370,7 +370,7 @@ async function coordinateEpic(epicId: string, subtasks: Subtask[]) {
         attempt === 1
           ? await swarm_spawn_subtask(subtask)
           : await swarm_spawn_retry({
-              bead_id: subtask.id,
+              cell_id: subtask.id,
               epic_id: epicId,
               original_prompt: subtask.original_prompt,
               attempt,
@@ -571,5 +571,5 @@ The alternative (persistent workers with async messaging) requires platform feat
   - `packages/opencode-swarm-plugin/src/swarm-prompts.ts` (swarm_spawn_retry tool)
   - `packages/opencode-swarm-plugin/src/swarm-prompts.test.ts` (retry tests)
 - **Related ADRs:**
-  - Event Sourcing Feasibility (`.hive/analysis/event-sourced-beads-feasibility.md`)
+  - Event Sourcing Feasibility (`.hive/analysis/event-sourced-cells-feasibility.md`)
   - Git Sync and Distributed Coordination (`.hive/analysis/git-sync-distributed-coordination.md`)

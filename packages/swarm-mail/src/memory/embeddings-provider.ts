@@ -50,30 +50,30 @@ import type { MemoryConfig } from "./ollama.js";
  * Embedding with metadata about its source and dimension
  */
 export interface EmbeddingWithMetadata {
-  /** The embedding vector */
-  readonly embedding: number[];
-  /** Source provider: 'ollama' or 'xenova' */
-  readonly source: "ollama" | "xenova";
-  /** Embedding dimension: 1024 for Ollama, 384 for Xenova */
-  readonly dimension: number;
+	/** The embedding vector */
+	readonly embedding: number[];
+	/** Source provider: 'ollama' or 'xenova' */
+	readonly source: "ollama" | "xenova";
+	/** Embedding dimension: 1024 for Ollama, 384 for Xenova */
+	readonly dimension: number;
 }
 
 /**
  * Xenova provider configuration (extends MemoryConfig)
  */
 export interface XenovaConfig extends MemoryConfig {
-  /** Prefer Xenova (local) over Ollama. Default: false (try Ollama first) */
-  readonly preferLocal?: boolean;
-  /** Xenova model to use. Default: 'Xenova/all-MiniLM-L6-v2' */
-  readonly xenovaModel?: string;
+	/** Prefer Xenova (local) over Ollama. Default: false (try Ollama first) */
+	readonly preferLocal?: boolean;
+	/** Xenova model to use. Default: 'Xenova/all-MiniLM-L6-v2' */
+	readonly xenovaModel?: string;
 }
 
 /**
  * Embedding provider failure
  */
 export class EmbeddingsProviderError extends Schema.TaggedError<EmbeddingsProviderError>()(
-  "EmbeddingsProviderError",
-  { reason: Schema.String }
+	"EmbeddingsProviderError",
+	{ reason: Schema.String },
 ) {}
 
 // ============================================================================
@@ -83,17 +83,21 @@ export class EmbeddingsProviderError extends Schema.TaggedError<EmbeddingsProvid
 /**
  * Pluggable embeddings provider with fallback support
  */
-export class EmbeddingsProvider extends Context.Tag("swarm-mail/EmbeddingsProvider")<
-  EmbeddingsProvider,
-  {
-    /** Generate embedding for a single text */
-    readonly embed: (text: string) => Effect.Effect<EmbeddingWithMetadata, EmbeddingsProviderError>;
-    /** Generate embeddings for multiple texts with controlled concurrency */
-    readonly embedBatch: (
-      texts: string[],
-      concurrency?: number
-    ) => Effect.Effect<EmbeddingWithMetadata[], EmbeddingsProviderError>;
-  }
+export class EmbeddingsProvider extends Context.Tag(
+	"swarm-mail/EmbeddingsProvider",
+)<
+	EmbeddingsProvider,
+	{
+		/** Generate embedding for a single text */
+		readonly embed: (
+			text: string,
+		) => Effect.Effect<EmbeddingWithMetadata, EmbeddingsProviderError>;
+		/** Generate embeddings for multiple texts with controlled concurrency */
+		readonly embedBatch: (
+			texts: string[],
+			concurrency?: number,
+		) => Effect.Effect<EmbeddingWithMetadata[], EmbeddingsProviderError>;
+	}
 >() {}
 
 // ============================================================================
@@ -103,109 +107,108 @@ export class EmbeddingsProvider extends Context.Tag("swarm-mail/EmbeddingsProvid
 /**
  * Xenova embeddings provider - runs locally without external server
  * Uses transformers.js for in-process inference
- * 
+ *
  * Model: Xenova/all-MiniLM-L6-v2 (384-dim, ~80MB)
  * Speed: ~50-100ms per text on CPU
  * Quality: Excellent for semantic search and clustering
  */
 class XenovaEmbeddingsProvider {
-  private extractor: any = null;
-  private modelName: string;
+	private extractor: any = null;
+	private modelName: string;
 
-  constructor(modelName: string = "Xenova/all-MiniLM-L6-v2") {
-    this.modelName = modelName;
-  }
+	constructor(modelName: string = "Xenova/all-MiniLM-L6-v2") {
+		this.modelName = modelName;
+	}
 
-  /**
-   * Initialize the Xenova pipeline (lazy loading)
-   * Done on first use to avoid overhead if provider isn't needed
-   */
-  private async initialize(): Promise<void> {
-    if (this.extractor !== null) return;
+	/**
+	 * Initialize the Xenova pipeline (lazy loading)
+	 * Done on first use to avoid overhead if provider isn't needed
+	 */
+	private async initialize(): Promise<void> {
+		if (this.extractor !== null) return;
 
-    try {
-      // Lazy import transformers.js only when needed
-      const { pipeline } = await import("@huggingface/transformers");
+		try {
+			// Lazy import transformers.js only when needed
+			const { pipeline } = await import("@huggingface/transformers");
 
-      this.extractor = await pipeline(
-        "feature-extraction",
-        this.modelName,
-        {
-          device: "cpu", // Explicitly use CPU for consistency
-        }
-      );
-    } catch (error) {
-      throw new Error(
-        `Failed to initialize Xenova: ${error instanceof Error ? error.message : String(error)}`
-      );
-    }
-  }
+			this.extractor = await pipeline("feature-extraction", this.modelName, {
+				device: "cpu", // Explicitly use CPU for consistency
+			});
+		} catch (error) {
+			throw new Error(
+				`Failed to initialize Xenova: ${error instanceof Error ? error.message : String(error)}`,
+			);
+		}
+	}
 
-  /**
-   * Generate embedding using Xenova
-   */
-  async embed(text: string): Promise<number[]> {
-    await this.initialize();
+	/**
+	 * Generate embedding using Xenova
+	 */
+	async embed(text: string): Promise<number[]> {
+		await this.initialize();
 
-    const result = await this.extractor(text, {
-      pooling: "mean", // Mean pooling for sentence embeddings
-      normalize: true, // L2 normalization for cosine similarity
-    });
+		const result = await this.extractor(text, {
+			pooling: "mean", // Mean pooling for sentence embeddings
+			normalize: true, // L2 normalization for cosine similarity
+		});
 
-    // Convert Tensor to array
-    const embedding = result.tolist()[0];
-    return embedding as number[];
-  }
+		// Convert Tensor to array
+		const embedding = result.tolist()[0];
+		return embedding as number[];
+	}
 
-  /**
-   * Generate embeddings for multiple texts
-   */
-  async embedBatch(texts: string[], concurrency: number = 1): Promise<number[][]> {
-    await this.initialize();
+	/**
+	 * Generate embeddings for multiple texts
+	 */
+	async embedBatch(
+		texts: string[],
+		concurrency: number = 1,
+	): Promise<number[][]> {
+		await this.initialize();
 
-    if (concurrency === 1) {
-      // Sequential processing
-      const embeddings: number[][] = [];
-      for (const text of texts) {
-        const embedding = await this.embed(text);
-        embeddings.push(embedding);
-      }
-      return embeddings;
-    }
+		if (concurrency === 1) {
+			// Sequential processing
+			const embeddings: number[][] = [];
+			for (const text of texts) {
+				const embedding = await this.embed(text);
+				embeddings.push(embedding);
+			}
+			return embeddings;
+		}
 
-    // Concurrent processing with limit
-    const results: number[][] = [];
-    const queue = [...texts];
-    const active = new Set<Promise<void>>();
+		// Concurrent processing with limit
+		const results: number[][] = [];
+		const queue = [...texts];
+		const active = new Set<Promise<void>>();
 
-    return new Promise((resolve, reject) => {
-      const processNext = async () => {
-        if (queue.length === 0 && active.size === 0) {
-          resolve(results);
-          return;
-        }
+		return new Promise((resolve, reject) => {
+			const processNext = async () => {
+				if (queue.length === 0 && active.size === 0) {
+					resolve(results);
+					return;
+				}
 
-        if (queue.length > 0 && active.size < concurrency) {
-          const text = queue.shift()!;
-          const promise = this.embed(text)
-            .then((embedding) => {
-              results.push(embedding);
-              active.delete(promise);
-              processNext();
-            })
-            .catch((error) => {
-              active.delete(promise);
-              reject(error);
-            });
+				if (queue.length > 0 && active.size < concurrency) {
+					const text = queue.shift()!;
+					const promise = this.embed(text)
+						.then((embedding) => {
+							results.push(embedding);
+							active.delete(promise);
+							processNext();
+						})
+						.catch((error) => {
+							active.delete(promise);
+							reject(error);
+						});
 
-          active.add(promise);
-          processNext();
-        }
-      };
+					active.add(promise);
+					processNext();
+				}
+			};
 
-      processNext();
-    });
-  }
+			processNext();
+		});
+	}
 }
 
 // ============================================================================
@@ -223,128 +226,135 @@ class XenovaEmbeddingsProvider {
  * @returns Layer providing EmbeddingsProvider
  */
 export const makeEmbeddingsProviderLive = (config: XenovaConfig) => {
-  const xenova = new XenovaEmbeddingsProvider(config.xenovaModel);
+	const xenova = new XenovaEmbeddingsProvider(config.xenovaModel);
 
-  return Layer.succeed(
-    EmbeddingsProvider,
-    {
-      embed: (text: string) =>
-        Effect.gen(function* () {
-          if (config.preferLocal) {
-            // Use Xenova directly
-            const embedding = yield* Effect.tryPromise({
-              try: () => xenova.embed(text),
-              catch: (error) =>
-                new EmbeddingsProviderError({
-                  reason: error instanceof Error ? error.message : String(error),
-                }),
-            });
-            return {
-              embedding,
-              source: "xenova",
-              dimension: 384,
-            };
-          }
+	return Layer.succeed(EmbeddingsProvider, {
+		embed: (text: string) =>
+			Effect.gen(function* () {
+				if (config.preferLocal) {
+					// Use Xenova directly
+					const embedding = yield* Effect.tryPromise({
+						try: () => xenova.embed(text),
+						catch: (error) =>
+							new EmbeddingsProviderError({
+								reason: error instanceof Error ? error.message : String(error),
+							}),
+					});
+					return {
+						embedding,
+						source: "xenova",
+						dimension: 384,
+					};
+				}
 
-          // Try Ollama first, fallback to Xenova
-          try {
-            // Import Ollama dynamically
-            const { Ollama, makeOllamaLive } = yield* Effect.promise(() => import("./ollama.js"));
-            const ollamaLayer = makeOllamaLive(config);
+				// Try Ollama first, fallback to Xenova
+				try {
+					// Import Ollama dynamically
+					const { Ollama, makeOllamaLive } = yield* Effect.promise(
+						() => import("./ollama.js"),
+					);
+					const ollamaLayer = makeOllamaLive(config);
 
-            const program = Effect.gen(function* () {
-              const ollama = yield* Ollama;
-              return yield* ollama.embed(text);
-            });
+					const program = Effect.gen(function* () {
+						const ollama = yield* Ollama;
+						return yield* ollama.embed(text);
+					});
 
-            const result = yield* program.pipe(Effect.provide(ollamaLayer), Effect.either);
+					const result = yield* program.pipe(
+						Effect.provide(ollamaLayer),
+						Effect.either,
+					);
 
-            if (result._tag === "Right") {
-              return {
-                embedding: result.right,
-                source: "ollama",
-                dimension: 1024,
-              };
-            }
+					if (result._tag === "Right") {
+						return {
+							embedding: result.right,
+							source: "ollama",
+							dimension: 1024,
+						};
+					}
 
-            // Ollama failed, fall through to Xenova
-          } catch (error) {
-            // Ollama initialization failed, fall through to Xenova
-          }
+					// Ollama failed, fall through to Xenova
+				} catch (error) {
+					// Ollama initialization failed, fall through to Xenova
+				}
 
-          // Fallback to Xenova
-          const embedding = yield* Effect.tryPromise({
-            try: () => xenova.embed(text),
-            catch: (error) =>
-              new EmbeddingsProviderError({
-                reason: error instanceof Error ? error.message : String(error),
-              }),
-          });
-          return {
-            embedding,
-            source: "xenova",
-            dimension: 384,
-          };
-        }),
+				// Fallback to Xenova
+				const embedding = yield* Effect.tryPromise({
+					try: () => xenova.embed(text),
+					catch: (error) =>
+						new EmbeddingsProviderError({
+							reason: error instanceof Error ? error.message : String(error),
+						}),
+				});
+				return {
+					embedding,
+					source: "xenova",
+					dimension: 384,
+				};
+			}),
 
-      embedBatch: (texts: string[], concurrency?: number) =>
-        Effect.gen(function* () {
-          if (config.preferLocal) {
-            // Use Xenova directly
-            const embeddings = yield* Effect.tryPromise({
-              try: () => xenova.embedBatch(texts, concurrency),
-              catch: (error) =>
-                new EmbeddingsProviderError({
-                  reason: error instanceof Error ? error.message : String(error),
-                }),
-            });
-            return embeddings.map((embedding) => ({
-              embedding,
-              source: "xenova",
-              dimension: 384,
-            }));
-          }
+		embedBatch: (texts: string[], concurrency?: number) =>
+			Effect.gen(function* () {
+				if (config.preferLocal) {
+					// Use Xenova directly
+					const embeddings = yield* Effect.tryPromise({
+						try: () => xenova.embedBatch(texts, concurrency),
+						catch: (error) =>
+							new EmbeddingsProviderError({
+								reason: error instanceof Error ? error.message : String(error),
+							}),
+					});
+					return embeddings.map((embedding) => ({
+						embedding,
+						source: "xenova",
+						dimension: 384,
+					}));
+				}
 
-          // Try Ollama first, fallback to Xenova
-          try {
-            // Import Ollama dynamically
-            const { Ollama, makeOllamaLive } = yield* Effect.promise(() => import("./ollama.js"));
-            const ollamaLayer = makeOllamaLive(config);
+				// Try Ollama first, fallback to Xenova
+				try {
+					// Import Ollama dynamically
+					const { Ollama, makeOllamaLive } = yield* Effect.promise(
+						() => import("./ollama.js"),
+					);
+					const ollamaLayer = makeOllamaLive(config);
 
-            const program = Effect.gen(function* () {
-              const ollama = yield* Ollama;
-              return yield* ollama.embedBatch(texts, concurrency);
-            });
+					const program = Effect.gen(function* () {
+						const ollama = yield* Ollama;
+						return yield* ollama.embedBatch(texts, concurrency);
+					});
 
-            const result = yield* program.pipe(Effect.provide(ollamaLayer), Effect.either);
+					const result = yield* program.pipe(
+						Effect.provide(ollamaLayer),
+						Effect.either,
+					);
 
-            if (result._tag === "Right") {
-              return result.right.map((embedding) => ({
-                embedding,
-                source: "ollama",
-                dimension: 1024,
-              }));
-            }
+					if (result._tag === "Right") {
+						return result.right.map((embedding) => ({
+							embedding,
+							source: "ollama",
+							dimension: 1024,
+						}));
+					}
 
-            // Ollama failed, fall through to Xenova
-          } catch (error) {
-            // Ollama initialization failed, fall through to Xenova
-          }
+					// Ollama failed, fall through to Xenova
+				} catch (error) {
+					// Ollama initialization failed, fall through to Xenova
+				}
 
-          // Fallback to Xenova
-          const embeddings = yield* Effect.tryPromise({
-            try: () => xenova.embedBatch(texts, concurrency),
-            catch: (error) =>
-              new EmbeddingsProviderError({
-                reason: error instanceof Error ? error.message : String(error),
-              }),
-          });
-          return embeddings.map((embedding) => ({
-            embedding,
-            source: "xenova",
-            dimension: 384,
-          }));
-        }),
-    }
-  );
+				// Fallback to Xenova
+				const embeddings = yield* Effect.tryPromise({
+					try: () => xenova.embedBatch(texts, concurrency),
+					catch: (error) =>
+						new EmbeddingsProviderError({
+							reason: error instanceof Error ? error.message : String(error),
+						}),
+				});
+				return embeddings.map((embedding) => ({
+					embedding,
+					source: "xenova",
+					dimension: 384,
+				}));
+			}),
+	});
 };

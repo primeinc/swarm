@@ -34,7 +34,7 @@ describe("EventRow", () => {
       project_key: "/test/project",
       timestamp: Date.now(),
       agent_name: "WorkerAgent",
-      bead_id: "bd-123",
+      cell_id: "bd-123",
       summary: "Completed auth flow",
       success: true,
     };
@@ -52,7 +52,7 @@ describe("EventRow", () => {
       project_key: "/test/project",
       timestamp: Date.now(),
       agent_name: "WorkerAgent",
-      bead_id: "bd-123",
+      cell_id: "bd-123",
       reason: "Waiting for dependency",
     };
 
@@ -101,7 +101,7 @@ describe("EventRow", () => {
       project_key: "/test/project",
       timestamp: Date.now(),
       agent_name: "WorkerAgent",
-      bead_id: "bd-123",
+      cell_id: "bd-123",
     };
 
     const { getByText } = render(<EventRow event={event} />);
@@ -131,7 +131,7 @@ describe("EventRow", () => {
       project_key: "/test/project",
       timestamp: Date.now(),
       agent_name: "WorkerAgent",
-      bead_id: "bd-123",
+      cell_id: "bd-123",
       summary: "Auth flow implemented",
       success: true,
     };
@@ -147,7 +147,7 @@ describe("EventRow", () => {
       project_key: "/test/project",
       timestamp: Date.now(),
       agent_name: "WorkerAgent",
-      bead_id: "bd-123",
+      cell_id: "bd-123",
       reason: "Waiting for database schema",
     };
 

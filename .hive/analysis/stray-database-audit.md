@@ -53,7 +53,7 @@ Found **7 database files** across the repository. The global database at `~/.con
 - **47 eval_records**
 - **154 decision_traces**
 
-**Tables:** Full modern schema including `beads`, `cells` view, `memories`, `eval_records`, `decision_traces`, `swarm_contexts`, FTS indexes
+**Tables:** Full modern schema including `cells`, `cells` view, `memories`, `eval_records`, `decision_traces`, `swarm_contexts`, FTS indexes
 
 **Recommendation:** ✅ **KEEP** - This is the target unified database.
 
@@ -187,7 +187,7 @@ issues, events, comments, dependencies, labels, metadata,
 blocked_issues, ready_issues, dirty_issues, etc.
 
 # MODERN SCHEMA (v8):
-cells (view over beads), beads, agents, messages, events, 
+cells (view over cells), cells, agents, messages, events, 
 memories, eval_records, decision_traces, etc.
 ```
 
@@ -219,7 +219,7 @@ This database contains **519 historical work items** from the Dec 7-17 period th
 ```bash
 # Proposed migration:
 # 1. Map old schema to new schema
-#    issues table → beads table
+#    issues table → cells table
 #    Legacy event schema → modern event schema
 #
 # 2. Challenges:
@@ -229,7 +229,7 @@ This database contains **519 historical work items** from the Dec 7-17 period th
 #    - No project_key (old hive was single-project)
 #
 # 3. Strategy:
-#    - Import issues as beads with synthetic agent "HistoricalImport"
+#    - Import issues as cells with synthetic agent "HistoricalImport"
 #    - Preserve original IDs
 #    - Convert timestamps to epoch
 #    - Set project_key to repo root
@@ -253,7 +253,7 @@ This database contains **519 historical work items** from the Dec 7-17 period th
 #### 6. Evals Local: `packages/swarm-evals/.opencode/swarm.db` (192KB)
 
 **Status:** 🗑️ EMPTY - Schema exists but no data  
-**Schema:** Partial (no schema_version, no beads/cells tables)  
+**Schema:** Partial (no schema_version, no cells/cells tables)  
 **Tables:** `agents`, `events`, `messages`, `eval_records`, `reservations`, `decision_traces` (all empty)  
 **Recommendation:** ✅ **DELETE IMMEDIATELY** - Safe, no data.
 
@@ -280,8 +280,8 @@ Core:
   - decision_traces, eval_records
 
 Hive (Issue Tracking):
-  - beads, cells (view), bead_dependencies, bead_labels, bead_comments
-  - dirty_beads, blocked_beads_cache
+  - cells, cells (view), cell_dependencies, cell_labels, cell_comments
+  - dirty_cells, blocked_cells_cache
 
 Memory System:
   - memories, memory_entities, memory_links
@@ -309,7 +309,7 @@ Metadata:
 **Tables (17 total):**
 ```
 Core:
-  - issues (not beads!), events, comments, dependencies, labels
+  - issues (not cells!), events, comments, dependencies, labels
   - metadata, config
 
 Caching/Views:
@@ -324,7 +324,7 @@ Export/Sync:
 
 **Key Differences:**
 1. **No agents** - Single-user design
-2. **`issues` not `beads`** - Naming predates hive metaphor
+2. **`issues` not `cells`** - Naming predates hive metaphor
 3. **No messages/reservations** - No multi-agent coordination
 4. **No memories** - No semantic memory system
 5. **Different event schema** - Legacy format
@@ -349,11 +349,11 @@ Export/Sync:
    import { globalDb } from 'global-db';
    
    async function migrateLegacyHive() {
-     // 1. Import issues as beads
+     // 1. Import issues as cells
      const issues = db.query("SELECT * FROM issues").all();
      for (const issue of issues) {
        await globalDb.run(`
-         INSERT INTO beads (id, title, description, type, status, priority, created_at, updated_at, project_key)
+         INSERT INTO cells (id, title, description, type, status, priority, created_at, updated_at, project_key)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
        `, [
          issue.id,
@@ -384,7 +384,7 @@ Export/Sync:
    
    # Count after
    sqlite3 ~/.config/swarm-tools/swarm.db \
-     "SELECT COUNT(*) FROM beads WHERE id LIKE 'bd-lf2p4u-%';"  # Should be 519
+     "SELECT COUNT(*) FROM cells WHERE id LIKE 'bd-lf2p4u-%';"  # Should be 519
    ```
 
 3. **Backup before delete:**

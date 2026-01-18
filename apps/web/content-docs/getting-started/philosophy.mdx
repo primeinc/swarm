@@ -19,7 +19,7 @@ But coordination is hard. Without the right primitives, agents conflict, duplica
 
 Each package solves one problem well. You compose what you need.
 
-**Why?** Frameworks impose opinions. Primitives enable creativity. You might need event sourcing without the full plugin. You might want file reservations without beads. Mix and match.
+**Why?** Frameworks impose opinions. Primitives enable creativity. You might need event sourcing without the full plugin. You might want file reservations without cells. Mix and match.
 
 ```
 ❌ Framework approach: "Use our opinionated full-stack solution"
@@ -108,7 +108,7 @@ function process(data: unknown) {
 }
 
 // ✓ Parse at boundary
-const validated = BeadSchema.parse(data);
+const validated = cellSchema.parse(data);
 // Now `validated` is typed, no more checks needed
 ```
 
@@ -151,7 +151,7 @@ Agents should over-communicate. Silent agents cause coordination failures.
 
 ### Thread by Task
 
-Use bead IDs as thread IDs for all coordination messages. This keeps conversations organized and traceable.
+Use cell IDs as thread IDs for all coordination messages. This keeps conversations organized and traceable.
 
 ```typescript
 swarmmail_send({
@@ -165,8 +165,8 @@ swarmmail_send({
 ### Land the Plane
 
 Every session must end with:
-1. Close completed beads
-2. `beads_sync()`
+1. Close completed cells
+2. `cells_sync()`
 3. `git push`
 4. Verify "up to date with origin"
 

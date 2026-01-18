@@ -12,7 +12,14 @@
  * @module db/schema/memory
  */
 
-import { customType, real, sqliteTable, text, uniqueIndex, primaryKey } from "drizzle-orm/sqlite-core";
+import {
+	customType,
+	primaryKey,
+	real,
+	sqliteTable,
+	text,
+	uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 
 /**
  * Custom F32_BLOB vector type for libSQL.
@@ -23,17 +30,17 @@ import { customType, real, sqliteTable, text, uniqueIndex, primaryKey } from "dr
  * @param dimension - Vector dimension (e.g., 1024 for mxbai-embed-large)
  */
 const vector = (dimension: number) =>
-  customType<{ data: number[]; driverData: Buffer }>({
-    dataType() {
-      return `F32_BLOB(${dimension})`;
-    },
-    toDriver(value: number[]): Buffer {
-      return Buffer.from(new Float32Array(value).buffer);
-    },
-    fromDriver(value: Buffer): number[] {
-      return Array.from(new Float32Array(value.buffer));
-    },
-  });
+	customType<{ data: number[]; driverData: Buffer }>({
+		dataType() {
+			return `F32_BLOB(${dimension})`;
+		},
+		toDriver(value: number[]): Buffer {
+			return Buffer.from(new Float32Array(value).buffer);
+		},
+		fromDriver(value: Buffer): number[] {
+			return Array.from(new Float32Array(value.buffer));
+		},
+	});
 
 /**
  * Memories table schema.
@@ -57,22 +64,22 @@ const vector = (dimension: number) =>
  * - keywords: Space-separated keywords for FTS boost
  */
 export const memories = sqliteTable("memories", {
-  id: text("id").primaryKey(),
-  content: text("content").notNull(),
-  metadata: text("metadata").default("'{}'"),
-  collection: text("collection").default("'default'"),
-  tags: text("tags").default("'[]'"),
-  created_at: text("created_at").default("(datetime('now'))"),
-  updated_at: text("updated_at").default("(datetime('now'))"),
-  decay_factor: real("decay_factor").default(1.0),
-  embedding: vector(1024)("embedding"),
-  // Temporal validity
-  valid_from: text("valid_from"),
-  valid_until: text("valid_until"),
-  superseded_by: text("superseded_by"), // Self-reference added in raw SQL
-  // Auto-generated metadata
-  auto_tags: text("auto_tags"),
-  keywords: text("keywords"),
+	id: text("id").primaryKey(),
+	content: text("content").notNull(),
+	metadata: text("metadata").default("'{}'"),
+	collection: text("collection").default("'default'"),
+	tags: text("tags").default("'[]'"),
+	created_at: text("created_at").default("(datetime('now'))"),
+	updated_at: text("updated_at").default("(datetime('now'))"),
+	decay_factor: real("decay_factor").default(1.0),
+	embedding: vector(1024)("embedding"),
+	// Temporal validity
+	valid_from: text("valid_from"),
+	valid_until: text("valid_until"),
+	superseded_by: text("superseded_by"), // Self-reference added in raw SQL
+	// Auto-generated metadata
+	auto_tags: text("auto_tags"),
+	keywords: text("keywords"),
 });
 
 /**
@@ -96,16 +103,28 @@ export type NewMemory = typeof memories.$inferInsert;
  *
  * Link strength decays or reinforces based on usage.
  */
-export const memoryLinks = sqliteTable("memory_links", {
-  id: text("id").primaryKey(),
-  source_id: text("source_id").notNull().references(() => memories.id, { onDelete: "cascade" }),
-  target_id: text("target_id").notNull().references(() => memories.id, { onDelete: "cascade" }),
-  link_type: text("link_type").notNull(), // 'related', 'contradicts', 'supersedes', 'elaborates'
-  strength: real("strength").default(1.0),
-  created_at: text("created_at").default("(datetime('now'))"),
-}, (table) => [
-  uniqueIndex("unique_link").on(table.source_id, table.target_id, table.link_type),
-]);
+export const memoryLinks = sqliteTable(
+	"memory_links",
+	{
+		id: text("id").primaryKey(),
+		source_id: text("source_id")
+			.notNull()
+			.references(() => memories.id, { onDelete: "cascade" }),
+		target_id: text("target_id")
+			.notNull()
+			.references(() => memories.id, { onDelete: "cascade" }),
+		link_type: text("link_type").notNull(), // 'related', 'contradicts', 'supersedes', 'elaborates'
+		strength: real("strength").default(1.0),
+		created_at: text("created_at").default("(datetime('now'))"),
+	},
+	(table) => [
+		uniqueIndex("unique_link").on(
+			table.source_id,
+			table.target_id,
+			table.link_type,
+		),
+	],
+);
 
 export type MemoryLink = typeof memoryLinks.$inferSelect;
 export type NewMemoryLink = typeof memoryLinks.$inferInsert;
@@ -121,16 +140,18 @@ export type NewMemoryLink = typeof memoryLinks.$inferInsert;
  *
  * canonical_name: normalized form for de-duplication
  */
-export const entities = sqliteTable("entities", {
-  id: text("id").primaryKey(),
-  name: text("name").notNull(),
-  entity_type: text("entity_type").notNull(),
-  canonical_name: text("canonical_name"),
-  created_at: text("created_at").default("(datetime('now'))"),
-  updated_at: text("updated_at").default("(datetime('now'))"),
-}, (table) => [
-  uniqueIndex("unique_entity").on(table.name, table.entity_type),
-]);
+export const entities = sqliteTable(
+	"entities",
+	{
+		id: text("id").primaryKey(),
+		name: text("name").notNull(),
+		entity_type: text("entity_type").notNull(),
+		canonical_name: text("canonical_name"),
+		created_at: text("created_at").default("(datetime('now'))"),
+		updated_at: text("updated_at").default("(datetime('now'))"),
+	},
+	(table) => [uniqueIndex("unique_entity").on(table.name, table.entity_type)],
+);
 
 export type Entity = typeof entities.$inferSelect;
 export type NewEntity = typeof entities.$inferInsert;
@@ -146,17 +167,31 @@ export type NewEntity = typeof entities.$inferInsert;
  * memory_id: source memory that established this relationship (nullable)
  * confidence: 0-1 score, decays over time
  */
-export const relationships = sqliteTable("relationships", {
-  id: text("id").primaryKey(),
-  subject_id: text("subject_id").notNull().references(() => entities.id, { onDelete: "cascade" }),
-  predicate: text("predicate").notNull(),
-  object_id: text("object_id").notNull().references(() => entities.id, { onDelete: "cascade" }),
-  memory_id: text("memory_id").references(() => memories.id, { onDelete: "set null" }),
-  confidence: real("confidence").default(1.0),
-  created_at: text("created_at").default("(datetime('now'))"),
-}, (table) => [
-  uniqueIndex("unique_relationship").on(table.subject_id, table.predicate, table.object_id),
-]);
+export const relationships = sqliteTable(
+	"relationships",
+	{
+		id: text("id").primaryKey(),
+		subject_id: text("subject_id")
+			.notNull()
+			.references(() => entities.id, { onDelete: "cascade" }),
+		predicate: text("predicate").notNull(),
+		object_id: text("object_id")
+			.notNull()
+			.references(() => entities.id, { onDelete: "cascade" }),
+		memory_id: text("memory_id").references(() => memories.id, {
+			onDelete: "set null",
+		}),
+		confidence: real("confidence").default(1.0),
+		created_at: text("created_at").default("(datetime('now'))"),
+	},
+	(table) => [
+		uniqueIndex("unique_relationship").on(
+			table.subject_id,
+			table.predicate,
+			table.object_id,
+		),
+	],
+);
 
 export type Relationship = typeof relationships.$inferSelect;
 export type NewRelationship = typeof relationships.$inferInsert;
@@ -169,13 +204,19 @@ export type NewRelationship = typeof relationships.$inferInsert;
  * - object: secondary entity mentioned
  * - mentioned: entity appears but not central
  */
-export const memoryEntities = sqliteTable("memory_entities", {
-  memory_id: text("memory_id").notNull().references(() => memories.id, { onDelete: "cascade" }),
-  entity_id: text("entity_id").notNull().references(() => entities.id, { onDelete: "cascade" }),
-  role: text("role"), // 'subject', 'object', 'mentioned'
-}, (table) => [
-  primaryKey({ columns: [table.memory_id, table.entity_id] }),
-]);
+export const memoryEntities = sqliteTable(
+	"memory_entities",
+	{
+		memory_id: text("memory_id")
+			.notNull()
+			.references(() => memories.id, { onDelete: "cascade" }),
+		entity_id: text("entity_id")
+			.notNull()
+			.references(() => entities.id, { onDelete: "cascade" }),
+		role: text("role"), // 'subject', 'object', 'mentioned'
+	},
+	(table) => [primaryKey({ columns: [table.memory_id, table.entity_id] })],
+);
 
 export type MemoryEntity = typeof memoryEntities.$inferSelect;
 export type NewMemoryEntity = typeof memoryEntities.$inferInsert;

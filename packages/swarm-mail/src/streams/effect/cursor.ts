@@ -21,9 +21,9 @@
  * ```
  */
 import { Context, Effect, Ref, Stream } from "effect";
-import { readEvents } from "../store";
-import type { AgentEvent } from "../events";
 import type { DatabaseAdapter } from "../../types/database";
+import type { AgentEvent } from "../events";
+import { readEvents } from "../store";
 
 // ============================================================================
 // Types
@@ -33,50 +33,50 @@ import type { DatabaseAdapter } from "../../types/database";
  * Configuration for creating a cursor
  */
 export interface CursorConfig {
-  /** Stream identifier (e.g. "projects/foo/events") */
-  readonly stream: string;
-  /** Checkpoint identifier (e.g. "agents/bar/position") */
-  readonly checkpoint: string;
-  /** Database adapter for cursor storage */
-  readonly db: DatabaseAdapter;
-  /** Batch size for reading events (default: 100) */
-  readonly batchSize?: number;
-  /** Optional filters for event types */
-  readonly types?: AgentEvent["type"][];
+	/** Stream identifier (e.g. "projects/foo/events") */
+	readonly stream: string;
+	/** Checkpoint identifier (e.g. "agents/bar/position") */
+	readonly checkpoint: string;
+	/** Database adapter for cursor storage */
+	readonly db: DatabaseAdapter;
+	/** Batch size for reading events (default: 100) */
+	readonly batchSize?: number;
+	/** Optional filters for event types */
+	readonly types?: AgentEvent["type"][];
 }
 
 /**
  * A message from the cursor with commit capability
  */
 export interface CursorMessage<T = unknown> {
-  /** The event value */
-  readonly value: T;
-  /** Event sequence number */
-  readonly sequence: number;
-  /** Commit this position to the checkpoint */
-  readonly commit: () => Effect.Effect<void>;
+	/** The event value */
+	readonly value: T;
+	/** Event sequence number */
+	readonly sequence: number;
+	/** Commit this position to the checkpoint */
+	readonly commit: () => Effect.Effect<void>;
 }
 
 /**
  * A cursor instance for consuming events
  */
 export interface Cursor {
-  /** Get current position */
-  readonly getPosition: () => Effect.Effect<number>;
-  /** Consume events as an async iterable */
-  readonly consume: <
-    T = AgentEvent & { id: number; sequence: number },
-  >() => AsyncIterable<CursorMessage<T>>;
-  /** Update checkpoint position */
-  readonly commit: (sequence: number) => Effect.Effect<void>;
+	/** Get current position */
+	readonly getPosition: () => Effect.Effect<number>;
+	/** Consume events as an async iterable */
+	readonly consume: <
+		T = AgentEvent & { id: number; sequence: number },
+	>() => AsyncIterable<CursorMessage<T>>;
+	/** Update checkpoint position */
+	readonly commit: (sequence: number) => Effect.Effect<void>;
 }
 
 /**
  * DurableCursor service interface
  */
 export interface DurableCursorService {
-  /** Create a new cursor instance */
-  readonly create: (config: CursorConfig) => Effect.Effect<Cursor>;
+	/** Create a new cursor instance */
+	readonly create: (config: CursorConfig) => Effect.Effect<Cursor>;
 }
 
 // ============================================================================
@@ -87,8 +87,8 @@ export interface DurableCursorService {
  * DurableCursor Context.Tag
  */
 export class DurableCursor extends Context.Tag("DurableCursor")<
-  DurableCursor,
-  DurableCursorService
+	DurableCursor,
+	DurableCursorService
 >() {}
 
 // ============================================================================
@@ -99,7 +99,7 @@ export class DurableCursor extends Context.Tag("DurableCursor")<
  * Initialize cursor table schema (SQLite syntax)
  */
 async function ensureCursorsTable(db: DatabaseAdapter): Promise<void> {
-  await db.exec(`
+	await db.exec(`
     CREATE TABLE IF NOT EXISTS cursors (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       stream TEXT NOT NULL,
@@ -118,151 +118,151 @@ async function ensureCursorsTable(db: DatabaseAdapter): Promise<void> {
  * Load cursor position from database
  */
 async function loadCursorPosition(
-  stream: string,
-  checkpoint: string,
-  db: DatabaseAdapter,
+	stream: string,
+	checkpoint: string,
+	db: DatabaseAdapter,
 ): Promise<number> {
-  await ensureCursorsTable(db);
+	await ensureCursorsTable(db);
 
-  const result = await db.query<{ position: number }>(
-    `SELECT position FROM cursors WHERE stream = ? AND checkpoint = ?`,
-    [stream, checkpoint],
-  );
+	const result = await db.query<{ position: number }>(
+		`SELECT position FROM cursors WHERE stream = ? AND checkpoint = ?`,
+		[stream, checkpoint],
+	);
 
-  if (result.rows.length === 0) {
-    // Initialize cursor at position 0
-    await db.query(
-      `INSERT INTO cursors (stream, checkpoint, position, updated_at)
+	if (result.rows.length === 0) {
+		// Initialize cursor at position 0
+		await db.query(
+			`INSERT INTO cursors (stream, checkpoint, position, updated_at)
        VALUES (?, ?, 0, ?)
        ON CONFLICT (stream, checkpoint) DO NOTHING`,
-      [stream, checkpoint, Date.now()],
-    );
-    return 0;
-  }
+			[stream, checkpoint, Date.now()],
+		);
+		return 0;
+	}
 
-  return result.rows[0]?.position ?? 0;
+	return result.rows[0]?.position ?? 0;
 }
 
 /**
  * Save cursor position to database
  */
 async function saveCursorPosition(
-  stream: string,
-  checkpoint: string,
-  position: number,
-  db: DatabaseAdapter,
+	stream: string,
+	checkpoint: string,
+	position: number,
+	db: DatabaseAdapter,
 ): Promise<void> {
-  await db.query(
-    `INSERT INTO cursors (stream, checkpoint, position, updated_at)
+	await db.query(
+		`INSERT INTO cursors (stream, checkpoint, position, updated_at)
      VALUES (?, ?, ?, ?)
      ON CONFLICT (stream, checkpoint)
      DO UPDATE SET position = EXCLUDED.position, updated_at = EXCLUDED.updated_at`,
-    [stream, checkpoint, position, Date.now()],
-  );
+		[stream, checkpoint, position, Date.now()],
+	);
 }
 
 /**
  * Create cursor implementation
  */
 function createCursorImpl(config: CursorConfig): Effect.Effect<Cursor> {
-  return Effect.gen(function* () {
-    // Load initial position from database
-    const initialPosition = yield* Effect.promise(() =>
-      loadCursorPosition(config.stream, config.checkpoint, config.db),
-    );
+	return Effect.gen(function* () {
+		// Load initial position from database
+		const initialPosition = yield* Effect.promise(() =>
+			loadCursorPosition(config.stream, config.checkpoint, config.db),
+		);
 
-    // Create mutable reference for current position
-    const positionRef = yield* Ref.make(initialPosition);
+		// Create mutable reference for current position
+		const positionRef = yield* Ref.make(initialPosition);
 
-    // Commit function - updates database and reference
-    const commitPosition = (sequence: number): Effect.Effect<void> =>
-      Effect.gen(function* () {
-        yield* Effect.promise(() =>
-          saveCursorPosition(
-            config.stream,
-            config.checkpoint,
-            sequence,
-            config.db,
-          ),
-        );
-        yield* Ref.set(positionRef, sequence);
-      });
+		// Commit function - updates database and reference
+		const commitPosition = (sequence: number): Effect.Effect<void> =>
+			Effect.gen(function* () {
+				yield* Effect.promise(() =>
+					saveCursorPosition(
+						config.stream,
+						config.checkpoint,
+						sequence,
+						config.db,
+					),
+				);
+				yield* Ref.set(positionRef, sequence);
+			});
 
-    // Get current position
-    const getPosition = (): Effect.Effect<number> => Ref.get(positionRef);
+		// Get current position
+		const getPosition = (): Effect.Effect<number> => Ref.get(positionRef);
 
-    // Consume events as async iterable
-    const consume = <
-      T = AgentEvent & { id: number; sequence: number },
-    >(): AsyncIterable<CursorMessage<T>> => {
-      const batchSize = config.batchSize ?? 100;
+		// Consume events as async iterable
+		const consume = <
+			T = AgentEvent & { id: number; sequence: number },
+		>(): AsyncIterable<CursorMessage<T>> => {
+			const batchSize = config.batchSize ?? 100;
 
-      return {
-        [Symbol.asyncIterator]() {
-          let currentBatch: Array<
-            AgentEvent & { id: number; sequence: number }
-          > = [];
-          let batchIndex = 0;
-          let done = false;
+			return {
+				[Symbol.asyncIterator]() {
+					let currentBatch: Array<
+						AgentEvent & { id: number; sequence: number }
+					> = [];
+					let batchIndex = 0;
+					let done = false;
 
-          return {
-            async next(): Promise<IteratorResult<CursorMessage<T>>> {
-              // Load next batch if current batch is exhausted
-              if (batchIndex >= currentBatch.length && !done) {
-                const currentPosition = await Effect.runPromise(
-                  Ref.get(positionRef),
-                );
+					return {
+						async next(): Promise<IteratorResult<CursorMessage<T>>> {
+							// Load next batch if current batch is exhausted
+							if (batchIndex >= currentBatch.length && !done) {
+								const currentPosition = await Effect.runPromise(
+									Ref.get(positionRef),
+								);
 
-                const events = await readEvents(
-                  {
-                    afterSequence: currentPosition,
-                    limit: batchSize,
-                    types: config.types,
-                  },
-                  undefined, // no projectPath
-                  config.db, // pass db directly
-                );
+								const events = await readEvents(
+									{
+										afterSequence: currentPosition,
+										limit: batchSize,
+										types: config.types,
+									},
+									undefined, // no projectPath
+									config.db, // pass db directly
+								);
 
-                if (events.length === 0) {
-                  done = true;
-                  return { done: true, value: undefined };
-                }
+								if (events.length === 0) {
+									done = true;
+									return { done: true, value: undefined };
+								}
 
-                currentBatch = events;
-                batchIndex = 0;
-              }
+								currentBatch = events;
+								batchIndex = 0;
+							}
 
-              // Return next message from current batch
-              if (batchIndex < currentBatch.length) {
-                const event = currentBatch[batchIndex++];
-                if (!event) {
-                  done = true;
-                  return { done: true, value: undefined };
-                }
+							// Return next message from current batch
+							if (batchIndex < currentBatch.length) {
+								const event = currentBatch[batchIndex++];
+								if (!event) {
+									done = true;
+									return { done: true, value: undefined };
+								}
 
-                const message: CursorMessage<T> = {
-                  value: event as unknown as T,
-                  sequence: event.sequence,
-                  commit: () => commitPosition(event.sequence),
-                };
+								const message: CursorMessage<T> = {
+									value: event as unknown as T,
+									sequence: event.sequence,
+									commit: () => commitPosition(event.sequence),
+								};
 
-                return { done: false, value: message };
-              }
+								return { done: false, value: message };
+							}
 
-              done = true;
-              return { done: true, value: undefined };
-            },
-          };
-        },
-      };
-    };
+							done = true;
+							return { done: true, value: undefined };
+						},
+					};
+				},
+			};
+		};
 
-    return {
-      getPosition,
-      consume,
-      commit: commitPosition,
-    };
-  });
+		return {
+			getPosition,
+			consume,
+			commit: commitPosition,
+		};
+	});
 }
 
 // ============================================================================
@@ -273,13 +273,13 @@ function createCursorImpl(config: CursorConfig): Effect.Effect<Cursor> {
  * Live implementation of DurableCursor service
  */
 export const DurableCursorLive = DurableCursor.of({
-  create: createCursorImpl,
+	create: createCursorImpl,
 });
 
 /**
  * Default layer for DurableCursor service
  */
 export const DurableCursorLayer = Context.make(
-  DurableCursor,
-  DurableCursorLive,
+	DurableCursor,
+	DurableCursorLive,
 );

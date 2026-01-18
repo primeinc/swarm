@@ -20,7 +20,9 @@ export interface LockContentionFilters {
  * @param filters - Optional limit
  * @returns AnalyticsQuery ready for execution
  */
-export function lockContention(filters?: LockContentionFilters): AnalyticsQuery {
+export function lockContention(
+	filters?: LockContentionFilters,
+): AnalyticsQuery {
 	const builder = new QueryBuilder()
 		.select([
 			"json_extract(data, '$.path_pattern') as path_pattern",

@@ -98,7 +98,11 @@ export function convertPlaceholders(
 	const anyRegex = /=\s*ANY\(\$(\d+)\)/gi;
 	for (const match of sql.matchAll(anyRegex)) {
 		const paramIndex = Number.parseInt(match[1], 10) - 1;
-		if (paramIndex >= 0 && paramIndex < params.length && Array.isArray(params[paramIndex])) {
+		if (
+			paramIndex >= 0 &&
+			paramIndex < params.length &&
+			Array.isArray(params[paramIndex])
+		) {
 			anyParamIndices.add(paramIndex);
 		}
 	}
@@ -173,7 +177,7 @@ export function convertPlaceholders(
  * Wraps libSQL client to match DatabaseAdapter interface.
  * Automatically converts PostgreSQL-style placeholders ($1, $2) to SQLite-style (?).
  */
-class LibSQLAdapter implements DatabaseAdapter {
+export class LibSQLAdapter implements DatabaseAdapter {
 	constructor(private client: Client) {}
 
 	/**

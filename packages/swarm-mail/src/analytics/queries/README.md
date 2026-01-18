@@ -83,7 +83,7 @@ console.log(formatCSV(result));
 
 **Returns:**
 - `agent`: Agent name
-- `task_id`: Bead ID
+- `task_id`: cell ID
 - `files_touched`: JSON array of file paths
 - `timestamp`: When completed
 - `project_key`: Project identifier
