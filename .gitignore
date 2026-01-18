@@ -5,6 +5,17 @@ node_modules/
 dist/
 .turbo/
 
+# Package tarballs
+*.tgz
+
+# Generated/bundled files
+**/bin/*.js
+!**/bin/*.js.keep
+
+# Temporary test/repro files
+repro-*.ts
+test-*.ts
+
 # Bun
 bun.lockb
 
@@ -49,6 +60,10 @@ npm-debug.log*
 *.code-workspace
 /undefined/.semantic-memory/memory
 /packages/opencode-swarm-plugin/undefined/.semantic-memory
+/packages/swarm/undefined/.semantic-memory
+
+# Test artifacts and temporary directories
+.test-*
 
 # Local references and temp files
 refs/
