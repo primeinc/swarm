@@ -1,11 +1,11 @@
 /**
- * 3-Way Merge Driver for Beads JSONL
+ * 3-Way Merge Driver for cells JSONL
  *
- * Ported from steveyegge/beads internal/merge/merge.go (MIT License)
- * Original by @neongreen: https://github.com/neongreen/mono/tree/main/beads-merge
+ * Ported from steveyegge/cells internal/merge/merge.go (MIT License)
+ * Original by @neongreen: https://github.com/neongreen/mono/tree/main/cells-merge
  *
  * Features:
- * - 3-way merge of JSONL bead files
+ * - 3-way merge of JSONL cell files
  * - Tombstone semantics (soft-delete wins over live, expired allows resurrection)
  * - Field-level merge with updated_at tiebreaker
  * - Deterministic conflict resolution (no manual intervention needed)
@@ -22,7 +22,7 @@
  * - notes: concatenate on conflict
  * - dependencies: union (deduplicated)
  *
- * @module beads/merge
+ * @module hive/merge
  */
 
 import type { CellExport } from "./jsonl.js";
@@ -53,29 +53,29 @@ export const STATUS_TOMBSTONE = "tombstone";
  * Uses ID + created_at + created_by for uniqueness (handles ID collisions)
  */
 export interface IssueKey {
-  id: string;
-  createdAt: string;
-  createdBy?: string;
+	id: string;
+	createdAt: string;
+	createdBy?: string;
 }
 
 /**
  * Merge result
  */
 export interface MergeResult {
-  /** Successfully merged beads */
-  merged: CellExport[];
-  /** Conflict markers (for manual resolution if needed) */
-  conflicts: string[];
+	/** Successfully merged cells */
+	merged: CellExport[];
+	/** Conflict markers (for manual resolution if needed) */
+	conflicts: string[];
 }
 
 /**
  * Merge options
  */
 export interface MergeOptions {
-  /** Custom tombstone TTL in milliseconds (default: 30 days) */
-  tombstoneTtlMs?: number;
-  /** Enable debug logging */
-  debug?: boolean;
+	/** Custom tombstone TTL in milliseconds (default: 30 days) */
+	tombstoneTtlMs?: number;
+	/** Enable debug logging */
+	debug?: boolean;
 }
 
 // ============================================================================
@@ -89,13 +89,13 @@ export interface MergeOptions {
  * disambiguate in edge cases.
  */
 function makeKey(cell: CellExport): string {
-  // Use JSON for stable key generation
-  const key: IssueKey = {
-    id: cell.id,
-    createdAt: cell.created_at,
-    createdBy: undefined, // Not in our CellExport type, but could be added
-  };
-  return JSON.stringify(key);
+	// Use JSON for stable key generation
+	const key: IssueKey = {
+		id: cell.id,
+		createdAt: cell.created_at,
+		createdBy: undefined, // Not in our CellExport type, but could be added
+	};
+	return JSON.stringify(key);
 }
 
 // ============================================================================
@@ -103,47 +103,47 @@ function makeKey(cell: CellExport): string {
 // ============================================================================
 
 /**
- * Check if a bead is a tombstone (soft-deleted)
+ * Check if a cell is a tombstone (soft-deleted)
  */
 export function isTombstone(cell: CellExport): boolean {
-  return cell.status === STATUS_TOMBSTONE;
+	return cell.status === STATUS_TOMBSTONE;
 }
 
 /**
  * Check if a tombstone has expired (resurrection allowed)
  *
- * @param bead - The bead to check
+ * @param cell - The cell to check
  * @param ttlMs - TTL in milliseconds (default: 30 days)
  * @returns true if tombstone is expired, false otherwise
  */
 export function isExpiredTombstone(
-  cell: CellExport,
-  ttlMs: number = DEFAULT_TOMBSTONE_TTL_MS
+	cell: CellExport,
+	ttlMs: number = DEFAULT_TOMBSTONE_TTL_MS,
 ): boolean {
-  // Non-tombstones never expire
-  if (!isTombstone(cell)) {
-    return false;
-  }
+	// Non-tombstones never expire
+	if (!isTombstone(cell)) {
+		return false;
+	}
 
-  // Tombstones without closed_at are not expired (safety)
-  // Note: In our model, closed_at serves as deleted_at for tombstones
-  if (!cell.closed_at) {
-    return false;
-  }
+	// Tombstones without closed_at are not expired (safety)
+	// Note: In our model, closed_at serves as deleted_at for tombstones
+	if (!cell.closed_at) {
+		return false;
+	}
 
-  // Parse the deleted_at timestamp
-  const deletedAt = new Date(cell.closed_at).getTime();
-  if (Number.isNaN(deletedAt)) {
-    // Invalid timestamp means not expired (safety)
-    return false;
-  }
+	// Parse the deleted_at timestamp
+	const deletedAt = new Date(cell.closed_at).getTime();
+	if (Number.isNaN(deletedAt)) {
+		// Invalid timestamp means not expired (safety)
+		return false;
+	}
 
-  // Add clock skew grace period
-  const effectiveTtl = ttlMs + CLOCK_SKEW_GRACE_MS;
+	// Add clock skew grace period
+	const effectiveTtl = ttlMs + CLOCK_SKEW_GRACE_MS;
 
-  // Check if tombstone has exceeded TTL
-  const expirationTime = deletedAt + effectiveTtl;
-  return Date.now() > expirationTime;
+	// Check if tombstone has exceeded TTL
+	const expirationTime = deletedAt + effectiveTtl;
+	return Date.now() > expirationTime;
 }
 
 // ============================================================================
@@ -156,44 +156,44 @@ export function isExpiredTombstone(
  * On parse errors or ties, prefers left (t1) for determinism.
  */
 function isTimeAfter(t1: string | undefined, t2: string | undefined): boolean {
-  if (!t1) return false;
-  if (!t2) return true;
+	if (!t1) return false;
+	if (!t2) return true;
 
-  const time1 = new Date(t1).getTime();
-  const time2 = new Date(t2).getTime();
+	const time1 = new Date(t1).getTime();
+	const time2 = new Date(t2).getTime();
 
-  // Handle parse errors
-  const err1 = Number.isNaN(time1);
-  const err2 = Number.isNaN(time2);
+	// Handle parse errors
+	const err1 = Number.isNaN(time1);
+	const err2 = Number.isNaN(time2);
 
-  if (err1 && err2) return true; // Both invalid, prefer left
-  if (err1) return false; // t1 invalid, t2 valid
-  if (err2) return true; // t1 valid, t2 invalid
+	if (err1 && err2) return true; // Both invalid, prefer left
+	if (err1) return false; // t1 invalid, t2 valid
+	if (err2) return true; // t1 valid, t2 invalid
 
-  // Both valid - compare. On tie, left wins for determinism
-  return time1 >= time2;
+	// Both valid - compare. On tie, left wins for determinism
+	return time1 >= time2;
 }
 
 /**
  * Return the later of two timestamps
  */
 function maxTime(
-  t1: string | undefined,
-  t2: string | undefined
+	t1: string | undefined,
+	t2: string | undefined,
 ): string | undefined {
-  if (!t1 && !t2) return undefined;
-  if (!t1) return t2;
-  if (!t2) return t1;
+	if (!t1 && !t2) return undefined;
+	if (!t1) return t2;
+	if (!t2) return t1;
 
-  const time1 = new Date(t1).getTime();
-  const time2 = new Date(t2).getTime();
+	const time1 = new Date(t1).getTime();
+	const time2 = new Date(t2).getTime();
 
-  // Handle parse errors
-  if (Number.isNaN(time1) && Number.isNaN(time2)) return t2;
-  if (Number.isNaN(time1)) return t2;
-  if (Number.isNaN(time2)) return t1;
+	// Handle parse errors
+	if (Number.isNaN(time1) && Number.isNaN(time2)) return t2;
+	if (Number.isNaN(time1)) return t2;
+	if (Number.isNaN(time2)) return t1;
 
-  return time1 > time2 ? t1 : t2;
+	return time1 > time2 ? t1 : t2;
 }
 
 // ============================================================================
@@ -209,10 +209,10 @@ function maxTime(
  * - If both changed differently: left wins (deterministic)
  */
 function mergeField<T>(base: T, left: T, right: T): T {
-  if (base === left && base !== right) return right;
-  if (base === right && base !== left) return left;
-  // Both changed to same, or no change, or conflict - left wins
-  return left;
+	if (base === left && base !== right) return right;
+	if (base === right && base !== left) return left;
+	// Both changed to same, or no change, or conflict - left wins
+	return left;
 }
 
 /**
@@ -221,19 +221,19 @@ function mergeField<T>(base: T, left: T, right: T): T {
  * On conflict, the side with later updated_at wins.
  */
 function mergeFieldByUpdatedAt(
-  base: string | undefined,
-  left: string | undefined,
-  right: string | undefined,
-  leftUpdatedAt: string,
-  rightUpdatedAt: string
+	base: string | undefined,
+	left: string | undefined,
+	right: string | undefined,
+	leftUpdatedAt: string,
+	rightUpdatedAt: string,
 ): string | undefined {
-  // Standard 3-way for non-conflict cases
-  if (base === left && base !== right) return right;
-  if (base === right && base !== left) return left;
-  if (left === right) return left;
+	// Standard 3-way for non-conflict cases
+	if (base === left && base !== right) return right;
+	if (base === right && base !== left) return left;
+	if (left === right) return left;
 
-  // True conflict: pick value from side with latest updated_at
-  return isTimeAfter(leftUpdatedAt, rightUpdatedAt) ? left : right;
+	// True conflict: pick value from side with latest updated_at
+	return isTimeAfter(leftUpdatedAt, rightUpdatedAt) ? left : right;
 }
 
 /**
@@ -244,22 +244,22 @@ function mergeFieldByUpdatedAt(
  * - otherwise standard 3-way
  */
 function mergeStatus(
-  base: string | undefined,
-  left: string | undefined,
-  right: string | undefined
+	base: string | undefined,
+	left: string | undefined,
+	right: string | undefined,
 ): string {
-  // Safety: tombstone wins (shouldn't reach here normally)
-  if (left === STATUS_TOMBSTONE || right === STATUS_TOMBSTONE) {
-    return STATUS_TOMBSTONE;
-  }
+	// Safety: tombstone wins (shouldn't reach here normally)
+	if (left === STATUS_TOMBSTONE || right === STATUS_TOMBSTONE) {
+		return STATUS_TOMBSTONE;
+	}
 
-  // Closed wins over open (issues should stay closed)
-  if (left === "closed" || right === "closed") {
-    return "closed";
-  }
+	// Closed wins over open (issues should stay closed)
+	if (left === "closed" || right === "closed") {
+		return "closed";
+	}
 
-  // Standard 3-way
-  return mergeField(base ?? "open", left ?? "open", right ?? "open");
+	// Standard 3-way
+	return mergeField(base ?? "open", left ?? "open", right ?? "open");
 }
 
 /**
@@ -269,99 +269,99 @@ function mergeStatus(
  * - On conflict, higher priority wins (lower number = more urgent)
  */
 function mergePriority(base: number, left: number, right: number): number {
-  // Standard 3-way for non-conflict cases
-  if (base === left && base !== right) return right;
-  if (base === right && base !== left) return left;
-  if (left === right) return left;
+	// Standard 3-way for non-conflict cases
+	if (base === left && base !== right) return right;
+	if (base === right && base !== left) return left;
+	if (left === right) return left;
 
-  // True conflict: handle 0 as "unset"
-  if (left === 0 && right !== 0) return right;
-  if (right === 0 && left !== 0) return left;
+	// True conflict: handle 0 as "unset"
+	if (left === 0 && right !== 0) return right;
+	if (right === 0 && left !== 0) return left;
 
-  // Both explicit - higher priority wins (lower number)
-  return left < right ? left : right;
+	// Both explicit - higher priority wins (lower number)
+	return left < right ? left : right;
 }
 
 /**
  * Merge dependencies (union, deduplicated)
  */
 function mergeDependencies(
-  left: CellExport["dependencies"],
-  right: CellExport["dependencies"]
+	left: CellExport["dependencies"],
+	right: CellExport["dependencies"],
 ): CellExport["dependencies"] {
-  const seen = new Set<string>();
-  const result: CellExport["dependencies"] = [];
+	const seen = new Set<string>();
+	const result: CellExport["dependencies"] = [];
 
-  for (const dep of left) {
-    const key = `${dep.depends_on_id}:${dep.type}`;
-    if (!seen.has(key)) {
-      seen.add(key);
-      result.push(dep);
-    }
-  }
+	for (const dep of left) {
+		const key = `${dep.depends_on_id}:${dep.type}`;
+		if (!seen.has(key)) {
+			seen.add(key);
+			result.push(dep);
+		}
+	}
 
-  for (const dep of right) {
-    const key = `${dep.depends_on_id}:${dep.type}`;
-    if (!seen.has(key)) {
-      seen.add(key);
-      result.push(dep);
-    }
-  }
+	for (const dep of right) {
+		const key = `${dep.depends_on_id}:${dep.type}`;
+		if (!seen.has(key)) {
+			seen.add(key);
+			result.push(dep);
+		}
+	}
 
-  return result;
+	return result;
 }
 
 /**
  * Merge labels (union, deduplicated)
  */
 function mergeLabels(left: string[], right: string[]): string[] {
-  const seen = new Set<string>();
-  const result: string[] = [];
+	const seen = new Set<string>();
+	const result: string[] = [];
 
-  for (const label of left) {
-    if (!seen.has(label)) {
-      seen.add(label);
-      result.push(label);
-    }
-  }
+	for (const label of left) {
+		if (!seen.has(label)) {
+			seen.add(label);
+			result.push(label);
+		}
+	}
 
-  for (const label of right) {
-    if (!seen.has(label)) {
-      seen.add(label);
-      result.push(label);
-    }
-  }
+	for (const label of right) {
+		if (!seen.has(label)) {
+			seen.add(label);
+			result.push(label);
+		}
+	}
 
-  return result;
+	return result;
 }
 
 /**
  * Merge comments (union by author+text, preserves order)
  */
 function mergeComments(
-  left: CellExport["comments"],
-  right: CellExport["comments"]
+	left: CellExport["comments"],
+	right: CellExport["comments"],
 ): CellExport["comments"] {
-  const seen = new Set<string>();
-  const result: CellExport["comments"] = [];
+	const seen = new Set<string>();
+	const result: CellExport["comments"] = [];
 
-  for (const comment of left) {
-    const key = `${comment.author}:${comment.text}`;
-    if (!seen.has(key)) {
-      seen.add(key);
-      result.push(comment);
-    }
-  }
+	for (const comment of left) {
+		const key = `${comment.author}:${comment.text}`;
+		if (!seen.has(key)) {
+			seen.add(key);
+			result.push(comment);
+		}
+	}
 
-  for (const comment of right) {
-    const key = `${comment.author}:${comment.text}`;
-    if (!seen.has(key)) {
-      seen.add(key);
-      result.push(comment);
-    }
-  }
+	for (const comment of right) {
+		const key = `${comment.author}:${comment.text}`;
+		if (!seen.has(key)) {
+			seen.add(key);
+			result.push(comment);
+		}
+	}
 
-  return result;
+	return result;
 }
 
 // ============================================================================
@@ -374,13 +374,13 @@ function mergeComments(
  * The tombstone with later deleted_at (closed_at) wins.
  */
 function mergeTombstones(left: CellExport, right: CellExport): CellExport {
-  // Handle empty closed_at
-  if (!left.closed_at && !right.closed_at) return left; // Both invalid, left wins
-  if (!left.closed_at) return right; // Left invalid, right wins
-  if (!right.closed_at) return left; // Right invalid, left wins
+	// Handle empty closed_at
+	if (!left.closed_at && !right.closed_at) return left; // Both invalid, left wins
+	if (!left.closed_at) return right; // Left invalid, right wins
+	if (!right.closed_at) return left; // Right invalid, left wins
 
-  // Both valid - later deleted_at wins
-  return isTimeAfter(left.closed_at, right.closed_at) ? left : right;
+	// Both valid - later deleted_at wins
+	return isTimeAfter(left.closed_at, right.closed_at) ? left : right;
 }
 
 // ============================================================================
@@ -393,79 +393,92 @@ function mergeTombstones(left: CellExport, right: CellExport): CellExport {
  * Returns merged issue and optional conflict marker.
  */
 function mergeIssue(
-  base: CellExport,
-  left: CellExport,
-  right: CellExport
+	base: CellExport,
+	left: CellExport,
+	right: CellExport,
 ): { merged: CellExport; conflict: string } {
-  const merged: CellExport = {
-    id: base.id,
-    title: "", // Will be set below
-    status: "open", // Will be set below
-    priority: 0, // Will be set below
-    issue_type: base.issue_type,
-    created_at: base.created_at,
-    updated_at: "", // Will be set below
-    dependencies: [],
-    labels: [],
-    comments: [],
-  };
+	const merged: CellExport = {
+		id: base.id,
+		title: "", // Will be set below
+		status: "open", // Will be set below
+		priority: 0, // Will be set below
+		issue_type: base.issue_type,
+		created_at: base.created_at,
+		updated_at: "", // Will be set below
+		dependencies: [],
+		labels: [],
+		comments: [],
+	};
 
-  // Merge title - latest updated_at wins
-  merged.title = mergeFieldByUpdatedAt(
-    base.title,
-    left.title,
-    right.title,
-    left.updated_at,
-    right.updated_at
-  ) ?? left.title;
+	// Merge title - latest updated_at wins
+	merged.title =
+		mergeFieldByUpdatedAt(
+			base.title,
+			left.title,
+			right.title,
+			left.updated_at,
+			right.updated_at,
+		) ?? left.title;
 
-  // Merge description - latest updated_at wins
-  merged.description = mergeFieldByUpdatedAt(
-    base.description,
-    left.description,
-    right.description,
-    left.updated_at,
-    right.updated_at
-  );
+	// Merge description - latest updated_at wins
+	merged.description = mergeFieldByUpdatedAt(
+		base.description,
+		left.description,
+		right.description,
+		left.updated_at,
+		right.updated_at,
+	);
 
-  // Merge status - closed wins over open
-  merged.status = mergeStatus(base.status, left.status, right.status) as CellExport["status"];
+	// Merge status - closed wins over open
+	merged.status = mergeStatus(
+		base.status,
+		left.status,
+		right.status,
+	) as CellExport["status"];
 
-  // Merge priority - higher priority wins (lower number)
-  merged.priority = mergePriority(base.priority, left.priority, right.priority);
+	// Merge priority - higher priority wins (lower number)
+	merged.priority = mergePriority(base.priority, left.priority, right.priority);
 
-  // Merge issue_type - left wins on conflict
-  merged.issue_type = mergeField(
-    base.issue_type,
-    left.issue_type,
-    right.issue_type
-  );
+	// Merge issue_type - left wins on conflict
+	merged.issue_type = mergeField(
+		base.issue_type,
+		left.issue_type,
+		right.issue_type,
+	);
 
-  // Merge updated_at - take the max
-  merged.updated_at = maxTime(left.updated_at, right.updated_at) ?? left.updated_at;
+	// Merge updated_at - take the max
+	merged.updated_at =
+		maxTime(left.updated_at, right.updated_at) ?? left.updated_at;
 
-  // Merge closed_at - only if status is closed
-  if (merged.status === "closed") {
-    merged.closed_at = maxTime(left.closed_at, right.closed_at);
-  }
+	// Merge closed_at - only if status is closed
+	if (merged.status === "closed") {
+		merged.closed_at = maxTime(left.closed_at, right.closed_at);
+	}
 
-  // Merge assignee - left wins on conflict
-  merged.assignee = mergeField(base.assignee, left.assignee, right.assignee);
+	// Merge assignee - left wins on conflict
+	merged.assignee = mergeField(base.assignee, left.assignee, right.assignee);
 
-  // Merge parent_id - left wins on conflict
-  merged.parent_id = mergeField(base.parent_id, left.parent_id, right.parent_id);
+	// Merge parent_id - left wins on conflict
+	merged.parent_id = mergeField(
+		base.parent_id,
+		left.parent_id,
+		right.parent_id,
+	);
 
-  // Merge dependencies - union
-  merged.dependencies = mergeDependencies(left.dependencies, right.dependencies);
+	// Merge dependencies - union
+	merged.dependencies = mergeDependencies(
+		left.dependencies,
+		right.dependencies,
+	);
 
-  // Merge labels - union
-  merged.labels = mergeLabels(left.labels, right.labels);
+	// Merge labels - union
+	merged.labels = mergeLabels(left.labels, right.labels);
 
-  // Merge comments - union
-  merged.comments = mergeComments(left.comments, right.comments);
+	// Merge comments - union
+	merged.comments = mergeComments(left.comments, right.comments);
 
-  // All conflicts are auto-resolved deterministically
-  return { merged, conflict: "" };
+	// All conflicts are auto-resolved deterministically
+	return { merged, conflict: "" };
 }
 
 // ============================================================================
@@ -473,173 +486,171 @@ function mergeIssue(
 // ============================================================================
 
 /**
- * Perform 3-way merge of JSONL bead arrays
+ * Perform 3-way merge of JSONL cell arrays
  *
  * @param base - Common ancestor (e.g., git merge-base)
  * @param left - Local changes (e.g., HEAD)
  * @param right - Remote changes (e.g., MERGE_HEAD)
  * @param options - Merge options
- * @returns Merged beads and any conflicts
+ * @returns Merged cells and any conflicts
  */
 export function merge3Way(
-  base: CellExport[],
-  left: CellExport[],
-  right: CellExport[],
-  options: MergeOptions = {}
+	base: CellExport[],
+	left: CellExport[],
+	right: CellExport[],
+	options: MergeOptions = {},
 ): MergeResult {
-  const ttl = options.tombstoneTtlMs ?? DEFAULT_TOMBSTONE_TTL_MS;
-  const debug = options.debug ?? false;
+	const ttl = options.tombstoneTtlMs ?? DEFAULT_TOMBSTONE_TTL_MS;
+	const debug = options.debug ?? false;
 
+	// Build maps for quick lookup
+	const baseMap = new Map<string, CellExport>();
+	for (const cell of base) {
+		baseMap.set(makeKey(cell), cell);
+	}
 
+	const leftMap = new Map<string, CellExport>();
+	for (const cell of left) {
+		leftMap.set(makeKey(cell), cell);
+	}
 
-  // Build maps for quick lookup
-  const baseMap = new Map<string, CellExport>();
-  for (const bead of base) {
-    baseMap.set(makeKey(bead), bead);
-  }
+	const rightMap = new Map<string, CellExport>();
+	for (const cell of right) {
+		rightMap.set(makeKey(cell), cell);
+	}
 
-  const leftMap = new Map<string, CellExport>();
-  for (const bead of left) {
-    leftMap.set(makeKey(bead), bead);
-  }
+	// Collect all unique keys
+	const allKeys = new Set<string>();
+	for (const key of baseMap.keys()) allKeys.add(key);
+	for (const key of leftMap.keys()) allKeys.add(key);
+	for (const key of rightMap.keys()) allKeys.add(key);
 
-  const rightMap = new Map<string, CellExport>();
-  for (const bead of right) {
-    rightMap.set(makeKey(bead), bead);
-  }
+	const result: CellExport[] = [];
+	const conflicts: string[] = [];
 
-  // Collect all unique keys
-  const allKeys = new Set<string>();
-  for (const key of baseMap.keys()) allKeys.add(key);
-  for (const key of leftMap.keys()) allKeys.add(key);
-  for (const key of rightMap.keys()) allKeys.add(key);
+	for (const key of allKeys) {
+		const baseCell = baseMap.get(key);
+		const leftCell = leftMap.get(key);
+		const rightCell = rightMap.get(key);
 
-  const result: CellExport[] = [];
-  const conflicts: string[] = [];
+		// Determine tombstone status (safe because we check existence)
+		const leftTombstone = leftCell !== undefined && isTombstone(leftCell);
+		const rightTombstone = rightCell !== undefined && isTombstone(rightCell);
 
-  for (const key of allKeys) {
-    const baseBead = baseMap.get(key);
-    const leftBead = leftMap.get(key);
-    const rightBead = rightMap.get(key);
+		// Handle different scenarios based on presence in each version
+		if (baseCell && leftCell && rightCell) {
+			// All three present
 
-    // Determine tombstone status (safe because we check existence)
-    const leftTombstone = leftBead !== undefined && isTombstone(leftBead);
-    const rightTombstone = rightBead !== undefined && isTombstone(rightBead);
+			// CASE: Both are tombstones - merge tombstones
+			if (leftTombstone && rightTombstone) {
+				result.push(mergeTombstones(leftCell, rightCell));
+				continue;
+			}
 
-    // Handle different scenarios based on presence in each version
-    if (baseBead && leftBead && rightBead) {
-      // All three present
+			// CASE: Left is tombstone, right is live
+			if (leftTombstone && !rightTombstone) {
+				if (isExpiredTombstone(leftCell, ttl)) {
+					// Tombstone expired - resurrection allowed
+					result.push(rightCell);
+				} else {
+					// Tombstone wins
+					result.push(leftCell);
+				}
+				continue;
+			}
 
-      // CASE: Both are tombstones - merge tombstones
-      if (leftTombstone && rightTombstone) {
-        result.push(mergeTombstones(leftBead, rightBead));
-        continue;
-      }
+			// CASE: Right is tombstone, left is live
+			if (rightTombstone && !leftTombstone) {
+				if (isExpiredTombstone(rightCell, ttl)) {
+					// Tombstone expired - resurrection allowed
+					result.push(leftCell);
+				} else {
+					// Tombstone wins
+					result.push(rightCell);
+				}
+				continue;
+			}
 
-      // CASE: Left is tombstone, right is live
-      if (leftTombstone && !rightTombstone) {
-        if (isExpiredTombstone(leftBead, ttl)) {
-          // Tombstone expired - resurrection allowed
-          result.push(rightBead);
-        } else {
-          // Tombstone wins
-          result.push(leftBead);
-        }
-        continue;
-      }
+			// CASE: Both are live - standard merge
+			const { merged, conflict } = mergeIssue(baseCell, leftCell, rightCell);
+			if (conflict) {
+				conflicts.push(conflict);
+			} else {
+				result.push(merged);
+			}
+		} else if (!baseCell && leftCell && rightCell) {
+			// Added in both
 
-      // CASE: Right is tombstone, left is live
-      if (rightTombstone && !leftTombstone) {
-        if (isExpiredTombstone(rightBead, ttl)) {
-          // Tombstone expired - resurrection allowed
-          result.push(leftBead);
-        } else {
-          // Tombstone wins
-          result.push(rightBead);
-        }
-        continue;
-      }
+			// CASE: Both are tombstones
+			if (leftTombstone && rightTombstone) {
+				result.push(mergeTombstones(leftCell, rightCell));
+				continue;
+			}
 
-      // CASE: Both are live - standard merge
-      const { merged, conflict } = mergeIssue(baseBead, leftBead, rightBead);
-      if (conflict) {
-        conflicts.push(conflict);
-      } else {
-        result.push(merged);
-      }
-    } else if (!baseBead && leftBead && rightBead) {
-      // Added in both
+			// CASE: Left is tombstone, right is live
+			if (leftTombstone && !rightTombstone) {
+				if (isExpiredTombstone(leftCell, ttl)) {
+					result.push(rightCell);
+				} else {
+					result.push(leftCell);
+				}
+				continue;
+			}
 
-      // CASE: Both are tombstones
-      if (leftTombstone && rightTombstone) {
-        result.push(mergeTombstones(leftBead, rightBead));
-        continue;
-      }
+			// CASE: Right is tombstone, left is live
+			if (rightTombstone && !leftTombstone) {
+				if (isExpiredTombstone(rightCell, ttl)) {
+					result.push(leftCell);
+				} else {
+					result.push(rightCell);
+				}
+				continue;
+			}
 
-      // CASE: Left is tombstone, right is live
-      if (leftTombstone && !rightTombstone) {
-        if (isExpiredTombstone(leftBead, ttl)) {
-          result.push(rightBead);
-        } else {
-          result.push(leftBead);
-        }
-        continue;
-      }
+			// CASE: Both are live - merge with empty base
+			const emptyBase: CellExport = {
+				id: leftCell.id,
+				title: "",
+				status: "open",
+				priority: 0,
+				issue_type: leftCell.issue_type,
+				created_at: leftCell.created_at,
+				updated_at: leftCell.created_at,
+				dependencies: [],
+				labels: [],
+				comments: [],
+			};
+			const { merged } = mergeIssue(emptyBase, leftCell, rightCell);
+			result.push(merged);
+		} else if (baseCell && leftCell && !rightCell) {
+			// Deleted in right, maybe modified in left
 
-      // CASE: Right is tombstone, left is live
-      if (rightTombstone && !leftTombstone) {
-        if (isExpiredTombstone(rightBead, ttl)) {
-          result.push(leftBead);
-        } else {
-          result.push(rightBead);
-        }
-        continue;
-      }
+			// Tombstones must be preserved
+			if (leftTombstone) {
+				result.push(leftCell);
+			}
+			// Otherwise deletion wins over modification (issue not included)
+		} else if (baseCell && !leftCell && rightCell) {
+			// Deleted in left, maybe modified in right
 
-      // CASE: Both are live - merge with empty base
-      const emptyBase: CellExport = {
-        id: leftBead.id,
-        title: "",
-        status: "open",
-        priority: 0,
-        issue_type: leftBead.issue_type,
-        created_at: leftBead.created_at,
-        updated_at: leftBead.created_at,
-        dependencies: [],
-        labels: [],
-        comments: [],
-      };
-      const { merged } = mergeIssue(emptyBase, leftBead, rightBead);
-      result.push(merged);
-    } else if (baseBead && leftBead && !rightBead) {
-      // Deleted in right, maybe modified in left
+			// Tombstones must be preserved
+			if (rightTombstone) {
+				result.push(rightCell);
+			}
+			// Otherwise deletion wins over modification (issue not included)
+		} else if (!baseCell && leftCell && !rightCell) {
+			// Added only in left
+			result.push(leftCell);
+		} else if (!baseCell && !leftCell && rightCell) {
+			// Added only in right
+			result.push(rightCell);
+		}
+	}
 
-      // Tombstones must be preserved
-      if (leftTombstone) {
-        result.push(leftBead);
-      }
-      // Otherwise deletion wins over modification (issue not included)
-    } else if (baseBead && !leftBead && rightBead) {
-      // Deleted in left, maybe modified in right
+	if (debug) {
+	}
 
-      // Tombstones must be preserved
-      if (rightTombstone) {
-        result.push(rightBead);
-      }
-      // Otherwise deletion wins over modification (issue not included)
-    } else if (!baseBead && leftBead && !rightBead) {
-      // Added only in left
-      result.push(leftBead);
-    } else if (!baseBead && !leftBead && rightBead) {
-      // Added only in right
-      result.push(rightBead);
-    }
-  }
-
-  if (debug) {
-  }
-
-  return { merged: result, conflicts };
+	return { merged: result, conflicts };
 }
 
 /**
@@ -652,28 +663,28 @@ export function merge3Way(
  * @returns Merged JSONL string
  */
 export function mergeJsonl(
-  baseJsonl: string,
-  leftJsonl: string,
-  rightJsonl: string,
-  options: MergeOptions = {}
+	baseJsonl: string,
+	leftJsonl: string,
+	rightJsonl: string,
+	options: MergeOptions = {},
 ): { jsonl: string; conflicts: string[] } {
-  // Import parseJSONL dynamically to avoid circular dependency
-  const parseJSONL = (jsonl: string): CellExport[] => {
-    if (!jsonl || jsonl.trim() === "") return [];
-    return jsonl
-      .split("\n")
-      .filter((line) => line.trim() !== "")
-      .map((line) => JSON.parse(line) as CellExport);
-  };
+	// Import parseJSONL dynamically to avoid circular dependency
+	const parseJSONL = (jsonl: string): CellExport[] => {
+		if (!jsonl || jsonl.trim() === "") return [];
+		return jsonl
+			.split("\n")
+			.filter((line) => line.trim() !== "")
+			.map((line) => JSON.parse(line) as CellExport);
+	};
 
-  const base = parseJSONL(baseJsonl);
-  const left = parseJSONL(leftJsonl);
-  const right = parseJSONL(rightJsonl);
+	const base = parseJSONL(baseJsonl);
+	const left = parseJSONL(leftJsonl);
+	const right = parseJSONL(rightJsonl);
 
-  const { merged, conflicts } = merge3Way(base, left, right, options);
+	const { merged, conflicts } = merge3Way(base, left, right, options);
 
-  // Serialize back to JSONL
-  const jsonl = merged.map((bead) => JSON.stringify(bead)).join("\n");
+	// Serialize back to JSONL
+	const jsonl = merged.map((cell) => JSON.stringify(cell)).join("\n");
 
-  return { jsonl, conflicts };
+	return { jsonl, conflicts };
 }

@@ -55,7 +55,7 @@ Battle-tested patterns for multi-agent work:
 - **Coordinator pattern** - One orchestrates, others execute
 - **Reserve-Edit-Release** - Lock files before editing
 - **Fresh subagent per task** - Clean context beats polluted context
-- **Thread by bead ID** - Organize communication by task
+- **Thread by cell ID** - Organize communication by task
 
 [Learn more about patterns →](/docs/concepts/patterns)
 
@@ -100,7 +100,7 @@ Small pieces that combine well. DurableCursor + DurableDeferred = DurableMailbox
 │  │                                          │               │
 │  │  Reserve → Edit → Release                │               │
 │  │  Coordinator → Workers                   │               │
-│  │  Thread by Bead ID                       │               │
+│  │  Thread by cell ID                       │               │
 │  └────────────────────┬────────────────────┘               │
 │                       │                                     │
 │                       ▼                                     │

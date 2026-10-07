@@ -34,11 +34,11 @@ export const taskDuration: AnalyticsQuery & {
 	sql: `
     WITH task_durations AS (
       SELECT 
-        json_extract(started.data, '$.bead_id') as task_id,
+        json_extract(started.data, '$.cell_id') as task_id,
         completed.timestamp - started.timestamp as duration_ms
       FROM events started
       INNER JOIN events completed 
-        ON json_extract(started.data, '$.bead_id') = json_extract(completed.data, '$.bead_id')
+        ON json_extract(started.data, '$.cell_id') = json_extract(completed.data, '$.cell_id')
         AND started.project_key = completed.project_key
       WHERE started.type = 'task_started'
         AND completed.type = 'task_completed'
@@ -66,11 +66,11 @@ export const taskDuration: AnalyticsQuery & {
 				sql: `
           WITH task_durations AS (
             SELECT 
-              json_extract(started.data, '$.bead_id') as task_id,
+              json_extract(started.data, '$.cell_id') as task_id,
               completed.timestamp - started.timestamp as duration_ms
             FROM events started
             INNER JOIN events completed 
-              ON json_extract(started.data, '$.bead_id') = json_extract(completed.data, '$.bead_id')
+              ON json_extract(started.data, '$.cell_id') = json_extract(completed.data, '$.cell_id')
               AND started.project_key = completed.project_key
             WHERE started.type = 'task_started'
               AND completed.type = 'task_completed'

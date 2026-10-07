@@ -37,33 +37,55 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Build all packages (unscoped)
+        run: bun turbo build
+
       - name: Scope packages for @${{ github.repository_owner }}
         run: bun scripts/scope-packages.ts ${{ github.repository_owner }}
-
-      - name: Build only publishable packages
-        run: |
-          # Build swarm-mail first (dependency)
-          (cd packages/swarm-mail && bun run build)
-          # Build opencode-swarm-plugin
-          (cd packages/opencode-swarm-plugin && bun run build)
 
       - name: Publish to NPM
         if: ${{ inputs.dry_run != true }}
         run: |
           set -euo pipefail
-          
-          for pkg in packages/swarm-mail packages/opencode-swarm-plugin; do
+
+          # Publish ALL 6 packages in dependency order:
+          # 1. swarm-path (no deps)
+          # 2. swarm-mail (depends on swarm-path)
+          # 3. swarm (depends on swarm-path & swarm-mail)
+          # 4. swarm-evals (depends on swarm & swarm-mail)
+          # 5. swarm-claude-code (no workspace deps)
+          # 6. swarm-dashboard (depends on swarm-mail)
+          PACKAGES=(
+            packages/swarm-path
+            packages/swarm-mail
+            packages/swarm
+            packages/swarm-evals
+            packages/swarm-claude-code
+            packages/swarm-dashboard
+          )
+
+          for pkg in "${PACKAGES[@]}"; do
             echo "📦 Publishing $pkg..."
-            # Always publish as beta - this is a fork, not the canonical release
-            (cd "$pkg" && npm publish --access public --tag beta) || echo "⚠️ May already exist"
+            # bun publish resolves workspace:* to actual versions automatically
+            # --access public required for scoped packages
+            (cd "$pkg" && bun publish --access public) || echo "⚠️ May already exist"
           done
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # bun publish uses NPM_CONFIG_TOKEN (not NODE_AUTH_TOKEN)
+          NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Dry run - show what would be published
         if: ${{ inputs.dry_run == true }}
         run: |
-          for pkg in packages/swarm-mail packages/opencode-swarm-plugin; do
+          PACKAGES=(
+            packages/swarm-path
+            packages/swarm-mail
+            packages/swarm
+            packages/swarm-evals
+            packages/swarm-claude-code
+            packages/swarm-dashboard
+          )
+          for pkg in "${PACKAGES[@]}"; do
             echo "📦 Would publish $pkg:"
-            cat "$pkg/package.json" | jq '{name, version}'
+            cat "$pkg/package.json" | jq '{name, version, dependencies}'
           done

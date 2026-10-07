@@ -189,13 +189,10 @@ export class QueryBuilder {
 		// Build parameters object (indexed by position)
 		const parameters: Record<string, unknown> | undefined =
 			this.params.length > 0
-				? this.params.reduce<Record<string, unknown>>(
-						(acc, param, idx) => {
-							acc[idx] = param;
-							return acc;
-						},
-						{},
-					)
+				? this.params.reduce<Record<string, unknown>>((acc, param, idx) => {
+						acc[idx] = param;
+						return acc;
+					}, {})
 				: undefined;
 
 		return {

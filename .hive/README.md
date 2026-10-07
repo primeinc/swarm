@@ -1,12 +1,12 @@
-# Beads - AI-Native Issue Tracking
+# cells - AI-Native Issue Tracking
 
-Welcome to Beads! This repository uses **Beads** for issue tracking - a modern, AI-native tool designed to live directly in your codebase alongside your code.
+Welcome to cells! This repository uses **cells** for issue tracking - a modern, AI-native tool designed to live directly in your codebase alongside your code.
 
-## What is Beads?
+## What is cells?
 
-Beads is issue tracking that lives in your repo, making it perfect for AI coding agents and developers who want their issues close to their code. No web UI required - everything works through the CLI and integrates seamlessly with git.
+cells is issue tracking that lives in your repo, making it perfect for AI coding agents and developers who want their issues close to their code. No web UI required - everything works through the CLI and integrates seamlessly with git.
 
-**Learn more:** [github.com/steveyegge/beads](https://github.com/steveyegge/beads)
+**Learn more:** [github.com/steveyegge/cells](https://github.com/steveyegge/cells)
 
 ## Quick Start
 
@@ -32,13 +32,13 @@ bd sync
 
 ### Working with Issues
 
-Issues in Beads are:
-- **Git-native**: Stored in `.beads/issues.jsonl` and synced like code
+Issues in cells are:
+- **Git-native**: Stored in `.cells/issues.jsonl` and synced like code
 - **AI-friendly**: CLI-first design works perfectly with AI coding agents
 - **Branch-aware**: Issues can follow your branch workflow
 - **Always in sync**: Auto-syncs with your commits
 
-## Why Beads?
+## Why cells?
 
 ✨ **AI-Native Design**
 - Built specifically for AI-assisted development workflows
@@ -55,27 +55,27 @@ Issues in Beads are:
 - Branch-aware issue tracking
 - Intelligent JSONL merge resolution
 
-## Get Started with Beads
+## Get Started with cells
 
-Try Beads in your own projects:
+Try cells in your own projects:
 
 ```bash
-# Install Beads
-curl -sSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash
+# Install cells
+curl -sSL https://raw.githubusercontent.com/steveyegge/cells/main/scripts/install.sh | bash
 
 # Initialize in your repo
 bd init
 
 # Create your first issue
-bd create "Try out Beads"
+bd create "Try out cells"
 ```
 
 ## Learn More
 
-- **Documentation**: [github.com/steveyegge/beads/docs](https://github.com/steveyegge/beads/tree/main/docs)
+- **Documentation**: [github.com/steveyegge/cells/docs](https://github.com/steveyegge/cells/tree/main/docs)
 - **Quick Start Guide**: Run `bd quickstart`
-- **Examples**: [github.com/steveyegge/beads/examples](https://github.com/steveyegge/beads/tree/main/examples)
+- **Examples**: [github.com/steveyegge/cells/examples](https://github.com/steveyegge/cells/tree/main/examples)
 
 ---
 
-*Beads: Issue tracking that moves at the speed of thought* ⚡
+*cells: Issue tracking that moves at the speed of thought* ⚡

@@ -1,5 +1,5 @@
 {
-  "title": "Packages",
-  "description": "Package documentation by library",
-  "pages": ["swarm-mail", "opencode-plugin"]
+	"title": "Packages",
+	"description": "Package documentation by library",
+	"pages": ["swarm-mail", "opencode-plugin"]
 }

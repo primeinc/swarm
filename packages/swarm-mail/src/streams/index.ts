@@ -3,14 +3,10 @@
  *
  * This module provides utility functions (withTimeout, withTiming, getDatabasePath)
  * and re-exports from other modules for backward compatibility.
- *
- * For database access, use:
- * - createLibSQLAdapter() for libSQL databases
- * - createSwarmMailAdapter() for SwarmMail operations
  */
-import { existsSync, mkdirSync } from "node:fs";
-import { homedir } from "node:os";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { DbPathResolver } from "../db/paths.js";
 import { getMainRepoPath } from "../db/worktree.js";
 import { migrateLocalDbToGlobal } from "./auto-migrate.js";
 
@@ -18,15 +14,6 @@ import { migrateLocalDbToGlobal } from "./auto-migrate.js";
 // Query Timeout Wrapper
 // ============================================================================
 
-/**
- * Wrap a promise with a timeout
- *
- * @param promise - The promise to wrap
- * @param ms - Timeout in milliseconds
- * @param operation - Operation name for error message
- * @returns The result of the promise
- * @throws Error if timeout is reached
- */
 export async function withTimeout<T>(
 	promise: Promise<T>,
 	ms: number,
@@ -45,17 +32,8 @@ export async function withTimeout<T>(
 // Performance Monitoring
 // ============================================================================
 
-/** Threshold for slow query warnings in milliseconds */
 const SLOW_QUERY_THRESHOLD_MS = 100;
 
-/**
- * Execute a database operation with timing instrumentation.
- * Logs a warning if the operation exceeds SLOW_QUERY_THRESHOLD_MS.
- *
- * @param operation - Name of the operation for logging
- * @param fn - Async function to execute
- * @returns Result of the function
- */
 export async function withTiming<T>(
 	operation: string,
 	fn: () => Promise<T>,
@@ -79,61 +57,32 @@ export async function withTiming<T>(
 
 /**
  * Get the database path for swarm-mail
- *
- * ALWAYS returns the global database: ~/.config/swarm-tools/swarm.db
- * 
- * If a projectPath is provided and has a local swarm.db, it will be
- * auto-migrated to the global database on first access.
- *
- * @param projectPath - Optional project path (triggers auto-migration if local DB exists)
- * @returns Path to global database file
  */
 export function getDatabasePath(projectPath?: string): string {
-	const globalDir = join(homedir(), ".config", "swarm-tools");
-	if (!existsSync(globalDir)) {
-		mkdirSync(globalDir, { recursive: true });
-	}
-	const globalDbPath = join(globalDir, "swarm.db");
-	
-	// Auto-migrate project-local DBs to global DB
+	const globalDbPath = DbPathResolver.getGlobalPath();
+
 	if (projectPath) {
 		const oldPaths = getOldProjectDbPaths(projectPath);
-		
-		// Check for old libSQL database (.opencode/streams.db)
 		if (existsSync(oldPaths.libsql)) {
-			// Trigger migration - runs async but we don't wait
-			// Idempotent: safe to call multiple times, skips if .migrated exists
 			migrateLocalDbToGlobal(oldPaths.libsql, globalDbPath).catch((err) => {
 				console.error(`[swarm-mail] Migration failed: ${err.message}`);
 			});
 		}
 	}
-	
+
 	return globalDbPath;
 }
 
 /**
  * Get paths to old project-local databases for migration detection
- *
- * Returns paths that should be checked for existing data that needs migration:
- * - libsql: Old libSQL database at {projectPath}/.opencode/streams.db
- * - pglite: Old PGlite database directory at {projectPath}/.opencode/streams/
- *
- * If projectPath is a worktree, resolves to the main repository's .opencode directory.
- *
- * @param projectPath - Project directory path (worktree or main repo)
- * @returns Object with paths to check for migration
  */
 export function getOldProjectDbPaths(projectPath: string): {
 	libsql: string;
-	pglite: string;
 } {
-	// Resolve to main repo if in worktree
 	const mainRepoPath = getMainRepoPath(projectPath);
 	const localDir = join(mainRepoPath, ".opencode");
 	return {
 		libsql: join(localDir, "streams.db"),
-		pglite: join(localDir, "streams"),
 	};
 }
 
@@ -141,9 +90,13 @@ export function getOldProjectDbPaths(projectPath: string): {
 // Exports
 // ============================================================================
 
-export * from "./agent-mail";
-export * from "./events";
-export * from "./migrations";
+export * from "./agent-mail.js";
+// Client buffer for backpressure handling
+export * from "./client-buffer.js";
+// Decision trace store for observability
+export * from "./decision-trace-store.js";
+export * from "./events.js";
+export * from "./migrations.js";
 export type {
 	Agent,
 	Conflict,
@@ -152,8 +105,7 @@ export type {
 	InboxOptions,
 	Message,
 	Reservation,
-} from "./projections-drizzle";
-
+} from "./projections-drizzle.js";
 export {
 	checkConflicts,
 	getActiveReservations,
@@ -164,22 +116,14 @@ export {
 	getInbox,
 	getMessage,
 	getThreadMessages,
-} from "./projections-drizzle";
+} from "./projections-drizzle.js";
 // Export adapter cache management
-export { clearAdapterCache } from "./store";
-
+export { clearAdapterCache, getOrCreateAdapter } from "./store.js";
 // Export Drizzle wrapper functions (they match old signatures)
 export {
 	appendEvent,
 	getLatestSequence,
 	readEvents,
-} from "./store-drizzle";
-
+} from "./store-drizzle.js";
 // Legacy exports for backward compatibility (still used by some high-level functions)
-export * from "./swarm-mail";
-
-// Decision trace store for observability
-export * from "./decision-trace-store";
-
-// Client buffer for backpressure handling
-export * from "./client-buffer";
+export * from "./swarm-mail.js";

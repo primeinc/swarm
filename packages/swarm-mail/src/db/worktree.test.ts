@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { getMainRepoPath, isWorktree, resolveDbPath } from "./worktree.js";
 import { getOldProjectDbPaths } from "../streams/index.js";
+import { DbFileOps } from "./file-ops.js";
+import { getMainRepoPath, isWorktree, resolveDbPath } from "./worktree.js";
 
 describe("worktree path resolution", () => {
 	let testDir: string;
@@ -33,9 +34,9 @@ describe("worktree path resolution", () => {
 		);
 	});
 
-	afterEach(() => {
+	afterEach(async () => {
 		if (existsSync(testDir)) {
-			rmSync(testDir, { recursive: true, force: true });
+			await DbFileOps.remove(testDir, { recursive: true });
 		}
 	});
 
@@ -70,7 +71,11 @@ describe("worktree path resolution", () => {
 			// Write invalid .git file
 			const invalidWorktree = join(testDir, "invalid-worktree");
 			mkdirSync(invalidWorktree, { recursive: true });
-			writeFileSync(join(invalidWorktree, ".git"), "invalid content\n", "utf-8");
+			writeFileSync(
+				join(invalidWorktree, ".git"),
+				"invalid content\n",
+				"utf-8",
+			);
 
 			expect(() => getMainRepoPath(invalidWorktree)).toThrow();
 		});
@@ -100,14 +105,12 @@ describe("worktree path resolution", () => {
 
 			// Should point to main repo's .opencode, not worktree's
 			expect(paths.libsql).toBe(join(mainRepoDir, ".opencode", "streams.db"));
-			expect(paths.pglite).toBe(join(mainRepoDir, ".opencode", "streams"));
 		});
 
 		test("resolves old DB paths normally when in main repo", async () => {
 			const paths = getOldProjectDbPaths(mainRepoDir);
 
 			expect(paths.libsql).toBe(join(mainRepoDir, ".opencode", "streams.db"));
-			expect(paths.pglite).toBe(join(mainRepoDir, ".opencode", "streams"));
 		});
 	});
 });

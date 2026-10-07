@@ -16,7 +16,7 @@ export interface StrategySuccessRatesFilters {
  *
  * Returns strategy, total attempts, successful count, failed count, and
  * success rate percentage, ordered by success rate descending.
- * 
+ *
  * Joins decomposition_complete events (for strategy) with subtask outcomes (for success/failure).
  *
  * @param filters - Optional filters for project_key
@@ -26,10 +26,10 @@ export function strategySuccessRates(
 	filters?: StrategySuccessRatesFilters,
 ): AnalyticsQuery {
 	// Use raw SQL since we need a CTE join
-	const projectFilter = filters?.project_key 
-		? `WHERE d.project_key = '${filters.project_key}'` 
-		: '';
-	
+	const projectFilter = filters?.project_key
+		? `WHERE d.project_key = '${filters.project_key}'`
+		: "";
+
 	const sql = `
 		WITH decompositions AS (
 			SELECT 
@@ -65,7 +65,8 @@ export function strategySuccessRates(
 
 	return {
 		name: "strategy-success-rates",
-		description: "Success rate percentage by decomposition strategy, showing which strategies work best",
+		description:
+			"Success rate percentage by decomposition strategy, showing which strategies work best",
 		sql,
 		parameters: {},
 	};

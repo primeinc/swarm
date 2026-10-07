@@ -9,9 +9,10 @@
  * - ask: Request/response pattern (mailbox + deferred)
  * - layers: Composed service layers for common use cases
  */
+
+export * from "./ask";
 export * from "./cursor";
 export * from "./deferred";
+export * from "./layers";
 export * from "./lock";
 export * from "./mailbox";
-export * from "./ask";
-export * from "./layers";

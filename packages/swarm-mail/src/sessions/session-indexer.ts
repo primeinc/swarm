@@ -39,18 +39,15 @@
  * ```
  */
 
-import { Effect, Layer } from "effect";
-import type { SwarmDb } from "../db/client.js";
-import { SessionParser } from "./session-parser.js";
-import { ChunkProcessor } from "./chunk-processor.js";
-import {
-	projectSearchResults,
-	type FieldSelection,
-} from "./pagination.js";
-import { createMemoryStore, type SearchResult } from "../memory/store.js";
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
+import { Effect, type Layer } from "effect";
+import type { SwarmDb } from "../db/client.js";
 import type { Ollama } from "../memory/ollama.js";
+import { createMemoryStore, type SearchResult } from "../memory/store.js";
+import { ChunkProcessor } from "./chunk-processor.js";
+import { type FieldSelection, projectSearchResults } from "./pagination.js";
+import { SessionParser } from "./session-parser.js";
 
 // ============================================================================
 // Types
@@ -199,8 +196,7 @@ export class SessionIndexer {
 			const content = yield* _(
 				Effect.tryPromise({
 					try: () => fs.readFile(filePath, "utf-8"),
-					catch: (error: unknown) =>
-						new Error(`Failed to read file: ${error}`),
+					catch: (error: unknown) => new Error(`Failed to read file: ${error}`),
 				}),
 			);
 
@@ -217,8 +213,9 @@ export class SessionIndexer {
 			);
 
 			// Count skipped lines (total lines - parsed messages - empty lines)
-			const totalLines = content.split("\n").filter((l: string) => l.trim())
-				.length;
+			const totalLines = content
+				.split("\n")
+				.filter((l: string) => l.trim()).length;
 			skipped = Math.max(0, totalLines - messages.length);
 
 			// Chunk messages
@@ -375,7 +372,10 @@ export class SessionIndexer {
 
 			// Apply field projection if requested
 			if (fields) {
-				return projectSearchResults(results, fields) as unknown as SearchResult[];
+				return projectSearchResults(
+					results,
+					fields,
+				) as unknown as SearchResult[];
 			}
 
 			return results;
@@ -393,16 +393,14 @@ export class SessionIndexer {
 			const stats = yield* _(
 				Effect.tryPromise({
 					try: () => self.memoryStore.getStats(),
-					catch: (error: unknown) =>
-						new Error(`Failed to get stats: ${error}`),
+					catch: (error: unknown) => new Error(`Failed to get stats: ${error}`),
 				}),
 			);
 
 			// Group by collection (agent_type)
 			// This is a simplified version - full implementation would
 			// query the database to count unique sessions
-			const by_agent: Record<string, { sessions: number; chunks: number }> =
-				{};
+			const by_agent: Record<string, { sessions: number; chunks: number }> = {};
 
 			// For now, use a simplified approach
 			// TODO: Enhance with proper session counting

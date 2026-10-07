@@ -5,14 +5,14 @@
  * Strategy: 1 chunk = 1 message (no further splitting for Phase 1).
  */
 
-import { describe, expect, test, vi } from "vitest";
 import { Effect, Layer } from "effect";
-import { Ollama, type MemoryConfig, OllamaError } from "../memory/ollama";
+import { describe, expect, test, vi } from "vitest";
+import { type MemoryConfig, Ollama, OllamaError } from "../memory/ollama";
 import {
 	ChunkProcessor,
-	type NormalizedMessage,
-	type MessageChunk,
 	type EmbeddedChunk,
+	type MessageChunk,
+	type NormalizedMessage,
 } from "./chunk-processor";
 
 describe("ChunkProcessor - Message Chunking", () => {
@@ -172,7 +172,8 @@ describe("ChunkProcessor - Ollama Embedding Integration", () => {
 		const failingOllamaLayer = Layer.succeed(Ollama, {
 			embedBatch: () =>
 				Effect.fail(new OllamaError({ reason: "Connection failed" })),
-			embed: () => Effect.fail(new OllamaError({ reason: "Connection failed" })),
+			embed: () =>
+				Effect.fail(new OllamaError({ reason: "Connection failed" })),
 			checkHealth: () =>
 				Effect.fail(new OllamaError({ reason: "Not running" })),
 		});

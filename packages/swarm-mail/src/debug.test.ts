@@ -1,5 +1,5 @@
-import debug from "debug";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import debug from "debug";
 
 describe("debug logging", () => {
 	let originalDebug: string | undefined;

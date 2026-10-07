@@ -171,12 +171,12 @@ function fibonacci(n: number): number {
 4. **Over-mocking** - Don't mock what you don't own
 5. **Testing private methods** - Test through public interface
 
-## Integration with Beads
+## Integration with cells
 
-When working on a bead:
+When working on a cell:
 
-1. Start bead: `beads_start(id="bd-123")`
+1. Start cell: `cells_start(id="bd-123")`
 2. Write failing test for the requirement
 3. Implement to pass
 4. Refactor
-5. Close bead: `beads_close(id="bd-123", reason="Done: tests passing")`
+5. Close cell: `cells_close(id="bd-123", reason="Done: tests passing")`

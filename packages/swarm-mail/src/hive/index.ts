@@ -1,5 +1,5 @@
 /**
- * Beads Module - Event-sourced issue tracking
+ * Hive Module - Event-sourced issue tracking
  *
  * Exports:
  * - HiveAdapter interface and types
@@ -8,178 +8,173 @@
  * - Store operations (append, read, replay)
  * - Event type definitions
  *
- * @module beads
+ * @module hive
  */
 
 // Types
 export type {
-  Cell,
-  CellAdapter,
-  CellComment,
-  CellDependency,
-  CellLabel,
-  HiveAdapter,
-  HiveAdapterFactory,
-  HiveSchemaAdapter,
-  CellStatus,
-  CellType,
-  CommentAdapter,
-  CreateCellOptions,
-  DependencyAdapter,
-  DependencyRelationship,
-  EpicAdapter,
-  LabelAdapter,
-  QueryAdapter,
-  QueryCellsOptions,
-  UpdateCellOptions,
-  // Backward compatibility aliases
-  Bead,
-  BeadAdapter,
-  BeadComment,
-  BeadDependency,
-  BeadLabel,
-  BeadsAdapter,
-  BeadsAdapterFactory,
-  BeadsSchemaAdapter,
-  BeadStatus,
-  BeadType,
-  CreateBeadOptions,
-  UpdateBeadOptions,
-  QueryBeadsOptions,
+	Cell,
+	CellAdapter,
+	CellComment,
+	CellDependency,
+	CellLabel,
+	CellStatus,
+	CellType,
+	CommentAdapter,
+	CreateCellOptions,
+	CreatecellOptions,
+	// Backward compatibility aliases
+	cell,
+	cellAdapter,
+	cellComment,
+	cellDependency,
+	cellLabel,
+	cellStatus,
+	cellsAdapter,
+	cellsAdapterFactory,
+	cellsSchemaAdapter,
+	cellType,
+	DependencyAdapter,
+	DependencyRelationship,
+	EpicAdapter,
+	HiveAdapter,
+	HiveAdapterFactory,
+	HiveSchemaAdapter,
+	LabelAdapter,
+	QueryAdapter,
+	QueryCellsOptions,
+	QuerycellsOptions,
+	UpdateCellOptions,
+	UpdatecellOptions,
 } from "../types/hive-adapter.js";
-
-// Event types
-export type {
-  CellEvent,
-  BaseCellEvent,
-  CellCreatedEvent,
-  CellUpdatedEvent,
-  CellStatusChangedEvent,
-  CellClosedEvent,
-  CellReopenedEvent,
-  CellDeletedEvent,
-  CellDependencyAddedEvent,
-  CellDependencyRemovedEvent,
-  CellLabelAddedEvent,
-  CellLabelRemovedEvent,
-  CellCommentAddedEvent,
-  CellCommentUpdatedEvent,
-  CellCommentDeletedEvent,
-  CellEpicChildAddedEvent,
-  CellEpicChildRemovedEvent,
-  CellEpicClosureEligibleEvent,
-  CellAssignedEvent,
-  CellWorkStartedEvent,
-  CellCompactedEvent,
-} from "./events.js";
-
 // Adapter factory
-export { createHiveAdapter } from "./adapter.js";
-
 // Backward compatibility alias
-export { createHiveAdapter as createBeadsAdapter } from "./adapter.js";
-
-// Migrations
-export { beadsMigration, beadsMigrations, cellsViewMigration, hiveMigrations } from "./migrations.js";
-
-// Store operations
 export {
-  appendCellEvent,
-  readCellEvents,
-  replayCellEvents,
-  type ReadCellEventsOptions,
-} from "./store.js";
-
-// Projections
+	createHiveAdapter,
+	createHiveAdapter as createcellsAdapter,
+} from "./adapter.js";
+// Comment operations
 export {
-  clearAllDirtyBeads,
-  clearDirtyBead,
-  getCell,
-  getBlockedCells,
-  getBlockers,
-  getComments,
-  getDependencies,
-  getDependents,
-  getDirtyCells,
-  getInProgressCells,
-  getLabels,
-  getNextReadyCell,
-  isBlocked,
-  markBeadDirty,
-  queryCells,
-  updateProjections,
-} from "./projections.js";
-
+	getCommentById,
+	getCommentThread,
+} from "./comments.js";
 // Dependency operations
 export {
-  wouldCreateCycle,
-  getOpenBlockers,
-  rebuildBeadBlockedCache,
-  rebuildAllBlockedCaches,
-  invalidateBlockedCache,
+	getOpenBlockers,
+	invalidateBlockedCache,
+	rebuildAllBlockedCaches,
+	rebuildCellBlockedCache,
+	wouldCreateCycle,
 } from "./dependencies.js";
+// Event types
+export type {
+	BaseCellEvent,
+	CellAssignedEvent,
+	CellClosedEvent,
+	CellCommentAddedEvent,
+	CellCommentDeletedEvent,
+	CellCommentUpdatedEvent,
+	CellCompactedEvent,
+	CellCreatedEvent,
+	CellDeletedEvent,
+	CellDependencyAddedEvent,
+	CellDependencyRemovedEvent,
+	CellEpicChildAddedEvent,
+	CellEpicChildRemovedEvent,
+	CellEpicClosureEligibleEvent,
+	CellEvent,
+	CellLabelAddedEvent,
+	CellLabelRemovedEvent,
+	CellReopenedEvent,
+	CellStatusChangedEvent,
+	CellUpdatedEvent,
+	CellWorkStartedEvent,
+} from "./events.js";
+// FlushManager for auto-sync
+export {
+	FlushManager,
+	type FlushManagerOptions,
+	type FlushResult,
+} from "./flush-manager.js";
+// JSONL export/import
+export {
+	type CellExport,
+	computeContentHash,
+	type ExportOptions,
+	exportDirtyCells,
+	exportToJSONL,
+	type ImportOptions,
+	type ImportResult,
+	importFromJSONL,
+	parseJSONL,
+	serializeToJSONL,
+} from "./jsonl.js";
 
 // Label operations
 export {
-  getCellsByLabel,
-  getAllLabels,
+	getAllLabels,
+	getCellsByLabel,
 } from "./labels.js";
-
-// Comment operations
-export {
-  getCommentById,
-  getCommentThread,
-} from "./comments.js";
-
-// JSONL export/import
-export {
-  exportToJSONL,
-  exportDirtyBeads,
-  importFromJSONL,
-  parseJSONL,
-  serializeToJSONL,
-  computeContentHash,
-  type CellExport,
-  type ExportOptions,
-  type ImportOptions,
-  type ImportResult,
-} from "./jsonl.js";
-
-// FlushManager for auto-sync
-export {
-  FlushManager,
-  type FlushManagerOptions,
-  type FlushResult,
-} from "./flush-manager.js";
-
 // 3-Way Merge Driver
 export {
-  merge3Way,
-  mergeJsonl,
-  isTombstone,
-  isExpiredTombstone,
-  DEFAULT_TOMBSTONE_TTL_MS,
-  MIN_TOMBSTONE_TTL_MS,
-  CLOCK_SKEW_GRACE_MS,
-  STATUS_TOMBSTONE,
-  type IssueKey,
-  type MergeResult,
-  type MergeOptions,
+	CLOCK_SKEW_GRACE_MS,
+	DEFAULT_TOMBSTONE_TTL_MS,
+	type IssueKey,
+	isExpiredTombstone,
+	isTombstone,
+	type MergeOptions,
+	type MergeResult,
+	MIN_TOMBSTONE_TTL_MS,
+	merge3Way,
+	mergeJsonl,
+	STATUS_TOMBSTONE,
 } from "./merge.js";
-
+// Migrations
+export {
+	cellsMigration,
+	cellsMigrations,
+	cellsViewMigration,
+	hiveMigrations,
+} from "./migrations.js";
+// Projections
+export {
+	clearAllDirtyCells,
+	clearDirtyCell,
+	getBlockedCells,
+	getBlockers,
+	getCell,
+	getComments,
+	getDependencies,
+	getDependents,
+	getDirtyCells,
+	getInProgressCells,
+	getLabels,
+	getNextReadyCell,
+	isBlocked,
+	markCellDirty,
+	queryCells,
+	updateProjections,
+} from "./projections.js";
 // Query utilities
 export {
-  resolvePartialId,
-  findCellsByPartialId,
-  getReadyWork,
-  getBlockedIssues,
-  getEpicsEligibleForClosure,
-  getStaleIssues,
-  getStatistics,
-  type SortPolicy,
-  type ReadyWorkOptions,
-  type BlockedCell,
-  type EpicStatus,
-  type StaleOptions,
-  type Statistics,
+	type BlockedCell,
+	type EpicStatus,
+	findCellsByPartialId,
+	getBlockedIssues,
+	getEpicsEligibleForClosure,
+	getReadyWork,
+	getStaleIssues,
+	getStatistics,
+	type ReadyWorkOptions,
+	resolvePartialId,
+	type SortPolicy,
+	type StaleOptions,
+	type Statistics,
 } from "./queries.js";
+// Store operations
+export {
+	appendCellEvent,
+	type ReadCellEventsOptions,
+	readCellEvents,
+	replayCellEvents,
+} from "./store.js";

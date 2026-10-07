@@ -565,7 +565,7 @@ All events extend `BaseEventSchema` with common fields:
 
 **Messages (5 types):**
 ```typescript
-{ type: "message_sent"; message_id?: number; from_agent: string; to_agents: string[]; subject: string; body: string; thread_id?: string; importance?: "low" | "normal" | "high" | "urgent"; ack_required?: boolean; epic_id?: string; bead_id?: string; message_type?: "progress" | "blocked" | "question" | "status" | "general"; body_length?: number; recipient_count?: number; is_broadcast?: boolean }
+{ type: "message_sent"; message_id?: number; from_agent: string; to_agents: string[]; subject: string; body: string; thread_id?: string; importance?: "low" | "normal" | "high" | "urgent"; ack_required?: boolean; epic_id?: string; cell_id?: string; message_type?: "progress" | "blocked" | "question" | "status" | "general"; body_length?: number; recipient_count?: number; is_broadcast?: boolean }
 { type: "message_read"; message_id: number; agent_name: string }
 { type: "message_acked"; message_id: number; agent_name: string }
 { type: "thread_created"; thread_id: string; epic_id?: string; initial_subject: string; creator_agent: string }
@@ -574,37 +574,37 @@ All events extend `BaseEventSchema` with common fields:
 
 **File Reservations (3 types):**
 ```typescript
-{ type: "file_reserved"; reservation_id?: number; agent_name: string; paths: string[]; reason?: string; exclusive?: boolean; ttl_seconds?: number; expires_at: number; lock_holder_ids?: string[]; epic_id?: string; bead_id?: string; file_count?: number; is_retry?: boolean; conflict_agent?: string }
-{ type: "file_released"; agent_name: string; paths?: string[]; reservation_ids?: number[]; lock_holder_ids?: string[]; epic_id?: string; bead_id?: string; file_count?: number; hold_duration_ms?: number; files_modified?: number }
-{ type: "file_conflict"; requesting_agent: string; holding_agent: string; paths: string[]; epic_id?: string; bead_id?: string; resolution?: "wait" | "force" | "abort" }
+{ type: "file_reserved"; reservation_id?: number; agent_name: string; paths: string[]; reason?: string; exclusive?: boolean; ttl_seconds?: number; expires_at: number; lock_holder_ids?: string[]; epic_id?: string; cell_id?: string; file_count?: number; is_retry?: boolean; conflict_agent?: string }
+{ type: "file_released"; agent_name: string; paths?: string[]; reservation_ids?: number[]; lock_holder_ids?: string[]; epic_id?: string; cell_id?: string; file_count?: number; hold_duration_ms?: number; files_modified?: number }
+{ type: "file_conflict"; requesting_agent: string; holding_agent: string; paths: string[]; epic_id?: string; cell_id?: string; resolution?: "wait" | "force" | "abort" }
 ```
 
 **Task Tracking (4 types):**
 ```typescript
-{ type: "task_started"; agent_name: string; bead_id: string; epic_id?: string }
-{ type: "task_progress"; agent_name: string; bead_id: string; progress_percent?: number; message?: string; files_touched?: string[] }
-{ type: "task_completed"; agent_name: string; bead_id: string; summary: string; files_touched?: string[]; success: boolean }
-{ type: "task_blocked"; agent_name: string; bead_id: string; reason: string }
+{ type: "task_started"; agent_name: string; cell_id: string; epic_id?: string }
+{ type: "task_progress"; agent_name: string; cell_id: string; progress_percent?: number; message?: string; files_touched?: string[] }
+{ type: "task_completed"; agent_name: string; cell_id: string; summary: string; files_touched?: string[]; success: boolean }
+{ type: "task_blocked"; agent_name: string; cell_id: string; reason: string }
 ```
 
 **Swarm Coordination (8 types):**
 ```typescript
 { type: "swarm_started"; epic_id: string; epic_title: string; strategy: "file-based" | "feature-based" | "risk-based"; subtask_count: number; total_files: number; coordinator_agent: string }
-{ type: "worker_spawned"; epic_id: string; bead_id: string; worker_agent: string; subtask_title: string; files_assigned: string[]; spawn_order: number; is_parallel: boolean }
-{ type: "worker_completed"; epic_id: string; bead_id: string; worker_agent: string; success: boolean; duration_ms: number; files_touched: string[]; error_message?: string }
-{ type: "review_started"; epic_id: string; bead_id: string; attempt: number }
-{ type: "review_completed"; epic_id: string; bead_id: string; status: "approved" | "needs_changes" | "blocked"; attempt: number; duration_ms?: number }
+{ type: "worker_spawned"; epic_id: string; cell_id: string; worker_agent: string; subtask_title: string; files_assigned: string[]; spawn_order: number; is_parallel: boolean }
+{ type: "worker_completed"; epic_id: string; cell_id: string; worker_agent: string; success: boolean; duration_ms: number; files_touched: string[]; error_message?: string }
+{ type: "review_started"; epic_id: string; cell_id: string; attempt: number }
+{ type: "review_completed"; epic_id: string; cell_id: string; status: "approved" | "needs_changes" | "blocked"; attempt: number; duration_ms?: number }
 { type: "swarm_completed"; epic_id: string; epic_title: string; success: boolean; total_duration_ms: number; subtasks_completed: number; subtasks_failed: number; total_files_touched: string[] }
 { type: "decomposition_generated"; epic_id: string; task: string; context?: string; strategy: "file-based" | "feature-based" | "risk-based"; epic_title: string; subtasks: Array<{ title: string; files: string[]; priority?: number }>; recovery_context?: object }
-{ type: "subtask_outcome"; epic_id: string; bead_id: string; planned_files: string[]; actual_files: string[]; duration_ms: number; error_count?: number; retry_count?: number; success: boolean; scope_violation?: boolean; violation_files?: string[] }
+{ type: "subtask_outcome"; epic_id: string; cell_id: string; planned_files: string[]; actual_files: string[]; duration_ms: number; error_count?: number; retry_count?: number; success: boolean; scope_violation?: boolean; violation_files?: string[] }
 ```
 
 **Checkpoints & Recovery (4 types):**
 ```typescript
-{ type: "swarm_checkpointed"; epic_id: string; bead_id: string; strategy: "file-based" | "feature-based" | "risk-based"; files: string[]; dependencies: string[]; directives: object; recovery: object; checkpoint_size_bytes?: number; trigger?: "manual" | "auto" | "progress" | "error"; context_tokens_before?: number; context_tokens_after?: number }
-{ type: "swarm_recovered"; epic_id: string; bead_id: string; recovered_from_checkpoint: number; recovery_duration_ms?: number; checkpoint_age_ms?: number; files_restored?: string[]; context_restored_tokens?: number }
-{ type: "checkpoint_created"; epic_id: string; bead_id: string; agent_name: string; checkpoint_id: string; trigger: "manual" | "auto" | "progress" | "error"; progress_percent: number; files_snapshot: string[] }
-{ type: "context_compacted"; epic_id?: string; bead_id?: string; agent_name: string; tokens_before: number; tokens_after: number; compression_ratio: number; summary_length: number }
+{ type: "swarm_checkpointed"; epic_id: string; cell_id: string; strategy: "file-based" | "feature-based" | "risk-based"; files: string[]; dependencies: string[]; directives: object; recovery: object; checkpoint_size_bytes?: number; trigger?: "manual" | "auto" | "progress" | "error"; context_tokens_before?: number; context_tokens_after?: number }
+{ type: "swarm_recovered"; epic_id: string; cell_id: string; recovered_from_checkpoint: number; recovery_duration_ms?: number; checkpoint_age_ms?: number; files_restored?: string[]; context_restored_tokens?: number }
+{ type: "checkpoint_created"; epic_id: string; cell_id: string; agent_name: string; checkpoint_id: string; trigger: "manual" | "auto" | "progress" | "error"; progress_percent: number; files_snapshot: string[] }
+{ type: "context_compacted"; epic_id?: string; cell_id?: string; agent_name: string; tokens_before: number; tokens_after: number; compression_ratio: number; summary_length: number }
 ```
 
 **Validation & Learning (4 types):**
@@ -795,7 +795,7 @@ SELECT
   datetime(timestamp/1000, 'unixepoch') as time,
   type,
   json_extract(data, '$.agent_name') as agent,
-  json_extract(data, '$.bead_id') as task,
+  json_extract(data, '$.cell_id') as task,
   json_extract(data, '$.progress_percent') as progress,
   json_extract(data, '$.message') as status
 FROM events
@@ -806,7 +806,7 @@ ORDER BY timestamp;
 
 -- Task outcomes (success vs failure)
 SELECT 
-  json_extract(data, '$.bead_id') as task,
+  json_extract(data, '$.cell_id') as task,
   json_extract(data, '$.success') as success,
   json_extract(data, '$.duration_ms') as duration,
   json_extract(data, '$.error_count') as errors,
@@ -853,7 +853,7 @@ ORDER BY hour DESC, count DESC;
 
 -- 3. ERRORS - Failure analysis
 SELECT 
-  json_extract(data, '$.bead_id') as task,
+  json_extract(data, '$.cell_id') as task,
   json_extract(data, '$.error_count') as errors,
   json_extract(data, '$.retry_count') as retries,
   json_extract(data, '$.files_touched') as files,
@@ -890,9 +890,9 @@ SELECT
     WHEN type = 'message_sent' THEN 'Sent: ' || json_extract(data, '$.subject')
     WHEN type = 'file_reserved' THEN 'Locked: ' || json_extract(data, '$.paths')
     WHEN type = 'file_released' THEN 'Released: ' || json_extract(data, '$.file_count') || ' files'
-    WHEN type = 'task_started' THEN 'Started: ' || json_extract(data, '$.bead_id')
+    WHEN type = 'task_started' THEN 'Started: ' || json_extract(data, '$.cell_id')
     WHEN type = 'task_progress' THEN 'Progress: ' || json_extract(data, '$.progress_percent') || '%'
-    WHEN type = 'task_completed' THEN 'Completed: ' || json_extract(data, '$.bead_id') || ' (' || CASE WHEN json_extract(data, '$.success') = 1 THEN 'success' ELSE 'failed' END || ')'
+    WHEN type = 'task_completed' THEN 'Completed: ' || json_extract(data, '$.cell_id') || ' (' || CASE WHEN json_extract(data, '$.success') = 1 THEN 'success' ELSE 'failed' END || ')'
     WHEN type = 'task_blocked' THEN 'Blocked: ' || json_extract(data, '$.reason')
     ELSE type
   END as activity
@@ -904,7 +904,7 @@ LIMIT 50;
 -- Find stuck tasks (started but not completed)
 WITH task_events AS (
   SELECT 
-    json_extract(data, '$.bead_id') as task_id,
+    json_extract(data, '$.cell_id') as task_id,
     json_extract(data, '$.agent_name') as agent,
     MIN(CASE WHEN type = 'task_started' THEN timestamp END) as started_at,
     MAX(CASE WHEN type IN ('task_completed', 'task_blocked') THEN timestamp END) as ended_at
@@ -1029,7 +1029,7 @@ const workers = await getWorkerStatus(db, { project_key: "/my/project" });
 
 // Get subtask progress for an epic
 const progress = await getSubtaskProgress(db, "mjmas3zxlmg");
-// Returns: [{ bead_id: "bd-123", title: "Add auth", status: "in_progress", progress_percent: 50 }]
+// Returns: [{ cell_id: "bd-123", title: "Add auth", status: "in_progress", progress_percent: 50 }]
 
 // Get active file locks
 const locks = await getFileLocks(db);

@@ -233,9 +233,9 @@ VIOLATION_PATTERNS.RESERVATION_TOOLS = ["swarmmail_reserve", "agentmail_reserve"
 ```jsonl
 {"session_id":"session-abc123","epic_id":"mjkw81rkq4c","timestamp":"2025-01-01T12:00:00Z","event_type":"DECISION","decision_type":"strategy_selected","payload":{"strategy":"feature-based"}}
 {"session_id":"session-abc123","epic_id":"mjkw81rkq4c","timestamp":"2025-01-01T12:01:00Z","event_type":"DECISION","decision_type":"decomposition_complete","payload":{"subtask_count":3}}
-{"session_id":"session-abc123","epic_id":"mjkw81rkq4c","timestamp":"2025-01-01T12:02:00Z","event_type":"DECISION","decision_type":"worker_spawned","payload":{"worker_id":"SwiftFire","bead_id":"mjkw81rkq4c.1"}}
+{"session_id":"session-abc123","epic_id":"mjkw81rkq4c","timestamp":"2025-01-01T12:02:00Z","event_type":"DECISION","decision_type":"worker_spawned","payload":{"worker_id":"SwiftFire","cell_id":"mjkw81rkq4c.1"}}
 {"session_id":"session-abc123","epic_id":"mjkw81rkq4c","timestamp":"2025-01-01T12:05:00Z","event_type":"VIOLATION","violation_type":"coordinator_edited_file","payload":{"tool":"edit","file":"src/auth.ts"}}
-{"session_id":"session-abc123","epic_id":"mjkw81rkq4c","timestamp":"2025-01-01T12:10:00Z","event_type":"OUTCOME","outcome_type":"subtask_success","payload":{"bead_id":"mjkw81rkq4c.1","duration_ms":480000}}
+{"session_id":"session-abc123","epic_id":"mjkw81rkq4c","timestamp":"2025-01-01T12:10:00Z","event_type":"OUTCOME","outcome_type":"subtask_success","payload":{"cell_id":"mjkw81rkq4c.1","duration_ms":480000}}
 ```
 
 **Viewing sessions:**

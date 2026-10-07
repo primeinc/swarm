@@ -233,7 +233,7 @@ swarm dump bd-abc123 --only reservations
     "urgent": 1
   },
   "checkpoints": [
-    { "bead_id": "bd-abc123.0", "progress": 50, "timestamp": 1703240500000 }
+    { "cell_id": "bd-abc123.0", "progress": 50, "timestamp": 1703240500000 }
   ]
 }
 ```
@@ -329,7 +329,7 @@ Error: Failed to reserve file: src/auth/service.ts
   "error": "Failed to reserve file: src/auth/service.ts",
   "context": {
     "agent": "BlueLake",
-    "bead_id": "bd-abc123.1",
+    "cell_id": "bd-abc123.1",
     "epic_id": "bd-abc123",
     "timestamp": 1703241000000,
     "sequence": 142,
@@ -361,7 +361,7 @@ class ReservationError extends Error {
     message: string,
     public context: {
       agent: string;
-      beadId: string;
+      cellId: string;
       path: string;
       currentHolder?: { agent: string; expiresAt: number; reason: string };
       recentEvents?: AgentEvent[];
@@ -383,7 +383,7 @@ class ReservationError extends Error {
 // Usage:
 throw new ReservationError("Failed to reserve file", {
   agent: agentName,
-  beadId: beadId,
+  cellId: cellId,
   path: filePath,
   currentHolder: { ... },
   recentEvents: await readEvents({ types: ["file_reserved", "file_released"], limit: 5 }),
@@ -645,12 +645,12 @@ HAVING started > completed;
 
 -- Find checkpoints that led to recovery
 SELECT 
-  c.bead_id,
+  c.cell_id,
   c.timestamp AS checkpointed_at,
   r.timestamp AS recovered_at,
   (r.timestamp - c.timestamp) / 1000 AS recovery_delay_seconds
 FROM events c
-JOIN events r ON r.bead_id = c.bead_id AND r.type = 'swarm_recovered'
+JOIN events r ON r.cell_id = c.cell_id AND r.type = 'swarm_recovered'
 WHERE c.type = 'swarm_checkpointed'
 ORDER BY recovery_delay_seconds DESC;
 ```
@@ -660,7 +660,7 @@ ORDER BY recovery_delay_seconds DESC;
 ## 10. Next Steps
 
 1. **Approve this ADR** - Stakeholder sign-off
-2. **Create implementation epic** - Break into 4 beads (replay, dump, errors, verbose)
+2. **Create implementation epic** - Break into 4 cells (replay, dump, errors, verbose)
 3. **Ship Phase 1** - Replay CLI (2 days)
 4. **Iterate based on usage** - Gather feedback from developers debugging swarms
 

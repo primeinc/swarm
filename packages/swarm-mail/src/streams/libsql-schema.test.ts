@@ -9,457 +9,460 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { createLibSQLAdapter } from "../libsql.js";
 import type { DatabaseAdapter } from "../types/database.js";
 import {
-  createLibSQLStreamsSchema,
-  dropLibSQLStreamsSchema,
-  validateLibSQLStreamsSchema,
+	createLibSQLStreamsSchema,
+	dropLibSQLStreamsSchema,
+	validateLibSQLStreamsSchema,
 } from "./libsql-schema.js";
 
 describe("libSQL streams schema", () => {
-  let db: DatabaseAdapter;
+	let db: DatabaseAdapter;
 
-  beforeAll(async () => {
-    db = await createLibSQLAdapter({ url: ":memory:" });
-  });
+	beforeAll(async () => {
+		db = await createLibSQLAdapter({ url: ":memory:" });
+	});
 
-  afterAll(async () => {
-    await db.close?.();
-  });
+	afterAll(async () => {
+		await db.close?.();
+	});
 
-  describe("createLibSQLStreamsSchema", () => {
-    test("creates all required tables", async () => {
-      await createLibSQLStreamsSchema(db);
+	describe("createLibSQLStreamsSchema", () => {
+		test("creates all required tables", async () => {
+			await createLibSQLStreamsSchema(db);
 
-      // Check tables exist
-      const tables = await db.query<{ name: string }>(`
+			// Check tables exist
+			const tables = await db.query<{ name: string }>(`
         SELECT name FROM sqlite_master 
         WHERE type='table' 
         ORDER BY name
       `);
 
-      const tableNames = tables.rows.map((r) => r.name);
-      
-      expect(tableNames).toContain("events");
-      expect(tableNames).toContain("agents");
-      expect(tableNames).toContain("messages");
-      expect(tableNames).toContain("message_recipients");
-      expect(tableNames).toContain("reservations");
-      expect(tableNames).toContain("locks");
-      expect(tableNames).toContain("cursors");
-      expect(tableNames).toContain("eval_records");
-      expect(tableNames).toContain("swarm_contexts");
-      expect(tableNames).toContain("decision_traces");
-    });
+			const tableNames = tables.rows.map((r) => r.name);
 
-    test("creates indexes", async () => {
-      await createLibSQLStreamsSchema(db);
+			expect(tableNames).toContain("events");
+			expect(tableNames).toContain("agents");
+			expect(tableNames).toContain("messages");
+			expect(tableNames).toContain("message_recipients");
+			expect(tableNames).toContain("reservations");
+			expect(tableNames).toContain("locks");
+			expect(tableNames).toContain("cursors");
+			expect(tableNames).toContain("eval_records");
+			expect(tableNames).toContain("swarm_contexts");
+			expect(tableNames).toContain("decision_traces");
+		});
 
-      const indexes = await db.query<{ name: string }>(`
+		test("creates indexes", async () => {
+			await createLibSQLStreamsSchema(db);
+
+			const indexes = await db.query<{ name: string }>(`
         SELECT name FROM sqlite_master 
         WHERE type='index' AND sql IS NOT NULL
         ORDER BY name
       `);
 
-      const indexNames = indexes.rows.map((r) => r.name);
-      
-      // Events indexes
-      expect(indexNames).toContain("idx_events_project_key");
-      expect(indexNames).toContain("idx_events_type");
-      
-      // Messages indexes
-      expect(indexNames).toContain("idx_messages_project");
-      expect(indexNames).toContain("idx_messages_thread");
-      
-      // Decision traces indexes
-      expect(indexNames).toContain("idx_decision_traces_epic");
-      expect(indexNames).toContain("idx_decision_traces_type");
-      expect(indexNames).toContain("idx_decision_traces_agent");
-      expect(indexNames).toContain("idx_decision_traces_timestamp");
-    });
+			const indexNames = indexes.rows.map((r) => r.name);
 
-    test("events table has correct columns", async () => {
-      await createLibSQLStreamsSchema(db);
+			// Events indexes
+			expect(indexNames).toContain("idx_events_project_key");
+			expect(indexNames).toContain("idx_events_type");
 
-      // Use table_xinfo to include generated columns (hidden: 3)
-      const columns = await db.query<{ name: string; type: string; hidden: number }>(`
+			// Messages indexes
+			expect(indexNames).toContain("idx_messages_project");
+			expect(indexNames).toContain("idx_messages_thread");
+
+			// Decision traces indexes
+			expect(indexNames).toContain("idx_decision_traces_epic");
+			expect(indexNames).toContain("idx_decision_traces_type");
+			expect(indexNames).toContain("idx_decision_traces_agent");
+			expect(indexNames).toContain("idx_decision_traces_timestamp");
+		});
+
+		test("events table has correct columns", async () => {
+			await createLibSQLStreamsSchema(db);
+
+			// Use table_xinfo to include generated columns (hidden: 3)
+			const columns = await db.query<{
+				name: string;
+				type: string;
+				hidden: number;
+			}>(`
         PRAGMA table_xinfo('events')
       `);
 
-      const columnMap = Object.fromEntries(
-        columns.rows.map((r) => [r.name, r.type])
-      );
+			const columnMap = Object.fromEntries(
+				columns.rows.map((r) => [r.name, r.type]),
+			);
 
-      expect(columnMap).toMatchObject({
-        id: "INTEGER",
-        type: "TEXT",
-        project_key: "TEXT",
-        timestamp: "INTEGER",
-        sequence: "INTEGER", // Generated column (hidden: 3)
-        data: "TEXT", // JSON stored as TEXT
-      });
-    });
+			expect(columnMap).toMatchObject({
+				id: "INTEGER",
+				type: "TEXT",
+				project_key: "TEXT",
+				timestamp: "INTEGER",
+				sequence: "INTEGER", // Generated column (hidden: 3)
+				data: "TEXT", // JSON stored as TEXT
+			});
+		});
 
-    test("agents table has UNIQUE constraint", async () => {
-      await createLibSQLStreamsSchema(db);
+		test("agents table has UNIQUE constraint", async () => {
+			await createLibSQLStreamsSchema(db);
 
-      // Insert first agent
-      await db.query(
-        `INSERT INTO agents (project_key, name, registered_at, last_active_at) 
+			// Insert first agent
+			await db.query(
+				`INSERT INTO agents (project_key, name, registered_at, last_active_at) 
          VALUES (?, ?, ?, ?)`,
-        ["proj-1", "agent-1", 1000, 1000]
-      );
+				["proj-1", "agent-1", 1000, 1000],
+			);
 
-      // Try to insert duplicate - should fail
-      await expect(async () => {
-        await db.query(
-          `INSERT INTO agents (project_key, name, registered_at, last_active_at) 
+			// Try to insert duplicate - should fail
+			await expect(async () => {
+				await db.query(
+					`INSERT INTO agents (project_key, name, registered_at, last_active_at) 
            VALUES (?, ?, ?, ?)`,
-          ["proj-1", "agent-1", 2000, 2000]
-        );
-      }).toThrow();
-    });
+					["proj-1", "agent-1", 2000, 2000],
+				);
+			}).toThrow();
+		});
 
-    test("message_recipients has CASCADE delete", async () => {
-      await createLibSQLStreamsSchema(db);
+		test("message_recipients has CASCADE delete", async () => {
+			await createLibSQLStreamsSchema(db);
 
-      // Insert message
-      const msgResult = await db.query<{ id: number }>(
-        `INSERT INTO messages (project_key, from_agent, subject, body, created_at) 
+			// Insert message
+			const msgResult = await db.query<{ id: number }>(
+				`INSERT INTO messages (project_key, from_agent, subject, body, created_at) 
          VALUES (?, ?, ?, ?, ?) RETURNING id`,
-        ["proj-1", "agent-1", "Test", "Body", 1000]
-      );
-      
-      const messageId = msgResult.rows[0].id;
+				["proj-1", "agent-1", "Test", "Body", 1000],
+			);
 
-      // Insert recipient
-      await db.query(
-        `INSERT INTO message_recipients (message_id, agent_name) 
+			const messageId = msgResult.rows[0].id;
+
+			// Insert recipient
+			await db.query(
+				`INSERT INTO message_recipients (message_id, agent_name) 
          VALUES (?, ?)`,
-        [messageId, "agent-2"]
-      );
+				[messageId, "agent-2"],
+			);
 
-      // Delete message
-      await db.query(
-        `DELETE FROM messages WHERE id = ?`,
-        [messageId]
-      );
+			// Delete message
+			await db.query(`DELETE FROM messages WHERE id = ?`, [messageId]);
 
-      // Recipient should be auto-deleted
-      const recipients = await db.query(
-        `SELECT * FROM message_recipients WHERE message_id = ?`,
-        [messageId]
-      );
+			// Recipient should be auto-deleted
+			const recipients = await db.query(
+				`SELECT * FROM message_recipients WHERE message_id = ?`,
+				[messageId],
+			);
 
-      expect(recipients.rows).toHaveLength(0);
-    });
+			expect(recipients.rows).toHaveLength(0);
+		});
 
-    test("is idempotent", async () => {
-      await createLibSQLStreamsSchema(db);
-      
-      // Call again - should not error
-      await expect(async () => {
-        await createLibSQLStreamsSchema(db);
-      }).not.toThrow();
-    });
+		test("is idempotent", async () => {
+			await createLibSQLStreamsSchema(db);
 
-    test("eval_records table can store decomposition data", async () => {
-      await createLibSQLStreamsSchema(db);
+			// Call again - should not error
+			await expect(async () => {
+				await createLibSQLStreamsSchema(db);
+			}).not.toThrow();
+		});
 
-      const now = Date.now();
-      const evalRecord = {
-        id: "epic-123",
-        project_key: "/path/to/project",
-        task: "Add authentication",
-        context: "User story context",
-        strategy: "feature-based",
-        epic_title: "Authentication Epic",
-        subtasks: JSON.stringify([
-          { id: "sub-1", title: "Add login", files: ["auth.ts"] }
-        ]),
-        created_at: now,
-        updated_at: now,
-      };
+		test("eval_records table can store decomposition data", async () => {
+			await createLibSQLStreamsSchema(db);
 
-      // Insert eval record
-      await db.query(
-        `INSERT INTO eval_records (id, project_key, task, context, strategy, epic_title, subtasks, created_at, updated_at)
+			const now = Date.now();
+			const evalRecord = {
+				id: "epic-123",
+				project_key: "/path/to/project",
+				task: "Add authentication",
+				context: "User story context",
+				strategy: "feature-based",
+				epic_title: "Authentication Epic",
+				subtasks: JSON.stringify([
+					{ id: "sub-1", title: "Add login", files: ["auth.ts"] },
+				]),
+				created_at: now,
+				updated_at: now,
+			};
+
+			// Insert eval record
+			await db.query(
+				`INSERT INTO eval_records (id, project_key, task, context, strategy, epic_title, subtasks, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          evalRecord.id,
-          evalRecord.project_key,
-          evalRecord.task,
-          evalRecord.context,
-          evalRecord.strategy,
-          evalRecord.epic_title,
-          evalRecord.subtasks,
-          evalRecord.created_at,
-          evalRecord.updated_at,
-        ]
-      );
+				[
+					evalRecord.id,
+					evalRecord.project_key,
+					evalRecord.task,
+					evalRecord.context,
+					evalRecord.strategy,
+					evalRecord.epic_title,
+					evalRecord.subtasks,
+					evalRecord.created_at,
+					evalRecord.updated_at,
+				],
+			);
 
-      // Query it back
-      const result = await db.query<{
-        id: string;
-        task: string;
-        strategy: string;
-        epic_title: string;
-      }>(
-        `SELECT id, task, strategy, epic_title FROM eval_records WHERE id = ?`,
-        [evalRecord.id]
-      );
+			// Query it back
+			const result = await db.query<{
+				id: string;
+				task: string;
+				strategy: string;
+				epic_title: string;
+			}>(
+				`SELECT id, task, strategy, epic_title FROM eval_records WHERE id = ?`,
+				[evalRecord.id],
+			);
 
-      expect(result.rows).toHaveLength(1);
-      expect(result.rows[0]).toMatchObject({
-        id: "epic-123",
-        task: "Add authentication",
-        strategy: "feature-based",
-        epic_title: "Authentication Epic",
-      });
-    });
+			expect(result.rows).toHaveLength(1);
+			expect(result.rows[0]).toMatchObject({
+				id: "epic-123",
+				task: "Add authentication",
+				strategy: "feature-based",
+				epic_title: "Authentication Epic",
+			});
+		});
 
-    test("swarm_contexts table can store checkpoint data", async () => {
-      await createLibSQLStreamsSchema(db);
+		test("swarm_contexts table can store checkpoint data", async () => {
+			await createLibSQLStreamsSchema(db);
 
-      const now = Date.now();
-      const checkpoint = {
-        id: "ctx-123",
-        project_key: "/path/to/project",
-        epic_id: "epic-123",
-        bead_id: "bead-456",
-        strategy: "feature-based",
-        files: JSON.stringify(["src/auth.ts"]),
-        dependencies: JSON.stringify(["bead-455"]),
-        directives: JSON.stringify({ shared_context: "auth flow" }),
-        recovery: JSON.stringify({ last_checkpoint: now }),
-        created_at: now,
-        checkpointed_at: now,
-        updated_at: now,
-      };
+			const now = Date.now();
+			const checkpoint = {
+				id: "ctx-123",
+				project_key: "/path/to/project",
+				epic_id: "epic-123",
+				cell_id: "cell-456",
+				strategy: "feature-based",
+				files: JSON.stringify(["src/auth.ts"]),
+				dependencies: JSON.stringify(["cell-455"]),
+				directives: JSON.stringify({ shared_context: "auth flow" }),
+				recovery: JSON.stringify({ last_checkpoint: now }),
+				created_at: now,
+				checkpointed_at: now,
+				updated_at: now,
+			};
 
-      // Insert checkpoint
-      await db.query(
-        `INSERT INTO swarm_contexts (id, project_key, epic_id, bead_id, strategy, files, dependencies, directives, recovery, created_at, checkpointed_at, updated_at)
+			// Insert checkpoint
+			await db.query(
+				`INSERT INTO swarm_contexts (id, project_key, epic_id, cell_id, strategy, files, dependencies, directives, recovery, created_at, checkpointed_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          checkpoint.id,
-          checkpoint.project_key,
-          checkpoint.epic_id,
-          checkpoint.bead_id,
-          checkpoint.strategy,
-          checkpoint.files,
-          checkpoint.dependencies,
-          checkpoint.directives,
-          checkpoint.recovery,
-          checkpoint.created_at,
-          checkpoint.checkpointed_at,
-          checkpoint.updated_at,
-        ]
-      );
+				[
+					checkpoint.id,
+					checkpoint.project_key,
+					checkpoint.epic_id,
+					checkpoint.cell_id,
+					checkpoint.strategy,
+					checkpoint.files,
+					checkpoint.dependencies,
+					checkpoint.directives,
+					checkpoint.recovery,
+					checkpoint.created_at,
+					checkpoint.checkpointed_at,
+					checkpoint.updated_at,
+				],
+			);
 
-      // Query it back
-      const result = await db.query<{
-        id: string;
-        epic_id: string;
-        bead_id: string;
-      }>(
-        `SELECT id, epic_id, bead_id FROM swarm_contexts WHERE id = ?`,
-        [checkpoint.id]
-      );
+			// Query it back
+			const result = await db.query<{
+				id: string;
+				epic_id: string;
+				cell_id: string;
+			}>(`SELECT id, epic_id, cell_id FROM swarm_contexts WHERE id = ?`, [
+				checkpoint.id,
+			]);
 
-      expect(result.rows).toHaveLength(1);
-      expect(result.rows[0]).toMatchObject({
-        id: "ctx-123",
-        epic_id: "epic-123",
-        bead_id: "bead-456",
-      });
-    });
+			expect(result.rows).toHaveLength(1);
+			expect(result.rows[0]).toMatchObject({
+				id: "ctx-123",
+				epic_id: "epic-123",
+				cell_id: "cell-456",
+			});
+		});
 
-    test("decision_traces table can store decision trace data", async () => {
-      await createLibSQLStreamsSchema(db);
+		test("decision_traces table can store decision trace data", async () => {
+			await createLibSQLStreamsSchema(db);
 
-      const now = Date.now();
-      const trace = {
-        id: "dt-abc123",
-        decision_type: "strategy_selection",
-        epic_id: "epic-123",
-        bead_id: "bead-456",
-        agent_name: "coordinator",
-        project_key: "/path/to/project",
-        decision: JSON.stringify({ strategy: "file-based", confidence: 0.85 }),
-        rationale: "File-based chosen due to clear file boundaries",
-        inputs_gathered: JSON.stringify([
-          { source: "cass", query: "similar tasks", results: 3 },
-          { source: "hive", query: "open cells", results: 5 }
-        ]),
-        policy_evaluated: JSON.stringify({
-          rule: "prefer file-based for <5 files",
-          matched: true
-        }),
-        alternatives: JSON.stringify([
-          { strategy: "feature-based", reason: "rejected: too many cross-cutting concerns" }
-        ]),
-        precedent_cited: JSON.stringify({
-          memory_id: "mem-xyz",
-          similarity: 0.92
-        }),
-        timestamp: now,
-      };
+			const now = Date.now();
+			const trace = {
+				id: "dt-abc123",
+				decision_type: "strategy_selection",
+				epic_id: "epic-123",
+				cell_id: "cell-456",
+				agent_name: "coordinator",
+				project_key: "/path/to/project",
+				decision: JSON.stringify({ strategy: "file-based", confidence: 0.85 }),
+				rationale: "File-based chosen due to clear file boundaries",
+				inputs_gathered: JSON.stringify([
+					{ source: "cass", query: "similar tasks", results: 3 },
+					{ source: "hive", query: "open cells", results: 5 },
+				]),
+				policy_evaluated: JSON.stringify({
+					rule: "prefer file-based for <5 files",
+					matched: true,
+				}),
+				alternatives: JSON.stringify([
+					{
+						strategy: "feature-based",
+						reason: "rejected: too many cross-cutting concerns",
+					},
+				]),
+				precedent_cited: JSON.stringify({
+					memory_id: "mem-xyz",
+					similarity: 0.92,
+				}),
+				timestamp: now,
+			};
 
-      // Insert decision trace
-      await db.query(
-        `INSERT INTO decision_traces (id, decision_type, epic_id, bead_id, agent_name, project_key, decision, rationale, inputs_gathered, policy_evaluated, alternatives, precedent_cited, timestamp)
+			// Insert decision trace
+			await db.query(
+				`INSERT INTO decision_traces (id, decision_type, epic_id, cell_id, agent_name, project_key, decision, rationale, inputs_gathered, policy_evaluated, alternatives, precedent_cited, timestamp)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          trace.id,
-          trace.decision_type,
-          trace.epic_id,
-          trace.bead_id,
-          trace.agent_name,
-          trace.project_key,
-          trace.decision,
-          trace.rationale,
-          trace.inputs_gathered,
-          trace.policy_evaluated,
-          trace.alternatives,
-          trace.precedent_cited,
-          trace.timestamp,
-        ]
-      );
+				[
+					trace.id,
+					trace.decision_type,
+					trace.epic_id,
+					trace.cell_id,
+					trace.agent_name,
+					trace.project_key,
+					trace.decision,
+					trace.rationale,
+					trace.inputs_gathered,
+					trace.policy_evaluated,
+					trace.alternatives,
+					trace.precedent_cited,
+					trace.timestamp,
+				],
+			);
 
-      // Query it back
-      const result = await db.query<{
-        id: string;
-        decision_type: string;
-        agent_name: string;
-        rationale: string;
-      }>(
-        `SELECT id, decision_type, agent_name, rationale FROM decision_traces WHERE id = ?`,
-        [trace.id]
-      );
+			// Query it back
+			const result = await db.query<{
+				id: string;
+				decision_type: string;
+				agent_name: string;
+				rationale: string;
+			}>(
+				`SELECT id, decision_type, agent_name, rationale FROM decision_traces WHERE id = ?`,
+				[trace.id],
+			);
 
-      expect(result.rows).toHaveLength(1);
-      expect(result.rows[0]).toMatchObject({
-        id: "dt-abc123",
-        decision_type: "strategy_selection",
-        agent_name: "coordinator",
-        rationale: "File-based chosen due to clear file boundaries",
-      });
-    });
+			expect(result.rows).toHaveLength(1);
+			expect(result.rows[0]).toMatchObject({
+				id: "dt-abc123",
+				decision_type: "strategy_selection",
+				agent_name: "coordinator",
+				rationale: "File-based chosen due to clear file boundaries",
+			});
+		});
 
-    test("decision_traces table has correct columns", async () => {
-      await createLibSQLStreamsSchema(db);
+		test("decision_traces table has correct columns", async () => {
+			await createLibSQLStreamsSchema(db);
 
-      const columns = await db.query<{ name: string; type: string }>(`
+			const columns = await db.query<{ name: string; type: string }>(`
         PRAGMA table_info('decision_traces')
       `);
 
-      const columnMap = Object.fromEntries(
-        columns.rows.map((r) => [r.name, r.type])
-      );
+			const columnMap = Object.fromEntries(
+				columns.rows.map((r) => [r.name, r.type]),
+			);
 
-      expect(columnMap).toMatchObject({
-        id: "TEXT",
-        decision_type: "TEXT",
-        epic_id: "TEXT",
-        bead_id: "TEXT",
-        agent_name: "TEXT",
-        project_key: "TEXT",
-        decision: "TEXT",
-        rationale: "TEXT",
-        inputs_gathered: "TEXT",
-        policy_evaluated: "TEXT",
-        alternatives: "TEXT",
-        precedent_cited: "TEXT",
-        outcome_event_id: "INTEGER",
-        quality_score: "REAL",
-        timestamp: "INTEGER",
-      });
-    });
+			expect(columnMap).toMatchObject({
+				id: "TEXT",
+				decision_type: "TEXT",
+				epic_id: "TEXT",
+				cell_id: "TEXT",
+				agent_name: "TEXT",
+				project_key: "TEXT",
+				decision: "TEXT",
+				rationale: "TEXT",
+				inputs_gathered: "TEXT",
+				policy_evaluated: "TEXT",
+				alternatives: "TEXT",
+				precedent_cited: "TEXT",
+				outcome_event_id: "INTEGER",
+				quality_score: "REAL",
+				timestamp: "INTEGER",
+			});
+		});
 
-    test("decision_traces can query by epic_id", async () => {
-      await createLibSQLStreamsSchema(db);
+		test("decision_traces can query by epic_id", async () => {
+			await createLibSQLStreamsSchema(db);
 
-      const now = Date.now();
-      
-      // Insert multiple traces for same epic
-      for (let i = 0; i < 3; i++) {
-        await db.query(
-          `INSERT INTO decision_traces (id, decision_type, agent_name, project_key, decision, timestamp, epic_id)
+			const now = Date.now();
+
+			// Insert multiple traces for same epic
+			for (let i = 0; i < 3; i++) {
+				await db.query(
+					`INSERT INTO decision_traces (id, decision_type, agent_name, project_key, decision, timestamp, epic_id)
            VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          [
-            `dt-${i}`,
-            i === 0 ? "strategy_selection" : "worker_spawn",
-            "coordinator",
-            "/project",
-            JSON.stringify({ step: i }),
-            now + i * 1000,
-            "epic-shared",
-          ]
-        );
-      }
+					[
+						`dt-${i}`,
+						i === 0 ? "strategy_selection" : "worker_spawn",
+						"coordinator",
+						"/project",
+						JSON.stringify({ step: i }),
+						now + i * 1000,
+						"epic-shared",
+					],
+				);
+			}
 
-      // Query by epic
-      const result = await db.query<{ id: string; decision_type: string }>(
-        `SELECT id, decision_type FROM decision_traces WHERE epic_id = ? ORDER BY timestamp`,
-        ["epic-shared"]
-      );
+			// Query by epic
+			const result = await db.query<{ id: string; decision_type: string }>(
+				`SELECT id, decision_type FROM decision_traces WHERE epic_id = ? ORDER BY timestamp`,
+				["epic-shared"],
+			);
 
-      expect(result.rows).toHaveLength(3);
-      expect(result.rows[0].decision_type).toBe("strategy_selection");
-      expect(result.rows[1].decision_type).toBe("worker_spawn");
-    });
-  });
+			expect(result.rows).toHaveLength(3);
+			expect(result.rows[0].decision_type).toBe("strategy_selection");
+			expect(result.rows[1].decision_type).toBe("worker_spawn");
+		});
+	});
 
-  describe("dropLibSQLStreamsSchema", () => {
-    test("removes all tables", async () => {
-      await createLibSQLStreamsSchema(db);
-      await dropLibSQLStreamsSchema(db);
+	describe("dropLibSQLStreamsSchema", () => {
+		test("removes all tables", async () => {
+			await createLibSQLStreamsSchema(db);
+			await dropLibSQLStreamsSchema(db);
 
-      const tables = await db.query<{ name: string }>(`
+			const tables = await db.query<{ name: string }>(`
         SELECT name FROM sqlite_master 
         WHERE type='table' AND name IN ('events', 'agents', 'messages', 'reservations', 'locks', 'cursors', 'eval_records', 'swarm_contexts', 'decision_traces')
       `);
 
-      expect(tables.rows).toHaveLength(0);
-    });
+			expect(tables.rows).toHaveLength(0);
+		});
 
-    test("is idempotent", async () => {
-      await dropLibSQLStreamsSchema(db);
-      
-      // Call again - should not error
-      await expect(async () => {
-        await dropLibSQLStreamsSchema(db);
-      }).not.toThrow();
-    });
-  });
+		test("is idempotent", async () => {
+			await dropLibSQLStreamsSchema(db);
 
-  describe("validateLibSQLStreamsSchema", () => {
-    test("returns true when schema exists", async () => {
-      await createLibSQLStreamsSchema(db);
-      
-      const isValid = await validateLibSQLStreamsSchema(db);
-      expect(isValid).toBe(true);
-    });
+			// Call again - should not error
+			await expect(async () => {
+				await dropLibSQLStreamsSchema(db);
+			}).not.toThrow();
+		});
+	});
 
-    test("returns false when schema missing", async () => {
-      await dropLibSQLStreamsSchema(db);
-      
-      const isValid = await validateLibSQLStreamsSchema(db);
-      expect(isValid).toBe(false);
-    });
+	describe("validateLibSQLStreamsSchema", () => {
+		test("returns true when schema exists", async () => {
+			await createLibSQLStreamsSchema(db);
 
-    test("returns false when tables incomplete", async () => {
-      await dropLibSQLStreamsSchema(db);
-      
-      // Create only events table
-      await db.exec(`
+			const isValid = await validateLibSQLStreamsSchema(db);
+			expect(isValid).toBe(true);
+		});
+
+		test("returns false when schema missing", async () => {
+			await dropLibSQLStreamsSchema(db);
+
+			const isValid = await validateLibSQLStreamsSchema(db);
+			expect(isValid).toBe(false);
+		});
+
+		test("returns false when tables incomplete", async () => {
+			await dropLibSQLStreamsSchema(db);
+
+			// Create only events table
+			await db.exec(`
         CREATE TABLE events (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           type TEXT NOT NULL
         )
       `);
 
-      const isValid = await validateLibSQLStreamsSchema(db);
-      expect(isValid).toBe(false);
-    });
-  });
+			const isValid = await validateLibSQLStreamsSchema(db);
+			expect(isValid).toBe(false);
+		});
+	});
 });

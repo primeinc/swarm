@@ -34,16 +34,16 @@ export function formatTable(result: QueryResult): string {
 	}
 
 	// Build header row
-	const headerRow = columns
-		.map((col, i) => col.padEnd(widths[i]))
-		.join(" | ");
+	const headerRow = columns.map((col, i) => col.padEnd(widths[i])).join(" | ");
 
 	// Build separator row
 	const separator = widths.map((w) => "-".repeat(w)).join("-+-");
 
 	// Build data rows
 	const dataRows = rows.map((row) =>
-		columns.map((col, i) => String(row[col] ?? "").padEnd(widths[i])).join(" | "),
+		columns
+			.map((col, i) => String(row[col] ?? "").padEnd(widths[i]))
+			.join(" | "),
 	);
 
 	// Assemble final output

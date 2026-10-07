@@ -1,11 +1,11 @@
 ---
-title: "EDR-001: Event-Sourced Beads"
+title: "EDR-001: Event-Sourced cells"
 description: Hybrid CRUD + event audit trail using Effect-TS
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
-# Event-Sourced Beads with Effect-TS
+# Event-Sourced cells with Effect-TS
 
 <Callout type="info">
 **Status:** Research Complete  
@@ -15,7 +15,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 ## Executive Summary
 
-**Question:** How feasible is rebuilding [steveyegge/beads](https://github.com/steveyegge/beads) using Effect-TS durable streams and event sourcing?
+**Question:** How feasible is rebuilding [steveyegge/cells](https://github.com/steveyegge/cells) using Effect-TS durable streams and event sourcing?
 
 **Answer:** Highly feasible with 75% infrastructure reuse from swarm-mail.
 
@@ -29,18 +29,18 @@ import { Callout } from 'fumadocs-ui/components/callout';
 ## Problem Statement
 
 We have two separate systems:
-1. **steveyegge/beads** (Go) - Battle-tested issue tracker with git sync
+1. **steveyegge/cells** (Go) - Battle-tested issue tracker with git sync
 2. **swarm-mail** (TypeScript/Effect) - Event sourcing primitives for agent coordination
 
-The goal: A unified TypeScript implementation that maintains beads' proven git sync while leveraging swarm-mail's event sourcing infrastructure.
+The goal: A unified TypeScript implementation that maintains cells' proven git sync while leveraging swarm-mail's event sourcing infrastructure.
 
 ## Architecture Comparison
 
-### steveyegge/beads (Current)
+### steveyegge/cells (Current)
 
 ```
 ┌─────────────────────────────────────────┐
-│           steveyegge/beads              │
+│           steveyegge/cells              │
 ├─────────────────────────────────────────┤
 │  CLI (bd) - 50+ subcommands             │
 ├─────────────────────────────────────────┤
@@ -59,31 +59,31 @@ The goal: A unified TypeScript implementation that maintains beads' proven git s
 └─────────────────────────────────────────┘
 ```
 
-**Key insight:** beads is **NOT event-sourced**. It's hybrid CRUD + event audit trail. Events are for audit only, not replayed for state reconstruction.
+**Key insight:** cells is **NOT event-sourced**. It's hybrid CRUD + event audit trail. Events are for audit only, not replayed for state reconstruction.
 
 ### Proposed Hybrid Architecture
 
 ```
 ┌─────────────────────────────────────────┐
-│        Event-Sourced Beads              │
+│        Event-Sourced cells              │
 ├─────────────────────────────────────────┤
-│  Plugin Tools (beads_*)                 │
+│  Plugin Tools (cells_*)                 │
 │  └── Existing API preserved             │
 ├─────────────────────────────────────────┤
 │  Event Store (swarm-mail)               │
-│  ├── 20 BeadEvent types                 │
+│  ├── 20 cellEvent types                 │
 │  ├── Append-only log (local audit)      │
 │  └── NOT synced via git                 │
 ├─────────────────────────────────────────┤
 │  Projections (swarm-mail pattern)       │
-│  ├── beads table (current state)        │
-│  ├── bead_dependencies table            │
-│  ├── blocked_beads_cache (derived)      │
-│  └── dirty_beads table (tracking)       │
+│  ├── cells table (current state)        │
+│  ├── cell_dependencies table            │
+│  ├── blocked_cells_cache (derived)      │
+│  └── dirty_cells table (tracking)       │
 ├─────────────────────────────────────────┤
-│  Git Sync (beads pattern)               │
+│  Git Sync (cells pattern)               │
 │  ├── JSONL export FROM PROJECTIONS      │
-│  ├── Reuse beads merge driver (MIT)     │
+│  ├── Reuse cells merge driver (MIT)     │
 │  └── Hash-based IDs                     │
 ├─────────────────────────────────────────┤
 │  Effect-TS Primitives                   │
@@ -94,7 +94,7 @@ The goal: A unified TypeScript implementation that maintains beads' proven git s
 
 **Key design decisions:**
 1. **Events stay local** - Not synced via git (too complex)
-2. **JSONL exports projections** - Same format as beads for merge driver compatibility
+2. **JSONL exports projections** - Same format as cells for merge driver compatibility
 3. **Hybrid model** - Events for audit/learning, projections for queries
 
 ## Component Reuse Assessment
@@ -103,14 +103,14 @@ The goal: A unified TypeScript implementation that maintains beads' proven git s
 
 | Component | Reuse | Notes |
 |-----------|-------|-------|
-| Event Store | 80% | Add bead event types |
+| Event Store | 80% | Add cell event types |
 | Projection Pattern | 95% | Add new cases |
 | DatabaseAdapter | 100% | Perfect as-is |
 | DurableCursor | 90% | For replay/sync |
 | DurableLock | 90% | **Critical** for concurrent updates |
-| Migrations | 100% | Add bead tables |
+| Migrations | 100% | Add cell tables |
 
-### From steveyegge/beads (vendor/port)
+### From steveyegge/cells (vendor/port)
 
 | Component | Action | License |
 |-----------|--------|---------|
@@ -122,46 +122,46 @@ The goal: A unified TypeScript implementation that maintains beads' proven git s
 
 ## Event Schema
 
-20 event types covering the full bead lifecycle:
+20 event types covering the full cell lifecycle:
 
 ```typescript
-type BeadEvent =
+type cellEvent =
   // Lifecycle (6)
-  | BeadCreatedEvent
-  | BeadUpdatedEvent
-  | BeadStatusChangedEvent
-  | BeadClosedEvent
-  | BeadReopenedEvent
-  | BeadDeletedEvent
+  | cellCreatedEvent
+  | cellUpdatedEvent
+  | cellStatusChangedEvent
+  | cellClosedEvent
+  | cellReopenedEvent
+  | cellDeletedEvent
   
   // Dependencies (2)
-  | BeadDependencyAddedEvent
-  | BeadDependencyRemovedEvent
+  | cellDependencyAddedEvent
+  | cellDependencyRemovedEvent
   
   // Labels (2)
-  | BeadLabelAddedEvent
-  | BeadLabelRemovedEvent
+  | cellLabelAddedEvent
+  | cellLabelRemovedEvent
   
   // Comments (3)
-  | BeadCommentAddedEvent
-  | BeadCommentUpdatedEvent
-  | BeadCommentDeletedEvent
+  | cellCommentAddedEvent
+  | cellCommentUpdatedEvent
+  | cellCommentDeletedEvent
   
   // Epic (3)
-  | BeadEpicChildAddedEvent
-  | BeadEpicChildRemovedEvent
-  | BeadEpicClosureEligibleEvent
+  | cellEpicChildAddedEvent
+  | cellEpicChildRemovedEvent
+  | cellEpicClosureEligibleEvent
   
   // Swarm Integration (2)
-  | BeadAssignedEvent
-  | BeadWorkStartedEvent
+  | cellAssignedEvent
+  | cellWorkStartedEvent
   
   // Maintenance (1)
-  | BeadCompactedEvent
+  | cellCompactedEvent
 ```
 
 <Callout>
-Event schemas are already implemented in `packages/opencode-swarm-plugin/src/schemas/bead-events.ts`
+Event schemas are already implemented in `packages/opencode-swarm-plugin/src/schemas/cell-events.ts`
 </Callout>
 
 ## Git Sync Strategy
@@ -173,11 +173,11 @@ Event Appended
     ↓
 updateMaterializedViews() [inline, same tx]
     ↓
-Mark bead dirty
+Mark cell dirty
     ↓
 FlushManager debounce (30s)
     ↓
-Export dirty beads to JSONL
+Export dirty cells to JSONL
     ↓
 Clear dirty flags
     ↓
@@ -196,9 +196,9 @@ For each issue:
   - ID exists? Update projection
   - New ID? Insert projection
     ↓
-Emit "bead_imported" events (audit)
+Emit "cell_imported" events (audit)
     ↓
-Rebuild blocked_beads_cache
+Rebuild blocked_cells_cache
 ```
 
 ## Risk Assessment
@@ -208,7 +208,7 @@ Rebuild blocked_beads_cache
 | Event store performance at scale | Low | Medium | Batched replay, indexes |
 | Merge conflicts in JSONL | Low | Low | Proven merge driver |
 | Projection drift from events | Medium | High | Checksums, replay |
-| Breaking existing beads_* tools | Medium | High | Adapter layer |
+| Breaking existing cells_* tools | Medium | High | Adapter layer |
 
 ## Implementation Plan
 
@@ -217,7 +217,7 @@ Rebuild blocked_beads_cache
 | **Foundation** | Week 1 | Projections, dirty tracking, basic export |
 | **Git Sync** | Week 2 | Merge driver, import, FlushManager |
 | **Query Layer** | Week 3 | Ready work, blocked cache, cycle detection |
-| **Plugin Migration** | Week 4 | Migrate beads_* tools, compat layer |
+| **Plugin Migration** | Week 4 | Migrate cells_* tools, compat layer |
 | **Polish** | Week 5-6 | Performance, error handling, migration tooling |
 
 ## Alternatives Considered
@@ -226,7 +226,7 @@ Rebuild blocked_beads_cache
 |-------------|--------------|
 | **Pure Event Sourcing** | Merge conflicts nightmarish for events |
 | **Keep Separate Systems** | Duplicated infrastructure, no learning |
-| **Fork steveyegge/beads** | Different language, harder integration |
+| **Fork steveyegge/cells** | Different language, harder integration |
 
 ## Conclusion
 
@@ -242,7 +242,7 @@ The hybrid approach is sound:
 
 ## Git Sync Deep Dive
 
-Detailed analysis of how steveyegge/beads achieves distributed sync via git.
+Detailed analysis of how steveyegge/cells achieves distributed sync via git.
 
 ### JSONL Format
 
@@ -309,9 +309,9 @@ Progressive length scaling: 6 chars → 7 → 8 on collision.
 
 This research was conducted by a swarm of 5 parallel agents:
 
-1. **Architecture Analysis** - Deep dive into steveyegge/beads Go implementation
+1. **Architecture Analysis** - Deep dive into steveyegge/cells Go implementation
 2. **Infrastructure Mapping** - Assess swarm-mail reuse potential
-3. **Event Schema Design** - Draft Zod schemas for bead events
+3. **Event Schema Design** - Draft Zod schemas for cell events
 4. **Git Sync Analysis** - Understand distributed coordination
 5. **Synthesis** - Consolidate findings into this EDR
 
@@ -325,7 +325,7 @@ Tools used:
 
 ## References
 
-- [steveyegge/beads](https://github.com/steveyegge/beads) - Original Go implementation
+- [steveyegge/cells](https://github.com/steveyegge/cells) - Original Go implementation
 - [Effect-TS](https://effect.website/) - TypeScript effect system
 - [PGLite](https://pglite.dev/) - Embedded PostgreSQL
 - [JSONL](https://jsonlines.org/) - JSON Lines format

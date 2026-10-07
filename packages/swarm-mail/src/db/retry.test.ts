@@ -152,9 +152,9 @@ describe("withSqliteRetry", () => {
 			throw "string error";
 		});
 
-		await expect(
-			Effect.runPromise(withSqliteRetry(operation)),
-		).rejects.toThrow("string error");
+		await expect(Effect.runPromise(withSqliteRetry(operation))).rejects.toThrow(
+			"string error",
+		);
 		expect(attempts).toBe(1);
 	});
 });

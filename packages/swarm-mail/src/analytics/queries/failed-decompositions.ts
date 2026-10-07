@@ -26,11 +26,11 @@ export function failedDecompositions(
 	filters?: FailedDecompositionsFilters,
 ): AnalyticsQuery {
 	// Use raw SQL since we need a CTE join
-	const projectFilter = filters?.project_key 
-		? `AND d.project_key = '${filters.project_key}'` 
-		: '';
-	const limitClause = filters?.limit ? `LIMIT ${filters.limit}` : '';
-	
+	const projectFilter = filters?.project_key
+		? `AND d.project_key = '${filters.project_key}'`
+		: "";
+	const limitClause = filters?.limit ? `LIMIT ${filters.limit}` : "";
+
 	const sql = `
 		WITH decompositions AS (
 			SELECT 
@@ -68,7 +68,8 @@ export function failedDecompositions(
 
 	return {
 		name: "failed-decompositions",
-		description: "Failed decomposition attempts grouped by strategy with failure counts and average duration",
+		description:
+			"Failed decomposition attempts grouped by strategy with failure counts and average duration",
 		sql,
 		parameters: {},
 	};

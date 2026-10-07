@@ -239,8 +239,12 @@ async function statusCommand(args: string[]): Promise<void> {
 	const running = await isDaemonRunning(projectPath);
 
 	if (!running) {
-		console.log(`${colors.bold}Status:${colors.reset} ${colors.red}Stopped${colors.reset}`);
-		console.log(`${colors.bold}PID File:${colors.reset} ${getPidFilePath(projectPath)}`);
+		console.log(
+			`${colors.bold}Status:${colors.reset} ${colors.red}Stopped${colors.reset}`,
+		);
+		console.log(
+			`${colors.bold}PID File:${colors.reset} ${getPidFilePath(projectPath)}`,
+		);
 		return;
 	}
 
@@ -256,7 +260,9 @@ async function statusCommand(args: string[]): Promise<void> {
 		`${colors.bold}Status:${colors.reset} ${colors.green}Running${colors.reset}`,
 	);
 	console.log(`${colors.bold}PID:${colors.reset} ${pid}`);
-	console.log(`${colors.bold}PID File:${colors.reset} ${getPidFilePath(projectPath)}`);
+	console.log(
+		`${colors.bold}PID File:${colors.reset} ${getPidFilePath(projectPath)}`,
+	);
 
 	if (path) {
 		console.log(`${colors.bold}Socket:${colors.reset} ${path}`);
@@ -276,7 +282,12 @@ async function statusCommand(args: string[]): Promise<void> {
 async function main() {
 	const [command, ...args] = process.argv.slice(2);
 
-	if (!command || command === "help" || command === "--help" || command === "-h") {
+	if (
+		!command ||
+		command === "help" ||
+		command === "--help" ||
+		command === "-h"
+	) {
 		showHelp();
 		process.exit(0);
 	}
@@ -299,6 +310,8 @@ async function main() {
 }
 
 main().catch((err) => {
-	error(`Unexpected error: ${err instanceof Error ? err.message : String(err)}`);
+	error(
+		`Unexpected error: ${err instanceof Error ? err.message : String(err)}`,
+	);
 	process.exit(1);
 });

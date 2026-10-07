@@ -7,14 +7,14 @@
  * @module sessions/session-indexer.test
  */
 
-import { describe, expect, test, beforeAll, afterAll } from "bun:test";
-import { SessionIndexer } from "./session-indexer.js";
-import { createInMemoryDb, type SwarmDb } from "../db/client.js";
-import { Effect } from "effect";
-import { makeOllamaLive } from "../memory/ollama.js";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { promises as fs } from "node:fs";
-import path from "node:path";
 import os from "node:os";
+import path from "node:path";
+import { Effect } from "effect";
+import { createInMemoryDb, type SwarmDb } from "../db/client.js";
+import { makeOllamaLive } from "../memory/ollama.js";
+import { SessionIndexer } from "./session-indexer.js";
 
 describe("SessionIndexer", () => {
 	let db: SwarmDb;
@@ -137,10 +137,7 @@ describe("SessionIndexer", () => {
 					timestamp: "2025-12-25T10:00:00Z",
 					payload: {},
 				};
-				await fs.writeFile(
-					path.join(dir, file),
-					JSON.stringify(sessionData),
-				);
+				await fs.writeFile(path.join(dir, file), JSON.stringify(sessionData));
 			}
 
 			// Act: Index the directory
@@ -236,7 +233,9 @@ describe("SessionIndexer", () => {
 
 			// Assert: Should return only core fields (nested in memory object)
 			// minimal preset: ["id", "content", "createdAt"] - no score
-			const firstResult = results[0] as { memory: { id: string; content: string; createdAt: Date } };
+			const firstResult = results[0] as {
+				memory: { id: string; content: string; createdAt: Date };
+			};
 			expect(firstResult).toHaveProperty("memory");
 			expect(firstResult.memory).toHaveProperty("id");
 			expect(firstResult.memory).toHaveProperty("content");

@@ -1,5 +1,59 @@
 # @swarmtools/evals
 
+## 0.2.35
+
+### Patch Changes
+
+- Fix: Improve CLI path resolution for global installs and remove redundant package.json copying.
+- Updated dependencies
+- Updated dependencies [4eab84a]
+  - swarm@0.57.18
+  - swarm-mail@1.10.12
+
+## 0.2.34
+
+### Patch Changes
+
+- Fix: Remove beta tag from publish workflow to make it the latest release.
+
+- Updated dependencies []:
+  - swarm@0.57.17
+  - swarm-mail@1.10.11
+
+## 0.2.33
+
+### Patch Changes
+
+- Fix: Full monorepo version bump to ensure workspace dependency resolution works across all packages.
+
+- Updated dependencies []:
+  - swarm@0.57.16
+  - swarm-mail@1.10.10
+
+## 0.2.32
+
+### Patch Changes
+
+- Updated dependencies []:
+  - swarm@0.57.15
+  - swarm-mail@1.10.9
+
+## 0.2.31
+
+### Patch Changes
+
+- Updated dependencies []:
+  - swarm@0.57.14
+  - swarm-mail@1.10.8
+
+## 0.2.30
+
+### Patch Changes
+
+- Updated dependencies
+  - swarm@0.57.13
+  - swarm-mail@1.10.7
+
 ## 0.2.29
 
 ### Patch Changes

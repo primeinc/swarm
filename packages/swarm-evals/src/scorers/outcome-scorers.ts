@@ -1,5 +1,5 @@
 import { createScorer } from "evalite";
-import type { EvalRecord } from "opencode-swarm-plugin/eval-capture";
+import type { EvalRecord } from "swarm/eval-capture";
 
 /**
  * Outcome-based scorers for evaluating decomposition quality
@@ -45,7 +45,7 @@ export const executionSuccess = createScorer({
 
       // Report failures
       const failures = record.outcomes.filter((o) => !o.success);
-      const failureList = failures.map((f) => f.title || f.bead_id).join(", ");
+      const failureList = failures.map((f) => f.title || f.cell_id).join(", ");
 
       return {
         score: 0,
@@ -300,7 +300,7 @@ export const noRework = createScorer({
       const plannedBySubtask = new Map<string, Set<string>>();
 
       for (const outcome of record.outcomes) {
-        plannedBySubtask.set(outcome.bead_id, new Set(outcome.planned_files));
+        plannedBySubtask.set(outcome.cell_id, new Set(outcome.planned_files));
       }
 
       // Check each subtask for rework
@@ -310,8 +310,8 @@ export const noRework = createScorer({
         const actualFiles = new Set(outcome.actual_files);
 
         // Check if this subtask touched files planned for another subtask
-        for (const [otherBeadId, otherPlanned] of plannedBySubtask.entries()) {
-          if (otherBeadId === outcome.bead_id) {
+        for (const [othercellId, otherPlanned] of plannedBySubtask.entries()) {
+          if (othercellId === outcome.cell_id) {
             continue; // Skip self
           }
 
@@ -322,7 +322,7 @@ export const noRework = createScorer({
 
           if (overlap.length > 0) {
             reworkCases.push(
-              `${outcome.title || outcome.bead_id} touched ${overlap.length} file(s) from ${otherBeadId}`,
+              `${outcome.title || outcome.cell_id} touched ${overlap.length} file(s) from ${othercellId}`,
             );
           }
         }

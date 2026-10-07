@@ -1,5 +1,53 @@
 # swarm-dashboard
 
+## 0.0.17
+
+### Patch Changes
+
+- Fix: Improve CLI path resolution for global installs and remove redundant package.json copying.
+- Updated dependencies
+- Updated dependencies [4eab84a]
+  - swarm-mail@1.10.12
+
+## 0.0.16
+
+### Patch Changes
+
+- Fix: Remove beta tag from publish workflow to make it the latest release.
+
+- Updated dependencies []:
+  - swarm-mail@1.10.11
+
+## 0.0.15
+
+### Patch Changes
+
+- Fix: Full monorepo version bump to ensure workspace dependency resolution works across all packages.
+
+- Updated dependencies []:
+  - swarm-mail@1.10.10
+
+## 0.0.14
+
+### Patch Changes
+
+- Updated dependencies []:
+  - swarm-mail@1.10.9
+
+## 0.0.13
+
+### Patch Changes
+
+- Updated dependencies []:
+  - swarm-mail@1.10.8
+
+## 0.0.12
+
+### Patch Changes
+
+- Updated dependencies
+  - swarm-mail@1.10.7
+
 ## 0.0.11
 
 ### Patch Changes

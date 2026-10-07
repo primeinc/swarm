@@ -9,7 +9,7 @@
 
 ## 2. Fallback to in-memory loses all data
 - When persistent PGLite fails, falls back to `new PGlite()` (in-memory)
-- All beads, events, reservations lost
+- All cells, events, reservations lost
 - FIX: Should fail loudly instead of silently losing data, or at least warn user
 
 ## 3. No health check / recovery mechanism
@@ -20,5 +20,5 @@
 ## Current State
 - Wave 1 (swarm-mail rename) COMPLETED by worker
 - Plugin rename NOT started
-- All beads filed during this session LOST (in corrupted DB)
-- Need to restart OpenCode and re-file beads
+- All cells filed during this session LOST (in corrupted DB)
+- Need to restart OpenCode and re-file cells

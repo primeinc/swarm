@@ -46,8 +46,8 @@ const MailboxLayer = Layer.mergeAll(CursorLayer, DurableMailboxLive);
  * Use when you only need event consumption and distributed promises.
  */
 export const DurableCursorDeferredLive = Layer.mergeAll(
-  CursorLayer,
-  DurableDeferredLive,
+	CursorLayer,
+	DurableDeferredLive,
 );
 
 /**

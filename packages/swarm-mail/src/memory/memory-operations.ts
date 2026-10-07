@@ -40,9 +40,9 @@
  * ```
  */
 
-import { Effect } from "effect";
-import { eq } from "drizzle-orm";
 import { generateText, Output } from "ai";
+import { eq } from "drizzle-orm";
+import { Effect } from "effect";
 import { z } from "zod";
 import type { SwarmDb } from "../db/client.js";
 import { memories } from "../db/schema/memory.js";
@@ -58,29 +58,29 @@ import type { Memory } from "./store.js";
  * Memory operation types following Mem0 pattern
  */
 export type MemoryOperation =
-  | { type: "ADD"; content: string; reason: string }
-  | { type: "UPDATE"; memoryId: string; newContent: string; reason: string }
-  | { type: "DELETE"; memoryId: string; reason: string }
-  | { type: "NOOP"; reason: string };
+	| { type: "ADD"; content: string; reason: string }
+	| { type: "UPDATE"; memoryId: string; newContent: string; reason: string }
+	| { type: "DELETE"; memoryId: string; reason: string }
+	| { type: "NOOP"; reason: string };
 
 /**
  * Result of executing a memory operation
  */
 export interface MemoryOperationResult {
-  /** The operation that was executed */
-  readonly operation: MemoryOperation;
-  /** IDs of memories that were affected (created, updated, or deleted) */
-  readonly affectedMemoryIds: string[];
+	/** The operation that was executed */
+	readonly operation: MemoryOperation;
+	/** IDs of memories that were affected (created, updated, or deleted) */
+	readonly affectedMemoryIds: string[];
 }
 
 /**
  * Configuration for LLM-driven memory operations
  */
 export interface MemoryOperationConfig {
-  /** Model to use (e.g., "anthropic/claude-haiku-4-5") */
-  readonly model: string;
-  /** API key for AI Gateway */
-  readonly apiKey: string;
+	/** Model to use (e.g., "anthropic/claude-haiku-4-5") */
+	readonly model: string;
+	/** API key for AI Gateway */
+	readonly apiKey: string;
 }
 
 // ============================================================================
@@ -100,12 +100,24 @@ export interface MemoryOperationConfig {
  * - NOOP: just action + reason
  */
 const MemoryOperationSchema = z.object({
-  action: z.enum(["ADD", "UPDATE", "DELETE", "NOOP"]).describe(
-    "The memory operation to perform: ADD (new info), UPDATE (refine existing), DELETE (contradicts existing), NOOP (already captured)"
-  ),
-  reason: z.string().describe("Explanation for why this action was chosen"),
-  memoryId: z.string().optional().describe("ID of the memory to update or delete (required for UPDATE and DELETE)"),
-  newContent: z.string().optional().describe("Updated content combining existing memory with new information (required for UPDATE)"),
+	action: z
+		.enum(["ADD", "UPDATE", "DELETE", "NOOP"])
+		.describe(
+			"The memory operation to perform: ADD (new info), UPDATE (refine existing), DELETE (contradicts existing), NOOP (already captured)",
+		),
+	reason: z.string().describe("Explanation for why this action was chosen"),
+	memoryId: z
+		.string()
+		.optional()
+		.describe(
+			"ID of the memory to update or delete (required for UPDATE and DELETE)",
+		),
+	newContent: z
+		.string()
+		.optional()
+		.describe(
+			"Updated content combining existing memory with new information (required for UPDATE)",
+		),
 });
 
 // ============================================================================
@@ -134,22 +146,22 @@ const MemoryOperationSchema = z.object({
  * ```
  */
 export async function analyzeMemoryOperation(
-  newInformation: string,
-  existingMemories: Memory[],
-  config: MemoryOperationConfig
+	newInformation: string,
+	existingMemories: Memory[],
+	config: MemoryOperationConfig,
 ): Promise<MemoryOperation> {
-  // Build prompt with existing memories context
-  const memoriesContext =
-    existingMemories.length === 0
-      ? "No existing memories."
-      : existingMemories
-          .map(
-            (m, i) =>
-              `[${i + 1}] ID: ${m.id}\n    Content: ${m.content}\n    Tags: ${JSON.stringify(m.metadata.tags || [])}`
-          )
-          .join("\n");
+	// Build prompt with existing memories context
+	const memoriesContext =
+		existingMemories.length === 0
+			? "No existing memories."
+			: existingMemories
+					.map(
+						(m, i) =>
+							`[${i + 1}] ID: ${m.id}\n    Content: ${m.content}\n    Tags: ${JSON.stringify(m.metadata.tags || [])}`,
+					)
+					.join("\n");
 
-  const prompt = `You are a memory management system. Given new information and existing memories,
+	const prompt = `You are a memory management system. Given new information and existing memories,
 decide the appropriate action.
 
 NEW INFORMATION:
@@ -176,57 +188,57 @@ Decide ONE of the following actions:
 Be conservative with NOOP - only use if the information is truly redundant.
 Prefer UPDATE when new information adds nuance or context.`;
 
-  try {
-    const result = await generateText({
-      model: config.model,
-      output: Output.object({
-        schema: MemoryOperationSchema,
-      }),
-      prompt,
-    });
+	try {
+		const result = await generateText({
+			model: config.model,
+			output: Output.object({
+				schema: MemoryOperationSchema,
+			}),
+			prompt,
+		});
 
-    // Convert schema output to our MemoryOperation type (AI SDK v6 uses 'output' property)
-    const decision = result.output;
+		// Convert schema output to our MemoryOperation type (AI SDK v6 uses 'output' property)
+		const decision = result.output;
 
-    switch (decision.action) {
-      case "ADD":
-        return {
-          type: "ADD",
-          content: newInformation,
-          reason: decision.reason,
-        };
-      case "UPDATE":
-        if (!decision.memoryId || !decision.newContent) {
-          throw new Error("UPDATE action requires memoryId and newContent");
-        }
-        return {
-          type: "UPDATE",
-          memoryId: decision.memoryId,
-          newContent: decision.newContent,
-          reason: decision.reason,
-        };
-      case "DELETE":
-        if (!decision.memoryId) {
-          throw new Error("DELETE action requires memoryId");
-        }
-        return {
-          type: "DELETE",
-          memoryId: decision.memoryId,
-          reason: decision.reason,
-        };
-      case "NOOP":
-        return {
-          type: "NOOP",
-          reason: decision.reason,
-        };
-      default:
-        throw new Error(`Unhandled decision action: ${decision.action}`);
-    }
-  } catch (error) {
-    throw new Error(
-      `Failed to analyze memory operation: ${error instanceof Error ? error.message : String(error)}`
-    );
-  }
+		switch (decision.action) {
+			case "ADD":
+				return {
+					type: "ADD",
+					content: newInformation,
+					reason: decision.reason,
+				};
+			case "UPDATE":
+				if (!decision.memoryId || !decision.newContent) {
+					throw new Error("UPDATE action requires memoryId and newContent");
+				}
+				return {
+					type: "UPDATE",
+					memoryId: decision.memoryId,
+					newContent: decision.newContent,
+					reason: decision.reason,
+				};
+			case "DELETE":
+				if (!decision.memoryId) {
+					throw new Error("DELETE action requires memoryId");
+				}
+				return {
+					type: "DELETE",
+					memoryId: decision.memoryId,
+					reason: decision.reason,
+				};
+			case "NOOP":
+				return {
+					type: "NOOP",
+					reason: decision.reason,
+				};
+			default:
+				throw new Error(`Unhandled decision action: ${decision.action}`);
+		}
+	} catch (error) {
+		throw new Error(
+			`Failed to analyze memory operation: ${error instanceof Error ? error.message : String(error)}`,
+		);
+	}
 }
 
 /**
@@ -251,80 +263,80 @@ Prefer UPDATE when new information adds nuance or context.`;
  * ```
  */
 export async function executeMemoryOperation(
-  operation: MemoryOperation,
-  db: SwarmDb,
-  config: MemoryConfig
+	operation: MemoryOperation,
+	db: SwarmDb,
+	config: MemoryConfig,
 ): Promise<MemoryOperationResult> {
-  const adapter = createMemoryAdapter(db, config);
+	const adapter = createMemoryAdapter(db, config);
 
-  switch (operation.type) {
-    case "ADD": {
-      const { id } = await adapter.store(operation.content, {
-        collection: "default",
-      });
-      return {
-        operation,
-        affectedMemoryIds: [id],
-      };
-    }
+	switch (operation.type) {
+		case "ADD": {
+			const { id } = await adapter.store(operation.content, {
+				collection: "default",
+			});
+			return {
+				operation,
+				affectedMemoryIds: [id],
+			};
+		}
 
-    case "UPDATE": {
-      // Verify memory exists
-      const existing = await adapter.get(operation.memoryId);
-      if (!existing) {
-        throw new Error(`Memory not found: ${operation.memoryId}`);
-      }
+		case "UPDATE": {
+			// Verify memory exists
+			const existing = await adapter.get(operation.memoryId);
+			if (!existing) {
+				throw new Error(`Memory not found: ${operation.memoryId}`);
+			}
 
-      // Generate new embedding for updated content
-      const ollamaLayer = makeOllamaLive(config);
-      const program = Effect.gen(function* () {
-        const ollama = yield* Ollama;
-        return yield* ollama.embed(operation.newContent);
-      });
+			// Generate new embedding for updated content
+			const ollamaLayer = makeOllamaLive(config);
+			const program = Effect.gen(function* () {
+				const ollama = yield* Ollama;
+				return yield* ollama.embed(operation.newContent);
+			});
 
-      const result = await Effect.runPromise(
-        program.pipe(Effect.provide(ollamaLayer), Effect.either)
-      );
+			const result = await Effect.runPromise(
+				program.pipe(Effect.provide(ollamaLayer), Effect.either),
+			);
 
-      if (result._tag === "Left") {
-        throw new Error("Failed to generate embedding for updated memory");
-      }
+			if (result._tag === "Left") {
+				throw new Error("Failed to generate embedding for updated memory");
+			}
 
-      // Update memory directly via Drizzle
-      await db
-        .update(memories)
-        .set({
-          content: operation.newContent,
-          updated_at: new Date().toISOString(),
-          embedding: result.right as any, // Drizzle handles Buffer conversion
-        })
-        .where(eq(memories.id, operation.memoryId));
+			// Update memory directly via Drizzle
+			await db
+				.update(memories)
+				.set({
+					content: operation.newContent,
+					updated_at: new Date().toISOString(),
+					embedding: result.right as any, // Drizzle handles Buffer conversion
+				})
+				.where(eq(memories.id, operation.memoryId));
 
-      return {
-        operation,
-        affectedMemoryIds: [operation.memoryId],
-      };
-    }
+			return {
+				operation,
+				affectedMemoryIds: [operation.memoryId],
+			};
+		}
 
-    case "DELETE": {
-      // Verify memory exists
-      const existing = await adapter.get(operation.memoryId);
-      if (!existing) {
-        throw new Error(`Memory not found: ${operation.memoryId}`);
-      }
+		case "DELETE": {
+			// Verify memory exists
+			const existing = await adapter.get(operation.memoryId);
+			if (!existing) {
+				throw new Error(`Memory not found: ${operation.memoryId}`);
+			}
 
-      await adapter.remove(operation.memoryId);
-      return {
-        operation,
-        affectedMemoryIds: [operation.memoryId],
-      };
-    }
+			await adapter.remove(operation.memoryId);
+			return {
+				operation,
+				affectedMemoryIds: [operation.memoryId],
+			};
+		}
 
-    case "NOOP": {
-      return {
-        operation,
-        affectedMemoryIds: [],
-      };
-    }
-  }
+		case "NOOP": {
+			return {
+				operation,
+				affectedMemoryIds: [],
+			};
+		}
+	}
 }

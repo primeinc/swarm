@@ -22,7 +22,8 @@ export interface AnalyticsQuery {
 export const ANALYTICS_QUERIES: AnalyticsQuery[] = [
 	{
 		name: "latency",
-		description: "Task Duration by Strategy - Average and P95 task completion times",
+		description:
+			"Task Duration by Strategy - Average and P95 task completion times",
 		sql: `
 			SELECT 
 				json_extract(data, '$.strategy') as strategy,
@@ -71,7 +72,7 @@ export const ANALYTICS_QUERIES: AnalyticsQuery[] = [
 			SELECT 
 				json_extract(data, '$.agent') as agent,
 				COUNT(*) as failed_count,
-				GROUP_CONCAT(DISTINCT json_extract(data, '$.bead_id')) as failed_beads
+				GROUP_CONCAT(DISTINCT json_extract(data, '$.cell_id')) as failed_cells
 			FROM events
 			WHERE type = 'subtask_outcome'
 				AND json_extract(data, '$.success') = 0

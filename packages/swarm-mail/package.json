@@ -1,68 +1,71 @@
 {
-  "name": "swarm-mail",
-  "version": "1.10.2",
-  "description": "Event sourcing primitives for multi-agent coordination. Local-first, no external servers.",
-  "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "bin": {
-    "swarm-mail-daemon": "./bin/daemon-cli.ts",
-    "swarm-db": "./bin/swarm-db.ts"
-  },
-  "files": [
-    "dist",
-    "bin",
-    "README.md"
-  ],
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    }
-  },
-  "publishConfig": {
-    "access": "public",
-    "registry": "https://registry.npmjs.org/"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/joelhooks/opencode-swarm-plugin"
-  },
-  "author": "Joel Hooks",
-  "license": "MIT",
-  "scripts": {
-    "build": "bun build ./src/index.ts --outdir ./dist --target node --external @libsql/client --external @electric-sql/pglite && tsc",
-    "test": "bun test --timeout 60000 $(find src -name '*.test.ts' ! -name '*.integration.test.ts' | tr '\\n' ' ')",
-    "test:integration": "bun test src/*.integration.test.ts src/**/*.integration.test.ts --timeout 120000",
-    "test:all": "bun test src/ --timeout 120000",
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@ai-sdk/anthropic": "^1.0.0",
-    "@huggingface/transformers": "^3.8.1",
-    "@libsql/client": "^0.15.15",
-    "ai": "6.0.0-beta.150",
-    "chokidar": "^5.0.0",
-    "debug": "^4.4.3",
-    "drizzle-orm": "^0.41.0",
-    "effect": "^3.19.12",
-    "minimatch": "^10.1.1",
-    "nanoid": "^5.1.6",
-    "proper-lockfile": "^4.1.2",
-    "zod": "^3.24.1"
-  },
-  "devDependencies": {
-    "@types/debug": "^4.1.12",
-    "@types/node": "^22.19.3",
-    "@types/proper-lockfile": "^4.1.4",
-    "bun-types": "^1.3.4",
-    "dotenv": "^17.2.3",
-    "drizzle-kit": "^0.31.0",
-    "typescript": "^5.7.2",
-    "vitest": "^2.1.8"
-  },
-  "optionalDependencies": {
-    "@libsql/darwin-arm64": "^0.5.22",
-    "@libsql/darwin-x64": "^0.5.22"
-  }
+	"name": "swarm-mail",
+	"version": "1.10.12",
+	"description": "Event sourcing primitives for multi-agent coordination. Local-first, no external servers.",
+	"type": "module",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"bin": {
+		"swarm-mail-daemon": "./bin/daemon-cli.ts",
+		"swarm-db": "./bin/swarm-db.ts"
+	},
+	"files": [
+		"dist",
+		"bin",
+		"README.md"
+	],
+	"exports": {
+		".": {
+			"import": "./dist/index.js",
+			"types": "./dist/index.d.ts"
+		}
+	},
+	"publishConfig": {
+		"access": "public",
+		"registry": "https://registry.npmjs.org/"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/joelhooks/opencode-swarm-plugin"
+	},
+	"author": "Joel Hooks",
+	"license": "MIT",
+	"scripts": {
+		"build": "bun build ./src/index.ts --outdir ./dist --target node --external @libsql/client && cp package.json dist/package.json && tsc",
+		"test": "bun test --bail=1 --timeout 60000 $(find src -name '*.test.ts' ! -name '*.integration.test.ts' | tr '\\n' ' ')",
+		"test:integration": "bun test --bail=1 src/*.integration.test.ts src/**/*.integration.test.ts --timeout 120000",
+		"test:all": "bun test --bail=1 src/ --timeout 120000",
+		"typecheck": "tsc --noEmit",
+		"lint": "oxlint && biome check .",
+		"format": "biome format --write ."
+	},
+	"dependencies": {
+		"@ai-sdk/anthropic": "^1.0.0",
+		"@huggingface/transformers": "^3.8.1",
+		"@libsql/client": "^0.15.15",
+		"ai": "6.0.0-beta.150",
+		"chokidar": "^5.0.0",
+		"debug": "^4.4.3",
+		"drizzle-orm": "^0.41.0",
+		"effect": "^3.19.14",
+		"minimatch": "^10.1.1",
+		"nanoid": "^5.1.6",
+		"proper-lockfile": "^4.1.2",
+		"swarm-path": "workspace:*",
+		"zod": "^3.24.1"
+	},
+	"devDependencies": {
+		"@types/debug": "^4.1.12",
+		"@types/node": "^22.19.3",
+		"@types/proper-lockfile": "^4.1.4",
+		"bun-types": "^1.3.4",
+		"dotenv": "^17.2.3",
+		"drizzle-kit": "^0.31.0",
+		"typescript": "^5.7.2",
+		"vitest": "^2.1.8"
+	},
+	"optionalDependencies": {
+		"@libsql/darwin-arm64": "^0.5.22",
+		"@libsql/darwin-x64": "^0.5.22"
+	}
 }

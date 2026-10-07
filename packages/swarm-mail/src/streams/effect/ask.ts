@@ -28,11 +28,11 @@
  */
 
 import { Effect } from "effect";
-import { DurableCursor } from "./cursor";
-import { DurableMailbox, type Mailbox } from "./mailbox";
-import { DurableDeferred, type DeferredConfig } from "./deferred";
-import type { TimeoutError, NotFoundError } from "./deferred";
 import type { DatabaseAdapter } from "../../types/database";
+import type { DurableCursor } from "./cursor";
+import type { NotFoundError, TimeoutError } from "./deferred";
+import { type DeferredConfig, DurableDeferred } from "./deferred";
+import { DurableMailbox, type Mailbox } from "./mailbox";
 
 // ============================================================================
 // Types
@@ -42,20 +42,20 @@ import type { DatabaseAdapter } from "../../types/database";
  * Configuration for ask() request
  */
 export interface AskConfig<Req> {
-  /** Mailbox to send message from */
-  readonly mailbox: Mailbox;
-  /** Recipient agent(s) */
-  readonly to: string | string[];
-  /** Request payload */
-  readonly payload: Req;
-  /** Time-to-live in seconds before timeout (default: 60) */
-  readonly ttlSeconds?: number;
-  /** Optional thread ID for conversation tracking */
-  readonly threadId?: string;
-  /** Optional importance level */
-  readonly importance?: "low" | "normal" | "high" | "urgent";
-  /** Database adapter for deferred storage */
-  readonly db: DatabaseAdapter;
+	/** Mailbox to send message from */
+	readonly mailbox: Mailbox;
+	/** Recipient agent(s) */
+	readonly to: string | string[];
+	/** Request payload */
+	readonly payload: Req;
+	/** Time-to-live in seconds before timeout (default: 60) */
+	readonly ttlSeconds?: number;
+	/** Optional thread ID for conversation tracking */
+	readonly threadId?: string;
+	/** Optional importance level */
+	readonly importance?: "low" | "normal" | "high" | "urgent";
+	/** Database adapter for deferred storage */
+	readonly db: DatabaseAdapter;
 }
 
 // ============================================================================
@@ -91,31 +91,31 @@ export interface AskConfig<Req> {
  * ```
  */
 export function ask<Req, Res>(
-  config: AskConfig<Req>,
+	config: AskConfig<Req>,
 ): Effect.Effect<Res, TimeoutError | NotFoundError, DurableDeferred> {
-  return Effect.gen(function* () {
-    const deferred = yield* DurableDeferred;
+	return Effect.gen(function* () {
+		const deferred = yield* DurableDeferred;
 
-    // Create deferred for response
-    const deferredConfig: DeferredConfig = {
-      ttlSeconds: config.ttlSeconds ?? 60,
-      db: config.db,
-    };
-    const responseHandle = yield* deferred.create<Res>(deferredConfig);
+		// Create deferred for response
+		const deferredConfig: DeferredConfig = {
+			ttlSeconds: config.ttlSeconds ?? 60,
+			db: config.db,
+		};
+		const responseHandle = yield* deferred.create<Res>(deferredConfig);
 
-    // Send message with replyTo URL
-    yield* config.mailbox.send(config.to, {
-      payload: config.payload,
-      replyTo: responseHandle.url,
-      threadId: config.threadId,
-      importance: config.importance,
-    });
+		// Send message with replyTo URL
+		yield* config.mailbox.send(config.to, {
+			payload: config.payload,
+			replyTo: responseHandle.url,
+			threadId: config.threadId,
+			importance: config.importance,
+		});
 
-    // Block until response or timeout
-    const response = yield* responseHandle.value;
+		// Block until response or timeout
+		const response = yield* responseHandle.value;
 
-    return response;
-  });
+		return response;
+	});
 }
 
 // ============================================================================
@@ -138,38 +138,38 @@ export function ask<Req, Res>(
  * ```
  */
 export function askWithMailbox<Req, Res>(config: {
-  readonly agent: string;
-  readonly projectKey: string;
-  readonly to: string | string[];
-  readonly payload: Req;
-  readonly ttlSeconds?: number;
-  readonly threadId?: string;
-  readonly importance?: "low" | "normal" | "high" | "urgent";
-  readonly db: DatabaseAdapter;
+	readonly agent: string;
+	readonly projectKey: string;
+	readonly to: string | string[];
+	readonly payload: Req;
+	readonly ttlSeconds?: number;
+	readonly threadId?: string;
+	readonly importance?: "low" | "normal" | "high" | "urgent";
+	readonly db: DatabaseAdapter;
 }): Effect.Effect<
-  Res,
-  TimeoutError | NotFoundError,
-  DurableDeferred | DurableMailbox | DurableCursor
+	Res,
+	TimeoutError | NotFoundError,
+	DurableDeferred | DurableMailbox | DurableCursor
 > {
-  return Effect.gen(function* () {
-    const mailboxService = yield* DurableMailbox;
+	return Effect.gen(function* () {
+		const mailboxService = yield* DurableMailbox;
 
-    const mailbox = yield* mailboxService.create({
-      agent: config.agent,
-      projectKey: config.projectKey,
-      db: config.db,
-    });
+		const mailbox = yield* mailboxService.create({
+			agent: config.agent,
+			projectKey: config.projectKey,
+			db: config.db,
+		});
 
-    return yield* ask<Req, Res>({
-      mailbox,
-      to: config.to,
-      payload: config.payload,
-      ttlSeconds: config.ttlSeconds,
-      threadId: config.threadId,
-      importance: config.importance,
-      db: config.db,
-    });
-  });
+		return yield* ask<Req, Res>({
+			mailbox,
+			to: config.to,
+			payload: config.payload,
+			ttlSeconds: config.ttlSeconds,
+			threadId: config.threadId,
+			importance: config.importance,
+			db: config.db,
+		});
+	});
 }
 
 /**
@@ -187,17 +187,17 @@ export function askWithMailbox<Req, Res>(config: {
  * ```
  */
 export function respond<T>(
-  envelope: { readonly replyTo?: string },
-  value: T,
-  db: DatabaseAdapter,
+	envelope: { readonly replyTo?: string },
+	value: T,
+	db: DatabaseAdapter,
 ): Effect.Effect<void, NotFoundError, DurableDeferred> {
-  return Effect.gen(function* () {
-    if (!envelope.replyTo) {
-      // No replyTo - this wasn't an ask() request, just return
-      return;
-    }
+	return Effect.gen(function* () {
+		if (!envelope.replyTo) {
+			// No replyTo - this wasn't an ask() request, just return
+			return;
+		}
 
-    const deferred = yield* DurableDeferred;
-    yield* deferred.resolve(envelope.replyTo, value, db);
-  });
+		const deferred = yield* DurableDeferred;
+		yield* deferred.resolve(envelope.replyTo, value, db);
+	});
 }

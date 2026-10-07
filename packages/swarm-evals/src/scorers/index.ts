@@ -1,7 +1,7 @@
 import { createScorer } from "evalite";
 import { generateText, gateway } from "ai";
 import type { GatewayModelId } from "ai";
-import type { CellTree } from "opencode-swarm-plugin";
+import type { CellTree } from "swarm";
 
 const JUDGE_MODEL: GatewayModelId = "anthropic/claude-haiku-4-5";
 
@@ -22,11 +22,11 @@ export const subtaskIndependence = createScorer({
   description: "Checks that no files appear in multiple subtasks",
   scorer: ({ output }) => {
     try {
-      const beadTree = JSON.parse(String(output)) as CellTree;
+      const cellTree = JSON.parse(String(output)) as CellTree;
       const fileMap = new Map<string, number>();
 
       // Track which files appear in which subtasks
-      beadTree.subtasks.forEach((subtask) => {
+      cellTree.subtasks.forEach((subtask) => {
         subtask.files?.forEach((file) => {
           const count = fileMap.get(file) || 0;
           fileMap.set(file, count + 1);
@@ -119,13 +119,13 @@ export const coverageCompleteness = createScorer({
   description: "Checks that subtasks cover the full task scope",
   scorer: ({ output, expected }) => {
     try {
-      const beadTree = JSON.parse(String(output)) as CellTree;
+      const cellTree = JSON.parse(String(output)) as CellTree;
 
       // If expected files specified, check coverage
       const expectedData = expected as Record<string, unknown> | undefined;
       if (expectedData && Array.isArray(expectedData.requiredFiles)) {
         const allFiles = new Set(
-          beadTree.subtasks.flatMap((st) => st.files || []),
+          cellTree.subtasks.flatMap((st) => st.files || []),
         );
 
         const requiredFiles = expectedData.requiredFiles as string[];
@@ -141,7 +141,7 @@ export const coverageCompleteness = createScorer({
       // Otherwise, check min/max subtask count
       const minSubtasks = (expectedData?.minSubtasks as number) || 1;
       const maxSubtasks = (expectedData?.maxSubtasks as number) || 10;
-      const count = beadTree.subtasks.length;
+      const count = cellTree.subtasks.length;
 
       if (count < minSubtasks) {
         return {
@@ -185,9 +185,9 @@ export const instructionClarity = createScorer({
   description: "Checks that subtasks have clear, actionable instructions",
   scorer: ({ output }) => {
     try {
-      const beadTree = JSON.parse(String(output)) as CellTree;
+      const cellTree = JSON.parse(String(output)) as CellTree;
 
-      if (beadTree.subtasks.length === 0) {
+      if (cellTree.subtasks.length === 0) {
         return {
           score: 0,
           message: "No subtasks found",
@@ -195,7 +195,7 @@ export const instructionClarity = createScorer({
       }
 
       // Check each subtask for clarity signals
-      const scores = beadTree.subtasks.map((subtask) => {
+      const scores = cellTree.subtasks.map((subtask) => {
         let score = 0.5; // baseline
 
         // Has description?

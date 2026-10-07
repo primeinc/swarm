@@ -4,12 +4,13 @@
  * Tests database auto-migration from project-local to global DB.
  */
 
-import { createClient } from "@libsql/client";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createLibSQLAdapter } from "../libsql.js";
+import { createClient } from "@libsql/client";
+import { DbClientFactory } from "../db/client-factory.js";
+import { DbFileOps } from "../db/file-ops.js";
 import {
 	backupOldDb,
 	detectSourceType,
@@ -22,144 +23,138 @@ import {
 import { createLibSQLStreamsSchema } from "./libsql-schema.js";
 
 describe("auto-migrate detection", () => {
-  let testDir: string;
+	let testDir: string;
 
-  beforeEach(() => {
-    testDir = join(tmpdir(), `auto-migrate-test-${Date.now()}`);
-    mkdirSync(testDir, { recursive: true });
-  });
+	beforeEach(() => {
+		testDir = join(tmpdir(), `auto-migrate-test-${Date.now()}`);
+		mkdirSync(testDir, { recursive: true });
+	});
 
-  afterEach(() => {
-    if (existsSync(testDir)) {
-      rmSync(testDir, { recursive: true, force: true });
-    }
-  });
+	afterEach(async () => {
+		await DbClientFactory.closeAll();
+		if (existsSync(testDir)) {
+			await DbFileOps.remove(testDir, { recursive: true });
+		}
+	});
 
-  test("needsMigration returns true for libSQL project DB", () => {
-    const dbPath = join(testDir, ".opencode", "streams.db");
-    mkdirSync(join(testDir, ".opencode"), { recursive: true });
-    writeFileSync(dbPath, "");
-    
-    expect(needsMigration(testDir)).toBe(true);
-  });
+	test("needsMigration returns true for libSQL project DB", () => {
+		const dbPath = join(testDir, ".opencode", "streams.db");
+		mkdirSync(join(testDir, ".opencode"), { recursive: true });
+		writeFileSync(dbPath, "");
 
-  test("needsMigration returns true for PGlite project DB", () => {
-    const pgliteDir = join(testDir, ".opencode", "streams");
-    mkdirSync(pgliteDir, { recursive: true });
-    writeFileSync(join(pgliteDir, "PG_VERSION"), "16");
-    
-    expect(needsMigration(testDir)).toBe(true);
-  });
+		expect(needsMigration(testDir)).toBe(true);
+	});
 
-  test("needsMigration returns false when no project DB exists", () => {
-    expect(needsMigration(testDir)).toBe(false);
-  });
+	test("needsMigration returns false when no project DB exists", () => {
+		expect(needsMigration(testDir)).toBe(false);
+	});
 
-  test("getGlobalDbPath returns ~/.config/swarm-tools/swarm.db", () => {
-    const path = getGlobalDbPath();
-    expect(path).toContain(".config");
-    expect(path).toContain("swarm-tools");
-    expect(path).toContain("swarm.db");
-  });
+	test("getGlobalDbPath returns ~/.config/swarm-tools/swarm.db", () => {
+		const path = getGlobalDbPath();
+		expect(path).toContain(".config");
+		expect(path).toContain("swarm-tools");
+		expect(path).toContain("swarm.db");
+	});
 
-  test("detectSourceType returns 'libsql' for streams.db", () => {
-    const dbPath = join(testDir, ".opencode", "streams.db");
-    mkdirSync(join(testDir, ".opencode"), { recursive: true });
-    writeFileSync(dbPath, "");
-    
-    expect(detectSourceType(testDir)).toBe("libsql");
-  });
+	test("detectSourceType returns 'libsql' for streams.db", () => {
+		const dbPath = join(testDir, ".opencode", "streams.db");
+		mkdirSync(join(testDir, ".opencode"), { recursive: true });
+		writeFileSync(dbPath, "");
 
-  test("detectSourceType returns 'pglite' for streams/ dir", () => {
-    const pgliteDir = join(testDir, ".opencode", "streams");
-    mkdirSync(pgliteDir, { recursive: true });
-    writeFileSync(join(pgliteDir, "PG_VERSION"), "16");
-    
-    expect(detectSourceType(testDir)).toBe("pglite");
-  });
+		expect(detectSourceType(testDir)).toBe("libsql");
+	});
 
-  test("detectSourceType returns 'none' when no DB exists", () => {
-    expect(detectSourceType(testDir)).toBe("none");
-  });
+	test("detectSourceType returns 'none' when no DB exists", () => {
+		expect(detectSourceType(testDir)).toBe("none");
+	});
 });
 
 describe("auto-migrate libSQL to global", () => {
-  let testDir: string;
-  let sourcePath: string;
-  let globalDbPath: string;
+	let testDir: string;
+	let sourcePath: string;
+	let globalDbPath: string;
 
-  beforeEach(async () => {
-    testDir = join(tmpdir(), `auto-migrate-libsql-${Date.now()}`);
-    mkdirSync(testDir, { recursive: true });
-    sourcePath = join(testDir, ".opencode", "streams.db");
-    globalDbPath = join(testDir, "global-test.db");
+	beforeEach(async () => {
+		testDir = join(tmpdir(), `auto-migrate-libsql-${Date.now()}`);
+		mkdirSync(testDir, { recursive: true });
+		sourcePath = join(testDir, ".opencode", "streams.db");
+		globalDbPath = join(testDir, "global-test.db");
 
-    // Create source DB with test data
-    mkdirSync(join(testDir, ".opencode"), { recursive: true });
-    const sourceDb = await createLibSQLAdapter({ url: `file:${sourcePath}` });
-    await createLibSQLStreamsSchema(sourceDb);
+		// Create source DB with test data
+		mkdirSync(join(testDir, ".opencode"), { recursive: true });
+		const managed = await DbClientFactory.getOrCreate(`file:${sourcePath}`);
+		const sourceDb = managed.adapter;
+		await createLibSQLStreamsSchema(sourceDb);
 
-    // Insert test data
-    await sourceDb.exec(`
+		// Insert test data
+		await sourceDb.exec(`
       INSERT INTO events (type, project_key, timestamp, data)
       VALUES ('test_event', '${testDir}', ${Date.now()}, '{"test": true}')
     `);
 
-    await sourceDb.exec(`
+		await sourceDb.exec(`
       INSERT INTO agents (project_key, name, registered_at, last_active_at)
       VALUES ('${testDir}', 'test-agent', ${Date.now()}, ${Date.now()})
     `);
+	});
 
-    await sourceDb.close();
-  });
+	afterEach(async () => {
+		await DbClientFactory.closeAll();
+		if (existsSync(testDir)) {
+			await DbFileOps.remove(testDir, { recursive: true });
+		}
+	});
 
-  afterEach(() => {
-    if (existsSync(testDir)) {
-      rmSync(testDir, { recursive: true, force: true });
-    }
-  });
+	test("migrateLibSQLToGlobal copies all tables", async () => {
+		// Create global DB
+		const managedGlobal = await DbClientFactory.getOrCreate(
+			`file:${globalDbPath}`,
+		);
+		const globalAdapter = managedGlobal.adapter;
+		await createLibSQLStreamsSchema(globalAdapter);
 
-  test("migrateLibSQLToGlobal copies all tables", async () => {
-    // Create global DB
-    const globalDb = createClient({ url: `file:${globalDbPath}` });
-    await createLibSQLStreamsSchema(await createLibSQLAdapter({ url: `file:${globalDbPath}` }));
+		const stats = await migrateLibSQLToGlobal(sourcePath, managedGlobal.client);
 
-    const stats = await migrateLibSQLToGlobal(sourcePath, globalDb);
+		expect(stats.events).toBeGreaterThan(0);
+		expect(stats.agents).toBeGreaterThan(0);
 
-    expect(stats.events).toBeGreaterThan(0);
-    expect(stats.agents).toBeGreaterThan(0);
+		// Verify data exists in global DB
+		const events = await managedGlobal.client.execute(
+			"SELECT COUNT(*) as count FROM events",
+		);
+		expect(Number(events.rows[0].count)).toBeGreaterThan(0);
 
-    // Verify data exists in global DB
-    const events = await globalDb.execute("SELECT COUNT(*) as count FROM events");
-    expect(Number(events.rows[0].count)).toBeGreaterThan(0);
+		const agents = await managedGlobal.client.execute(
+			"SELECT COUNT(*) as count FROM agents",
+		);
+		expect(Number(agents.rows[0].count)).toBeGreaterThan(0);
+	});
 
-    const agents = await globalDb.execute("SELECT COUNT(*) as count FROM agents");
-    expect(Number(agents.rows[0].count)).toBeGreaterThan(0);
+	test("migrateLibSQLToGlobal uses INSERT OR IGNORE (idempotent)", async () => {
+		const managedGlobal = await DbClientFactory.getOrCreate(
+			`file:${globalDbPath}`,
+		);
+		const globalAdapter = managedGlobal.adapter;
+		await createLibSQLStreamsSchema(globalAdapter);
 
-    globalDb.close();
-  });
+		// Migrate once
+		await migrateLibSQLToGlobal(sourcePath, managedGlobal.client);
 
-  test("migrateLibSQLToGlobal uses INSERT OR IGNORE (idempotent)", async () => {
-    const globalDb = createClient({ url: `file:${globalDbPath}` });
-    await createLibSQLStreamsSchema(await createLibSQLAdapter({ url: `file:${globalDbPath}` }));
+		// Migrate again (should skip duplicates)
+		const stats2 = await migrateLibSQLToGlobal(
+			sourcePath,
+			managedGlobal.client,
+		);
 
-    // Migrate once
-    await migrateLibSQLToGlobal(sourcePath, globalDb);
-    
-    // Migrate again (should skip duplicates)
-    const stats2 = await migrateLibSQLToGlobal(sourcePath, globalDb);
+		expect(stats2.events).toBe(0); // Already exists
+		expect(stats2.agents).toBe(0);
+	});
 
-    expect(stats2.events).toBe(0); // Already exists
-    expect(stats2.agents).toBe(0);
-
-    globalDb.close();
-  });
-
-  test("migrateLibSQLToGlobal handles missing tables gracefully", async () => {
-    // Create source DB with only events table (missing others)
-    const minimalSourcePath = join(testDir, "minimal.db");
-    const minimalDb = createClient({ url: `file:${minimalSourcePath}` });
-    await minimalDb.execute(`
+	test("migrateLibSQLToGlobal handles missing tables gracefully", async () => {
+		// Create source DB with only events table (missing others)
+		const minimalSourcePath = join(testDir, "minimal.db");
+		const minimalDb = createClient({ url: `file:${minimalSourcePath}` });
+		await minimalDb.execute(`
       CREATE TABLE events (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         type TEXT NOT NULL,
@@ -168,232 +163,247 @@ describe("auto-migrate libSQL to global", () => {
         data TEXT NOT NULL
       )
     `);
-    await minimalDb.execute(`
+		await minimalDb.execute(`
       INSERT INTO events (type, project_key, timestamp, data)
       VALUES ('test', 'proj', ${Date.now()}, '{}')
     `);
-    minimalDb.close();
+		minimalDb.close();
 
-    const globalDb = createClient({ url: `file:${globalDbPath}` });
-    await createLibSQLStreamsSchema(await createLibSQLAdapter({ url: `file:${globalDbPath}` }));
+		const managedGlobal = await DbClientFactory.getOrCreate(
+			`file:${globalDbPath}`,
+		);
+		const globalAdapter = managedGlobal.adapter;
+		await createLibSQLStreamsSchema(globalAdapter);
 
-    // Should not throw
-    const stats = await migrateLibSQLToGlobal(minimalSourcePath, globalDb);
-    
-    expect(stats.events).toBe(1);
-    expect(stats.agents).toBe(0); // Missing table, no error
+		// Should not throw
+		const stats = await migrateLibSQLToGlobal(
+			minimalSourcePath,
+			managedGlobal.client,
+		);
 
-    globalDb.close();
-  });
+		expect(stats.events).toBe(1);
+		expect(stats.agents).toBe(0); // Missing table, no error
+	});
 });
 
 describe("auto-migrate backup", () => {
-  let testDir: string;
+	let testDir: string;
 
-  beforeEach(() => {
-    testDir = join(tmpdir(), `auto-migrate-backup-${Date.now()}`);
-    mkdirSync(testDir, { recursive: true });
-  });
+	beforeEach(() => {
+		testDir = join(tmpdir(), `auto-migrate-backup-${Date.now()}`);
+		mkdirSync(testDir, { recursive: true });
+	});
 
-  afterEach(() => {
-    if (existsSync(testDir)) {
-      rmSync(testDir, { recursive: true, force: true });
-    }
-  });
+	afterEach(async () => {
+		await DbClientFactory.closeAll();
+		if (existsSync(testDir)) {
+			await DbFileOps.remove(testDir, { recursive: true });
+		}
+	});
 
-  test("backupOldDb renames file with timestamp", () => {
-    const dbPath = join(testDir, "streams.db");
-    writeFileSync(dbPath, "test data");
+	test("backupOldDb renames file with timestamp", async () => {
+		const dbPath = join(testDir, "streams.db");
+		writeFileSync(dbPath, "test data");
 
-    const backupPath = backupOldDb(dbPath);
+		const backupPath = await backupOldDb(dbPath);
 
-    expect(existsSync(dbPath)).toBe(false); // Original removed
-    expect(existsSync(backupPath)).toBe(true); // Backup exists
-    expect(backupPath).toContain(".backup-");
-  });
-
-  test("backupOldDb handles directories (PGlite)", () => {
-    const pgliteDir = join(testDir, "streams");
-    mkdirSync(pgliteDir, { recursive: true });
-    writeFileSync(join(pgliteDir, "PG_VERSION"), "16");
-
-    const backupPath = backupOldDb(pgliteDir);
-
-    expect(existsSync(pgliteDir)).toBe(false); // Original removed
-    expect(existsSync(backupPath)).toBe(true); // Backup exists
-  });
+		expect(existsSync(dbPath)).toBe(false); // Original removed
+		expect(existsSync(backupPath)).toBe(true); // Backup exists
+		expect(backupPath).toContain(".backup-");
+	});
 });
 
 describe("auto-migrate end-to-end", () => {
-  let testDir: string;
-  let globalDbPath: string;
+	let testDir: string;
+	let globalDbPath: string;
 
-  beforeEach(async () => {
-    testDir = join(tmpdir(), `auto-migrate-e2e-${Date.now()}`);
-    mkdirSync(testDir, { recursive: true });
-    globalDbPath = join(testDir, "global-test.db");
+	beforeEach(async () => {
+		testDir = join(tmpdir(), `auto-migrate-e2e-${Date.now()}`);
+		mkdirSync(testDir, { recursive: true });
+		globalDbPath = join(testDir, "global-test.db");
 
-    // Create source DB with test data
-    const sourcePath = join(testDir, ".opencode", "streams.db");
-    mkdirSync(join(testDir, ".opencode"), { recursive: true });
-    const sourceDb = await createLibSQLAdapter({ url: `file:${sourcePath}` });
-    await createLibSQLStreamsSchema(sourceDb);
+		// Create source DB with test data
+		const sourcePath = join(testDir, ".opencode", "streams.db");
+		mkdirSync(join(testDir, ".opencode"), { recursive: true });
+		const managedSource = await DbClientFactory.getOrCreate(
+			`file:${sourcePath}`,
+		);
+		const sourceDb = managedSource.adapter;
+		await createLibSQLStreamsSchema(sourceDb);
 
-    await sourceDb.exec(`
+		await sourceDb.exec(`
       INSERT INTO events (type, project_key, timestamp, data)
       VALUES ('test_event', '${testDir}', ${Date.now()}, '{"test": true}')
     `);
+	});
 
-    await sourceDb.close();
-  });
+	afterEach(async () => {
+		await DbClientFactory.closeAll();
+		if (existsSync(testDir)) {
+			await DbFileOps.remove(testDir, { recursive: true });
+		}
+	});
 
-  afterEach(() => {
-    if (existsSync(testDir)) {
-      rmSync(testDir, { recursive: true, force: true });
-    }
-  });
+	test("migrateProjectToGlobal orchestrates full migration", async () => {
+		const result = await migrateProjectToGlobal(testDir, globalDbPath);
 
-  test("migrateProjectToGlobal orchestrates full migration", async () => {
-    const result = await migrateProjectToGlobal(testDir, globalDbPath);
+		expect(result.sourceType).toBe("libsql");
+		expect(result.stats.events).toBeGreaterThan(0);
+		expect(result.backupPath).toContain(".backup-");
 
-    expect(result.sourceType).toBe("libsql");
-    expect(result.stats.events).toBeGreaterThan(0);
-    expect(result.backupPath).toContain(".backup-");
+		// Verify backup was created
+		expect(existsSync(result.backupPath)).toBe(true);
 
-    // Verify backup was created
-    expect(existsSync(result.backupPath)).toBe(true);
-
-    // Verify global DB has data
-    const globalDb = createClient({ url: `file:${globalDbPath}` });
-    const events = await globalDb.execute("SELECT COUNT(*) as count FROM events");
-    expect(Number(events.rows[0].count)).toBeGreaterThan(0);
-    globalDb.close();
-  });
+		// Verify global DB has data
+		const managedGlobal = await DbClientFactory.getOrCreate(
+			`file:${globalDbPath}`,
+		);
+		const events = await managedGlobal.client.execute(
+			"SELECT COUNT(*) as count FROM events",
+		);
+		expect(Number(events.rows[0].count)).toBeGreaterThan(0);
+	});
 });
 
 describe("migrateLocalDbToGlobal", () => {
-  let testDir: string;
-  let localDbPath: string;
-  let globalDbPath: string;
+	let testDir: string;
+	let localDbPath: string;
+	let globalDbPath: string;
 
-  beforeEach(async () => {
-    testDir = join(tmpdir(), `migrate-local-${Date.now()}`);
-    mkdirSync(testDir, { recursive: true });
-    localDbPath = join(testDir, "local.db");
-    globalDbPath = join(testDir, "global.db");
+	beforeEach(async () => {
+		testDir = join(tmpdir(), `migrate-local-${Date.now()}`);
+		mkdirSync(testDir, { recursive: true });
+		localDbPath = join(testDir, "local.db");
+		globalDbPath = join(testDir, "global.db");
 
-    // Create local DB with test data
-    const localDb = await createLibSQLAdapter({ url: `file:${localDbPath}` });
-    await createLibSQLStreamsSchema(localDb);
+		// Create local DB with test data
+		const managedLocal = await DbClientFactory.getOrCreate(
+			`file:${localDbPath}`,
+		);
+		const localDb = managedLocal.adapter;
+		await createLibSQLStreamsSchema(localDb);
 
-    // Insert data into multiple tables
-    await localDb.exec(`
+		// Insert data into multiple tables
+		await localDb.exec(`
       INSERT INTO events (type, project_key, timestamp, data)
       VALUES ('test_event', 'test-project', ${Date.now()}, '{"test": true}')
     `);
 
-    await localDb.exec(`
+		await localDb.exec(`
       INSERT INTO agents (project_key, name, registered_at, last_active_at)
       VALUES ('test-project', 'test-agent', ${Date.now()}, ${Date.now()})
     `);
 
-    await localDb.exec(`
+		await localDb.exec(`
       INSERT INTO messages (project_key, from_agent, subject, body, thread_id, importance, ack_required, created_at)
       VALUES ('test-project', 'test-agent', 'Test', 'Body', 'thread-1', 'normal', 0, ${Date.now()})
     `);
 
-    await localDb.close();
+		// Create global DB with schema
+		const managedGlobal = await DbClientFactory.getOrCreate(
+			`file:${globalDbPath}`,
+		);
+		const globalDb = managedGlobal.adapter;
+		await createLibSQLStreamsSchema(globalDb);
+	});
 
-    // Create global DB with schema
-    const globalDb = await createLibSQLAdapter({ url: `file:${globalDbPath}` });
-    await createLibSQLStreamsSchema(globalDb);
-    await globalDb.close();
-  });
+	afterEach(async () => {
+		await DbClientFactory.closeAll();
+		if (existsSync(testDir)) {
+			await DbFileOps.remove(testDir, { recursive: true });
+		}
+	});
 
-  afterEach(() => {
-    if (existsSync(testDir)) {
-      rmSync(testDir, { recursive: true, force: true });
-    }
-  });
+	test("migrates all tables from local to global", async () => {
+		const stats = await migrateLocalDbToGlobal(localDbPath, globalDbPath);
 
-  test("migrates all tables from local to global", async () => {
-    const stats = await migrateLocalDbToGlobal(localDbPath, globalDbPath);
+		// Verify data was migrated
+		expect(stats.events).toBe(1);
+		expect(stats.agents).toBe(1);
+		expect(stats.messages).toBe(1);
 
-    // Verify data was migrated
-    expect(stats.events).toBe(1);
-    expect(stats.agents).toBe(1);
-    expect(stats.messages).toBe(1);
+		// Verify data exists in global DB
+		const managedGlobal = await DbClientFactory.getOrCreate(
+			`file:${globalDbPath}`,
+		);
+		const events = await managedGlobal.client.execute(
+			"SELECT COUNT(*) as count FROM events",
+		);
+		expect(Number(events.rows[0].count)).toBe(1);
 
-    // Verify data exists in global DB
-    const globalDb = createClient({ url: `file:${globalDbPath}` });
-    const events = await globalDb.execute("SELECT COUNT(*) as count FROM events");
-    expect(Number(events.rows[0].count)).toBe(1);
+		const agents = await managedGlobal.client.execute(
+			"SELECT COUNT(*) as count FROM agents",
+		);
+		expect(Number(agents.rows[0].count)).toBe(1);
 
-    const agents = await globalDb.execute("SELECT COUNT(*) as count FROM agents");
-    expect(Number(agents.rows[0].count)).toBe(1);
+		const messages = await managedGlobal.client.execute(
+			"SELECT COUNT(*) as count FROM messages",
+		);
+		expect(Number(messages.rows[0].count)).toBe(1);
+	});
 
-    const messages = await globalDb.execute("SELECT COUNT(*) as count FROM messages");
-    expect(Number(messages.rows[0].count)).toBe(1);
+	test("is idempotent - running twice does not duplicate data", async () => {
+		// First migration
+		const stats1 = await migrateLocalDbToGlobal(localDbPath, globalDbPath);
+		expect(stats1.events).toBe(1);
 
-    globalDb.close();
-  });
+		// Second migration (should skip duplicates)
+		const stats2 = await migrateLocalDbToGlobal(localDbPath, globalDbPath);
+		expect(stats2.events).toBe(0); // INSERT OR IGNORE skips
 
-  test("is idempotent - running twice does not duplicate data", async () => {
-    // First migration
-    const stats1 = await migrateLocalDbToGlobal(localDbPath, globalDbPath);
-    expect(stats1.events).toBe(1);
+		// Verify only 1 row exists
+		const managedGlobal = await DbClientFactory.getOrCreate(
+			`file:${globalDbPath}`,
+		);
+		const events = await managedGlobal.client.execute(
+			"SELECT COUNT(*) as count FROM events",
+		);
+		expect(Number(events.rows[0].count)).toBe(1);
+	});
 
-    // Second migration (should skip duplicates)
-    const stats2 = await migrateLocalDbToGlobal(localDbPath, globalDbPath);
-    expect(stats2.events).toBe(0); // INSERT OR IGNORE skips
+	test("renames local DB to .migrated suffix after success", async () => {
+		await migrateLocalDbToGlobal(localDbPath, globalDbPath);
 
-    // Verify only 1 row exists
-    const globalDb = createClient({ url: `file:${globalDbPath}` });
-    const events = await globalDb.execute("SELECT COUNT(*) as count FROM events");
-    expect(Number(events.rows[0].count)).toBe(1);
-    globalDb.close();
-  });
+		// Original DB should be renamed
+		expect(existsSync(localDbPath)).toBe(false);
+		expect(existsSync(`${localDbPath}.migrated`)).toBe(true);
+	});
 
-  test("renames local DB to .migrated suffix after success", async () => {
-    await migrateLocalDbToGlobal(localDbPath, globalDbPath);
+	test("skips migration if .migrated file already exists", async () => {
+		// Create .migrated file
+		writeFileSync(`${localDbPath}.migrated`, "");
 
-    // Original DB should be renamed
-    expect(existsSync(localDbPath)).toBe(false);
-    expect(existsSync(`${localDbPath}.migrated`)).toBe(true);
-  });
+		const stats = await migrateLocalDbToGlobal(localDbPath, globalDbPath);
 
-  test("skips migration if .migrated file already exists", async () => {
-    // Create .migrated file
-    writeFileSync(`${localDbPath}.migrated`, "");
+		// Should skip entirely
+		expect(stats.events).toBe(0);
+		expect(stats.agents).toBe(0);
 
-    const stats = await migrateLocalDbToGlobal(localDbPath, globalDbPath);
+		// Global DB should be empty
+		const managedGlobal = await DbClientFactory.getOrCreate(
+			`file:${globalDbPath}`,
+		);
+		const events = await managedGlobal.client.execute(
+			"SELECT COUNT(*) as count FROM events",
+		);
+		expect(Number(events.rows[0].count)).toBe(0);
+	});
 
-    // Should skip entirely
-    expect(stats.events).toBe(0);
-    expect(stats.agents).toBe(0);
+	test("skips migration if local DB doesn't exist", async () => {
+		const nonExistentPath = join(testDir, "nonexistent.db");
+		const stats = await migrateLocalDbToGlobal(nonExistentPath, globalDbPath);
 
-    // Global DB should be empty
-    const globalDb = createClient({ url: `file:${globalDbPath}` });
-    const events = await globalDb.execute("SELECT COUNT(*) as count FROM events");
-    expect(Number(events.rows[0].count)).toBe(0);
-    globalDb.close();
-  });
+		// Should skip entirely
+		expect(stats.events).toBe(0);
+	});
 
-  test("skips migration if local DB doesn't exist", async () => {
-    const nonExistentPath = join(testDir, "nonexistent.db");
-    const stats = await migrateLocalDbToGlobal(nonExistentPath, globalDbPath);
+	test("handles schema differences gracefully (local has fewer columns)", async () => {
+		// Create minimal schema local DB
+		const minimalDbPath = join(testDir, "minimal.db");
+		const minimalDb = createClient({ url: `file:${minimalDbPath}` });
 
-    // Should skip entirely
-    expect(stats.events).toBe(0);
-  });
-
-  test("handles schema differences gracefully (local has fewer columns)", async () => {
-    // Create minimal schema local DB
-    const minimalDbPath = join(testDir, "minimal.db");
-    const minimalDb = createClient({ url: `file:${minimalDbPath}` });
-    
-    // Only create events table with subset of columns
-    await minimalDb.execute(`
+		// Only create events table with subset of columns
+		await minimalDb.execute(`
       CREATE TABLE events (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         type TEXT NOT NULL,
@@ -403,14 +413,14 @@ describe("migrateLocalDbToGlobal", () => {
       )
     `);
 
-    await minimalDb.execute(`
+		await minimalDb.execute(`
       INSERT INTO events (type, project_key, timestamp, data)
       VALUES ('test', 'proj', ${Date.now()}, '{}')
     `);
-    minimalDb.close();
+		minimalDb.close();
 
-    // Should not throw
-    const stats = await migrateLocalDbToGlobal(minimalDbPath, globalDbPath);
-    expect(stats.events).toBe(1);
-  });
+		// Should not throw
+		const stats = await migrateLocalDbToGlobal(minimalDbPath, globalDbPath);
+		expect(stats.events).toBe(1);
+	});
 });

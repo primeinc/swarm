@@ -357,7 +357,7 @@ swarm query --preset file_assignment_history --file src/auth.ts
   id: string;                   // dt-{nanoid}
   decision_type: string;        // 'decomposition_strategy', 'file_assignment', etc.
   epic_id?: string;
-  bead_id?: string;
+  cell_id?: string;
   agent_name: string;
   project_key: string;
   decision: string;             // JSON: actual decision
@@ -412,7 +412,7 @@ throw new SwarmError("File reservation failed", {
   line: 42,
   agent: "DarkHawk",
   epic_id: "mjmas3zxlmg",
-  bead_id: "mjmas40ys7g",
+  cell_id: "mjmas40ys7g",
   recent_events: [
     { type: "worker_spawned", timestamp: "2025-12-25T10:00:00Z", message: "Worker started" },
     { type: "reservation_attempted", timestamp: "2025-12-25T10:01:00Z", message: "Tried to reserve src/auth.ts" }

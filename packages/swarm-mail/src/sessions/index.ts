@@ -34,50 +34,46 @@ export {
 // 	type SessionViewerOptions,
 // } from "./session-viewer.js";
 
-// Staleness detector (track index freshness)
-export {
-	StalenessDetector,
-	type IndexState,
-	type RecordIndexedOpts,
-	type CheckStalenessOpts,
-	type BulkStalenessCheckItem,
-	type BulkStalenessResult,
-} from "./staleness-detector.js";
-
 // Pagination (field projection for compact output)
 export {
 	FIELD_SETS,
-	projectSearchResult,
-	projectSearchResults,
 	type FieldSelection,
 	type FieldSet,
 	type MemoryField,
+	projectSearchResult,
+	projectSearchResults,
 	type SearchResultField,
 } from "./pagination.js";
-
 // Session indexer (main orchestrator)
 export {
-	SessionIndexer,
 	type IndexDirectoryOptions,
 	type IndexFileResult,
 	type IndexHealth,
 	type SearchOptions,
+	SessionIndexer,
 	type SessionStats,
 	type StalenessResult,
 } from "./session-indexer.js";
-
 // Session quality (ghost session detection)
 export {
 	isQualitySession,
+	type PurgeResult,
 	purgeGhostSessions,
 	type SessionQualityCriteria,
-	type PurgeResult,
 } from "./session-quality.js";
-
 // Session store (indexing with quality filtering)
 export {
-	SessionStore,
-	type IndexWithFilteringOptions,
 	type FilteredIndexResult,
+	type IndexWithFilteringOptions,
 	type SessionQueryOptions,
+	SessionStore,
 } from "./session-store.js";
+// Staleness detector (track index freshness)
+export {
+	type BulkStalenessCheckItem,
+	type BulkStalenessResult,
+	type CheckStalenessOpts,
+	type IndexState,
+	type RecordIndexedOpts,
+	StalenessDetector,
+} from "./staleness-detector.js";

@@ -5,10 +5,10 @@
  * These tests are skipped by default - run with INTEGRATION=true to enable.
  */
 
-import { describe, expect, test } from "vitest";
 import { Effect } from "effect";
+import { describe, expect, test } from "vitest";
+import { getDefaultConfig, makeOllamaLive } from "../memory/ollama";
 import { ChunkProcessor, type NormalizedMessage } from "./chunk-processor";
-import { makeOllamaLive, getDefaultConfig } from "../memory/ollama";
 
 const SKIP_INTEGRATION = !process.env.INTEGRATION;
 

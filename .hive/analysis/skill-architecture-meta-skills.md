@@ -2,7 +2,7 @@
 
 **Source:** obra/superpowers repository (writing-skills, testing-skills-with-subagents, skills-core.js)  
 **Date:** 2025-12-13  
-**Analyzed by:** Swarm Agent (bead: opencode-swarm-plugin-v737h.4)
+**Analyzed by:** Swarm Agent (cell: opencode-swarm-plugin-v737h.4)
 
 ---
 
@@ -1300,7 +1300,7 @@ skills_create({
 
 ```typescript
 swarm_record_outcome({
-  bead_id: "bd-123.1",
+  cell_id: "bd-123.1",
   strategy: "skill-testing",
   duration_ms: 900000, // 15 minutes
   success: true,
@@ -1322,7 +1322,7 @@ swarm_record_outcome({
 ### Immediate (This Session)
 
 - [x] Extract skill architecture patterns from obra/superpowers
-- [ ] Document findings in `.beads/analysis/skill-architecture-meta-skills.md`
+- [ ] Document findings in `.cells/analysis/skill-architecture-meta-skills.md`
 - [ ] Report completion via Agent Mail
 
 ### Short-term (Next Session)
@@ -1343,7 +1343,7 @@ swarm_record_outcome({
 
 - [ ] Full learning system integration for skill testing
 - [ ] Pattern maturity tracking for skill approaches
-- [ ] Automated skill testing in CI (beads_sync hook)
+- [ ] Automated skill testing in CI (cells_sync hook)
 - [ ] Skill quality dashboard (CSO score, test coverage, token budget)
 
 ---

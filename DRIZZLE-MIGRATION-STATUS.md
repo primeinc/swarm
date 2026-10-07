@@ -176,13 +176,13 @@ project_key: text("project_key").notNull()
 ```
 
 **Affected tables:**
-- beads (16 properties)
+- cells (16 properties)
 - cellEvents (5 properties)
-- beadLabels (3 properties)
-- beadComments (7 properties)
-- beadDependencies (5 properties)
-- blockedBeadsCache (3 properties)
-- dirtyBeads (2 properties)
+- cellLabels (3 properties)
+- cellComments (7 properties)
+- cellDependencies (5 properties)
+- blockedcellsCache (3 properties)
+- dirtycells (2 properties)
 - schemaVersion (2 properties)
 
 ## Remaining Fixes (BLOCKED - Need File Access)
@@ -196,18 +196,18 @@ project_key: text("project_key").notNull()
 
 **Fix:** Mechanical find-replace:
 ```
-beads.projectKey → beads.project_key
-beads.parentId → beads.parent_id
-beads.createdAt → beads.created_at
-beads.updatedAt → beads.updated_at
-beads.deletedAt → beads.deleted_at
-beads.closedAt → beads.closed_at
-beadDependencies.cellId → beadDependencies.cell_id
-beadDependencies.dependsOnId → beadDependencies.depends_on_id
-beadLabels.cellId → beadLabels.cell_id
-beadComments.cellId → beadComments.cell_id
-beadComments.parentId → beadComments.parent_id
-beadComments.updatedAt → beadComments.updated_at
+cells.projectKey → cells.project_key
+cells.parentId → cells.parent_id
+cells.createdAt → cells.created_at
+cells.updatedAt → cells.updated_at
+cells.deletedAt → cells.deleted_at
+cells.closedAt → cells.closed_at
+cellDependencies.cellId → cellDependencies.cell_id
+cellDependencies.dependsOnId → cellDependencies.depends_on_id
+cellLabels.cellId → cellLabels.cell_id
+cellComments.cellId → cellComments.cell_id
+cellComments.parentId → cellComments.parent_id
+cellComments.updatedAt → cellComments.updated_at
 ```
 
 Also add `.$dynamic()` to queries with conditional limit/offset (projections.ts lines 465-477).

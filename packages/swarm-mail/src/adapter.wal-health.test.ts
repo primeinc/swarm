@@ -2,7 +2,7 @@
  * SwarmMailAdapter WAL Health Integration Tests
  *
  * Tests for integrating WAL health monitoring into SwarmMailAdapter.healthCheck()
- * 
+ *
  * NOTE: LibSQL doesn't implement checkWalHealth/getWalStats (optional methods).
  * These tests verify graceful degradation when WAL monitoring is unavailable.
  * For full WAL monitoring tests, see PGLite-specific test files.
@@ -42,7 +42,7 @@ describe("SwarmMailAdapter healthCheck with WAL monitoring", () => {
 		// Should still return health object with connected status
 		expect(health).toBeDefined();
 		expect(health.connected).toBe(true);
-		
+
 		// WAL health is undefined for databases without WAL monitoring
 		expect(health.walHealth).toBeUndefined();
 	});

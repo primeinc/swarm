@@ -13,8 +13,8 @@
 
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import type { SwarmMailAdapter } from "../types/adapter.js";
 import type { AgentEvent } from "../streams/events.js";
+import type { SwarmMailAdapter } from "../types/adapter.js";
 
 export interface ExportOptions {
 	/** Only export events after this timestamp */
@@ -61,7 +61,10 @@ export async function exportSessionsToJsonl(
 	});
 
 	// Group events by session_id
-	const sessionMap = new Map<string, Array<AgentEvent & { id: number; sequence: number }>>();
+	const sessionMap = new Map<
+		string,
+		Array<AgentEvent & { id: number; sequence: number }>
+	>();
 
 	for (const event of events) {
 		// Extract session_id from event data
@@ -120,7 +123,9 @@ export async function exportSessionsToJsonl(
  * @param event - Event with id, sequence, and data
  * @returns Session identifier (sanitized for use as filename)
  */
-function extractSessionId(event: AgentEvent & { id: number; sequence: number }): string {
+function extractSessionId(
+	event: AgentEvent & { id: number; sequence: number },
+): string {
 	// Check for explicit session_id in event data
 	if ("session_id" in event && typeof event.session_id === "string") {
 		return sanitizeSessionId(event.session_id);

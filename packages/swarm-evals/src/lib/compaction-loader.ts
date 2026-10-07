@@ -14,8 +14,8 @@
 import * as fs from "node:fs";
 import { createInterface } from "node:readline";
 import * as path from "node:path";
-import type { CoordinatorEvent } from "opencode-swarm-plugin/eval-capture";
-import { CoordinatorEventSchema } from "opencode-swarm-plugin/eval-capture";
+import type { CoordinatorEvent } from "swarm/eval-capture";
+import { CoordinatorEventSchema } from "swarm/eval-capture";
 
 /**
  * Compaction event - subset of CoordinatorEvent with event_type === "COMPACTION"
@@ -296,7 +296,7 @@ export async function loadCompactionSessions(
 export async function loadDefaultCompactionEvents(
   options?: LoadOptions,
 ): Promise<CompactionEvent[]> {
-  const { getSessionDir } = await import("opencode-swarm-plugin/eval-capture");
+  const { getSessionDir } = await import("swarm/eval-capture");
   return loadCompactionEvents(getSessionDir(), options);
 }
 
@@ -315,6 +315,6 @@ export async function loadDefaultCompactionEvents(
 export async function loadDefaultCompactionSessions(
   options?: LoadOptions,
 ): Promise<CompactionSession[]> {
-  const { getSessionDir } = await import("opencode-swarm-plugin/eval-capture");
+  const { getSessionDir } = await import("swarm/eval-capture");
   return loadCompactionSessions(getSessionDir(), options);
 }

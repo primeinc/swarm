@@ -25,11 +25,11 @@ It's **terrible for human comprehension**. When you have 50+ cells across multip
 
 **Current state:** Humans must use `hive_query` tool calls and piece together state from JSON output. This is cognitively expensive and error-prone.
 
-### Inspiration: Existing Beads Visualizers
+### Inspiration: Existing cells Visualizers
 
-#### beads_viewer (Go TUI)
+#### cells_viewer (Go TUI)
 
-[beads_viewer](https://github.com/Dicklesworthstone/beads_viewer) by Jeffrey Emanuel is a TUI for Steve Yegge's Beads issue tracker. Key features:
+[cells_viewer](https://github.com/Dicklesworthstone/cells_viewer) by Jeffrey Emanuel is a TUI for Steve Yegge's cells issue tracker. Key features:
 
 - **Graph-first philosophy**: Treats the dependency graph as the primary view, not a list
 - **9 graph-theoretic metrics**: PageRank, Betweenness, HITS, Critical Path, Eigenvector, Degree, Density, Cycles, Topo Sort
@@ -37,14 +37,14 @@ It's **terrible for human comprehension**. When you have 50+ cells across multip
 - **Robot protocol**: JSON output for AI agent consumption
 - **Static site export**: Self-contained HTML for sharing
 
-beads_viewer is written in Go with Bubble Tea TUI framework. It's comprehensive (10,000+ lines) but tightly coupled to the Beads data format.
+cells_viewer is written in Go with Bubble Tea TUI framework. It's comprehensive (10,000+ lines) but tightly coupled to the cells data format.
 
-#### beads-ui (Web UI with Live Updates)
+#### cells-ui (Web UI with Live Updates)
 
-[beads-ui](https://github.com/mantoni/beads-ui) by Maximilian Antoni is a **web-based UI** with live updates:
+[cells-ui](https://github.com/mantoni/cells-ui) by Maximilian Antoni is a **web-based UI** with live updates:
 
 - **Zero setup**: `bdui start --open`
-- **Live updates**: Watches the beads database for changes via WebSocket
+- **Live updates**: Watches the cells database for changes via WebSocket
 - **Multiple views**: Issues, Epics (with progress), Board (Kanban)
 - **Inline editing**: Edit issues without leaving the UI
 - **Keyboard navigation**: Full keyboard support
@@ -57,7 +57,7 @@ beads_viewer is written in Go with Bubble Tea TUI framework. It's comprehensive 
 
 ### Our Unique Advantage: Event-Sourced Data + Durable Streams Protocol
 
-We have something neither beads_viewer nor beads-ui have: **event-sourced data** that can be exposed via the **Durable Streams protocol**.
+We have something neither cells_viewer nor cells-ui have: **event-sourced data** that can be exposed via the **Durable Streams protocol**.
 
 #### What We Already Have (swarm-mail)
 
@@ -143,10 +143,10 @@ Each event has:
 
 | Option | Pros | Cons |
 |--------|------|------|
-| **A. Fork beads_viewer** | Full-featured, battle-tested | Go codebase, different data format, maintenance burden |
+| **A. Fork cells_viewer** | Full-featured, battle-tested | Go codebase, different data format, maintenance burden |
 | **B. Build TUI from scratch** | TypeScript native, tight integration | Significant effort, reinventing wheel |
 | **C. Static HTML export** | Zero dependencies, shareable, works offline | No live updates, build step required |
-| **D. beads-ui style (Express + WebSocket)** | Proven architecture, live updates | Older stack, manual state management, no resumability |
+| **D. cells-ui style (Express + WebSocket)** | Proven architecture, live updates | Older stack, manual state management, no resumability |
 | **E. TanStack Start + Durable Streams** | Modern stack, SSR, type-safe, resumable | RC framework, overkill for local tool, learning curve |
 | **F. Next.js + Durable Streams** | Familiar, production-ready | Overkill for localhost, RSC complexity unnecessary |
 | **G. Vite + Nitro + Durable Streams** | Bun-native, zero config, lightweight, fast | Less batteries-included than Next.js |
@@ -507,11 +507,11 @@ What we need:
 │  │                                                                         │    │
 │  │  HIVE TABLES                    SWARM-MAIL TABLES                       │    │
 │  │  ───────────                    ─────────────────                       │    │
-│  │  • beads (cells)                • events (16 types)                     │    │
-│  │  • bead_dependencies            • agents                                │    │
-│  │  • bead_labels                  • messages                              │    │
-│  │  • bead_comments                • reservations                          │    │
-│  │  • blocked_beads_cache          • locks, cursors, deferred              │    │
+│  │  • cells (cells)                • events (16 types)                     │    │
+│  │  • cell_dependencies            • agents                                │    │
+│  │  • cell_labels                  • messages                              │    │
+│  │  • cell_comments                • reservations                          │    │
+│  │  • blocked_cells_cache          • locks, cursors, deferred              │    │
 │  │                                                                         │    │
 │  │  LEARNING TABLES                                                        │    │
 │  │  ───────────────                                                        │    │
@@ -563,8 +563,8 @@ What we need:
 │  │                    CLI VIEWS                                            │    │
 │  │  ─────────────────────────────────────────────────────────────────────  │    │
 │  │                                                                         │    │
-│  │  swarm viz           → Status table (queries beads table directly)      │    │
-│  │  swarm viz --tree    → Dependency tree (queries bead_dependencies)      │    │
+│  │  swarm viz           → Status table (queries cells table directly)      │    │
+│  │  swarm viz --tree    → Dependency tree (queries cell_dependencies)      │    │
 │  │  swarm viz --kanban  → Kanban columns                                   │    │
 │  │  swarm viz --serve   → Start web server                                 │    │
 │  │  swarm viz --export  → Static HTML snapshot                             │    │
@@ -580,10 +580,10 @@ The libSQL database contains everything we need:
 
 ```sql
 -- CELLS (work items)
-SELECT * FROM beads WHERE project_key = ? AND status != 'tombstone';
+SELECT * FROM cells WHERE project_key = ? AND status != 'tombstone';
 
 -- DEPENDENCIES (who blocks whom)
-SELECT * FROM bead_dependencies WHERE cell_id IN (...);
+SELECT * FROM cell_dependencies WHERE cell_id IN (...);
 
 -- EVENTS (real-time activity stream)
 SELECT * FROM events WHERE project_key = ? AND id > ? ORDER BY id LIMIT ?;
@@ -683,20 +683,20 @@ export function useEventStream(projectKey: string) {
 
 ### Data Model Mapping
 
-Our cells map to beads_viewer concepts:
+Our cells map to cells_viewer concepts:
 
-| Hive Concept | beads_viewer Equivalent | Notes |
+| Hive Concept | cells_viewer Equivalent | Notes |
 |--------------|-------------------------|-------|
-| Cell | Bead/Issue | Work item |
+| Cell | cell/Issue | Work item |
 | `parent_id` | `blocked_by` | Dependency relationship |
 | `status` | `status` | open, in_progress, blocked, closed |
 | `issue_type` | `type` | bug, feature, task, epic, chore |
 | `priority` | `priority` | 0-3 (we use 0=highest, they use 0=lowest) |
 | Epic + subtasks | Parent-child hierarchy | Our `parent_id` creates tree structure |
 
-### Graph Metrics (Subset of beads_viewer)
+### Graph Metrics (Subset of cells_viewer)
 
-We'll implement a **focused subset** of beads_viewer's 9 metrics:
+We'll implement a **focused subset** of cells_viewer's 9 metrics:
 
 | Metric | Priority | Rationale |
 |--------|----------|-----------|
@@ -1049,10 +1049,10 @@ function projectCells(events: AgentEvent[]): Map<string, Cell> {
   for (const event of events) {
     switch (event.type) {
       case 'task_started':
-        cells.set(event.bead_id, { ...cells.get(event.bead_id), status: 'in_progress' });
+        cells.set(event.cell_id, { ...cells.get(event.cell_id), status: 'in_progress' });
         break;
       case 'task_completed':
-        cells.set(event.bead_id, { ...cells.get(event.bead_id), status: 'closed' });
+        cells.set(event.cell_id, { ...cells.get(event.cell_id), status: 'closed' });
         break;
       // ...
     }
@@ -1082,7 +1082,7 @@ function projectCells(events: AgentEvent[]): Map<string, Cell> {
 
 ### 7. Subset of Metrics
 
-**Decision:** Implement only essential metrics, not all 9 from beads_viewer.
+**Decision:** Implement only essential metrics, not all 9 from cells_viewer.
 
 **Rationale:**
 - Our projects are smaller (typically <100 cells)
@@ -1218,7 +1218,7 @@ $ open ./hive-status.html
 
 ## Alternatives Considered
 
-### A. Fork beads_viewer
+### A. Fork cells_viewer
 
 **Pros:**
 - Full-featured, battle-tested
@@ -1227,13 +1227,13 @@ $ open ./hive-status.html
 
 **Cons:**
 - Go codebase (we're TypeScript)
-- Different data format (beads.jsonl vs issues.jsonl)
+- Different data format (cells.jsonl vs issues.jsonl)
 - Maintenance burden of a fork
 - Overkill for our needs
 
 **Verdict:** Too much friction. Better to build focused tool.
 
-### B. Use beads_viewer with adapter
+### B. Use cells_viewer with adapter
 
 **Pros:**
 - No code to write
@@ -1241,7 +1241,7 @@ $ open ./hive-status.html
 
 **Cons:**
 - Requires Go installation
-- Need to convert issues.jsonl → beads.jsonl
+- Need to convert issues.jsonl → cells.jsonl
 - Two-way sync complexity
 - User must learn two tools
 
@@ -1279,15 +1279,15 @@ $ open ./hive-status.html
 
 ## References
 
-- [beads_viewer](https://github.com/Dicklesworthstone/beads_viewer) - Inspiration (but we're simpler)
-- [beads-ui](https://github.com/mantoni/beads-ui) - Web UI reference
+- [cells_viewer](https://github.com/Dicklesworthstone/cells_viewer) - Inspiration (but we're simpler)
+- [cells-ui](https://github.com/mantoni/cells-ui) - Web UI reference
 - [Durable Streams](https://github.com/durable-streams/durable-streams) - Event streaming protocol
 
 ---
 
-## Appendix: beads_viewer Feature Comparison
+## Appendix: cells_viewer Feature Comparison
 
-| Feature | beads_viewer | Our Visualizer | Notes |
+| Feature | cells_viewer | Our Visualizer | Notes |
 |---------|--------------|----------------|-------|
 | List view | ✅ | ✅ (tree + table) | Core |
 | Kanban board | ✅ | ❌ (LATER) | Not MVP |

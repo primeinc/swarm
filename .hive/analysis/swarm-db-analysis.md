@@ -10,7 +10,7 @@
 
 ## Executive Summary
 
-The swarm database contains **1,821 events** across **81 unique projects**, with strong data coverage for coordinator decisions, review outcomes, and memory storage. The system is actively used with **1,668 active beads** and **8,953 memories** indexed. Compaction logging shows stability with isolated errors related to model provider configuration.
+The swarm database contains **1,821 events** across **81 unique projects**, with strong data coverage for coordinator decisions, review outcomes, and memory storage. The system is actively used with **1,668 active cells** and **8,953 memories** indexed. Compaction logging shows stability with isolated errors related to model provider configuration.
 
 **Key Findings:**
 - Event sourcing is working well - good distribution across event types
@@ -79,7 +79,7 @@ The swarm database contains **1,821 events** across **81 unique projects**, with
 | `from_agent` | TEXT | Sender agent name |
 | `subject` | TEXT | Message subject |
 | `body` | TEXT | Message content |
-| `thread_id` | TEXT | Thread identifier (typically epic/bead ID) |
+| `thread_id` | TEXT | Thread identifier (typically epic/cell ID) |
 | `importance` | TEXT | normal/high/urgent |
 | `ack_required` | INTEGER | Boolean flag for acknowledgment |
 | `created_at` | INTEGER | Send timestamp |
@@ -111,7 +111,7 @@ The swarm database contains **1,821 events** across **81 unique projects**, with
 | `agent_name` | TEXT | Agent holding reservation |
 | `path_pattern` | TEXT | File path or glob pattern |
 | `exclusive` | INTEGER | Boolean - exclusive lock? |
-| `reason` | TEXT | Why reserved (typically bead ID) |
+| `reason` | TEXT | Why reserved (typically cell ID) |
 | `created_at` | INTEGER | Lock acquired timestamp |
 | `expires_at` | INTEGER | TTL expiration |
 | `released_at` | INTEGER | Release timestamp (NULL = active) |
@@ -124,12 +124,12 @@ The swarm database contains **1,821 events** across **81 unique projects**, with
 
 ### Work Item Tracking (Hive)
 
-#### `beads` table
+#### `cells` table
 **Purpose:** Core work item storage (tasks, bugs, features, epics)
 
 | Column | Type | Description |
 |--------|------|-------------|
-| `id` | TEXT PK | Unique bead ID (e.g., "opencode-next--xts0a-mk471w7vzon") |
+| `id` | TEXT PK | Unique cell ID (e.g., "opencode-next--xts0a-mk471w7vzon") |
 | `project_key` | TEXT | Project context |
 | `type` | TEXT | bug/feature/task/epic/chore/message |
 | `status` | TEXT | open/in_progress/blocked/closed/tombstone |
@@ -148,10 +148,10 @@ The swarm database contains **1,821 events** across **81 unique projects**, with
 | `created_by` | TEXT | Creator agent |
 
 **Constraints:**
-- `CHECK (status = 'closed') = (closed_at IS NOT NULL)` - enforce closed_at on closed beads
+- `CHECK (status = 'closed') = (closed_at IS NOT NULL)` - enforce closed_at on closed cells
 - `CHECK priority BETWEEN 0 AND 3` - valid priority range
 
-**Current Stats (1,668 active beads):**
+**Current Stats (1,668 active cells):**
 
 | Status | Type | Count |
 |--------|------|-------|
@@ -177,17 +177,17 @@ The swarm database contains **1,821 events** across **81 unique projects**, with
 - **9 blocked items** - minimal blockage (0.5% of active items)
 
 #### `cells` view
-**Purpose:** Alias for beads table (migrating naming from "beads" → "cells")
+**Purpose:** Alias for cells table (migrating naming from "cells" → "cells")
 
 Triggers (`cells_insert`, `cells_update`, `cells_delete`) maintain compatibility during naming transition.
 
-#### `bead_dependencies` table
-**Purpose:** Relationships between beads
+#### `cell_dependencies` table
+**Purpose:** Relationships between cells
 
 | Column | Type | Description |
 |--------|------|-------------|
-| `cell_id` | TEXT | Source bead |
-| `depends_on_id` | TEXT | Target bead |
+| `cell_id` | TEXT | Source cell |
+| `depends_on_id` | TEXT | Target cell |
 | `relationship` | TEXT | blocks/related/parent-child/discovered-from/replies-to/relates-to/duplicates/supersedes |
 | `created_at` | INTEGER | Link creation timestamp |
 | `created_by` | TEXT | Who created link |
@@ -206,7 +206,7 @@ Triggers (`cells_insert`, `cells_update`, `cells_delete`) maintain compatibility
 | `id` | TEXT PK | Trace ID |
 | `decision_type` | TEXT | Type of decision made |
 | `epic_id` | TEXT | Related epic (if any) |
-| `bead_id` | TEXT | Related bead (if any) |
+| `cell_id` | TEXT | Related cell (if any) |
 | `agent_name` | TEXT | Agent making decision |
 | `project_key` | TEXT | Project context |
 | `decision` | TEXT | The decision made |
@@ -328,7 +328,7 @@ Triggers (`cells_insert`, `cells_update`, `cells_delete`) maintain compatibility
 | `id` | TEXT PK | Context ID |
 | `project_key` | TEXT | Project context |
 | `epic_id` | TEXT | Related epic |
-| `bead_id` | TEXT | Related bead |
+| `cell_id` | TEXT | Related cell |
 | `strategy` | TEXT | Decomposition strategy |
 | `files` | TEXT | JSON array of files |
 | `dependencies` | TEXT | JSON dependencies |
@@ -412,7 +412,7 @@ Triggers (`cells_insert`, `cells_update`, `cells_delete`) maintain compatibility
 | **Other** | 135 | 7.4% |
 
 **Key Insights:**
-- **Work item lifecycle dominates** (40%) - heavy bead creation/closing
+- **Work item lifecycle dominates** (40%) - heavy cell creation/closing
 - **Decision intelligence well-captured** (8.7%) - good audit trail
 - **Learning system active** (8.7%) - memory storage and retrieval happening
 - **Quality control coverage** (6.1%) - reviews started/completed tracked
@@ -600,7 +600,7 @@ error: Cannot find module '@opencode-ai/plugin' from '/Users/joel/.config/openco
 | Project | Event Count | Percentage |
 |---------|-------------|------------|
 | `/Users/joel/Code/joelhooks/opencode-next` | 599 | 32.9% |
-| `/var/folders/.../beads-integration-test-*` | 315 | 17.3% |
+| `/var/folders/.../cells-integration-test-*` | 315 | 17.3% |
 | `/Users/joel/Code/vercel/vrain` | 223 | 12.2% |
 | `/Users/joel/Code/.../opencode-swarm-plugin/packages/opencode-swarm-plugin` | 153 | 8.4% |
 | `/Users/joel/Code/.../opencode-swarm-plugin/packages/opencode-swarm-plugin/.test-skills-*` | 50 | 2.7% |
@@ -632,7 +632,7 @@ error: Cannot find module '@opencode-ai/plugin' from '/Users/joel/.config/openco
 
 **Minor Issues:**
 - `cells` view is transitional abstraction - should migrate fully to one name
-- `beads` table name conflicts with new "cells" terminology
+- `cells` table name conflicts with new "cells" terminology
 - `swarm_contexts` low usage (4 records) - may be underutilized
 
 ### Data Quality: ⚠️ Good with Gaps

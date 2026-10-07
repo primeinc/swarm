@@ -147,22 +147,22 @@ describe("runAnalyticsQuery integration", () => {
 			// Errors: failed subtask_outcome events
 			{
 				type: "subtask_outcome",
-				data: { agent: "agent1", success: false, bead_id: "bd-123" },
+				data: { agent: "agent1", success: false, cell_id: "cell-123" },
 				timestamp: now - 5400000,
 			},
 			{
 				type: "subtask_outcome",
-				data: { agent: "agent1", success: false, bead_id: "bd-124" },
+				data: { agent: "agent1", success: false, cell_id: "cell-124" },
 				timestamp: now - 5300000,
 			},
 			{
 				type: "subtask_outcome",
-				data: { agent: "agent2", success: false, bead_id: "bd-125" },
+				data: { agent: "agent2", success: false, cell_id: "cell-125" },
 				timestamp: now - 5200000,
 			},
 			{
 				type: "subtask_outcome",
-				data: { agent: "agent1", success: true, bead_id: "bd-126" },
+				data: { agent: "agent1", success: true, cell_id: "cell-126" },
 				timestamp: now - 5100000,
 			},
 
@@ -216,7 +216,12 @@ describe("runAnalyticsQuery integration", () => {
 		for (const event of events) {
 			await db.query(
 				"INSERT INTO events (type, project_key, timestamp, data) VALUES (?, ?, ?, ?)",
-				[event.type, testProjectPath, event.timestamp, JSON.stringify(event.data)],
+				[
+					event.type,
+					testProjectPath,
+					event.timestamp,
+					JSON.stringify(event.data),
+				],
 			);
 		}
 	});

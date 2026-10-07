@@ -23,8 +23,8 @@
  * @module memory/memory-linking
  */
 
-import { nanoid } from "nanoid";
 import { sql } from "drizzle-orm";
+import { nanoid } from "nanoid";
 import type { SwarmDb } from "../db/client.js";
 
 // ============================================================================
@@ -36,24 +36,24 @@ export type LinkType = "related" | "contradicts" | "supersedes" | "elaborates";
 
 /** Memory link with metadata */
 export interface MemoryLink {
-  readonly id: string;
-  readonly sourceId: string;
-  readonly targetId: string;
-  readonly linkType: LinkType;
-  readonly strength: number; // 0-1, decays or reinforces
-  readonly createdAt: Date;
+	readonly id: string;
+	readonly sourceId: string;
+	readonly targetId: string;
+	readonly linkType: LinkType;
+	readonly strength: number; // 0-1, decays or reinforces
+	readonly createdAt: Date;
 }
 
 /** Configuration for linking behavior */
 export interface LinkingConfig {
-  readonly similarityThreshold: number; // Min similarity to create link (default 0.7)
-  readonly maxLinks: number; // Max links per memory (default 10)
+	readonly similarityThreshold: number; // Min similarity to create link (default 0.7)
+	readonly maxLinks: number; // Max links per memory (default 10)
 }
 
 /** Default linking configuration */
 const DEFAULT_CONFIG: LinkingConfig = {
-  similarityThreshold: 0.7,
-  maxLinks: 10,
+	similarityThreshold: 0.7,
+	maxLinks: 10,
 };
 
 // ============================================================================
@@ -82,24 +82,24 @@ const DEFAULT_CONFIG: LinkingConfig = {
  * ```
  */
 export async function findRelatedMemories(
-  memoryId: string,
-  db: SwarmDb,
-  embedding: number[],
-  config?: Partial<LinkingConfig>
+	memoryId: string,
+	db: SwarmDb,
+	embedding: number[],
+	config?: Partial<LinkingConfig>,
 ): Promise<Array<{ memoryId: string; similarity: number }>> {
-  const { similarityThreshold, maxLinks } = {
-    ...DEFAULT_CONFIG,
-    ...config,
-  };
+	const { similarityThreshold, maxLinks } = {
+		...DEFAULT_CONFIG,
+		...config,
+	};
 
-  const vectorStr = JSON.stringify(embedding);
+	const vectorStr = JSON.stringify(embedding);
 
-  // Use vector_top_k for efficient ANN search
-  // Note: similarity = 1 - distance (cosine distance: 0 = identical, 2 = opposite)
-  const results = await db.all<{
-    id: string;
-    distance: number;
-  }>(sql`
+	// Use vector_top_k for efficient ANN search
+	// Note: similarity = 1 - distance (cosine distance: 0 = identical, 2 = opposite)
+	const results = await db.all<{
+		id: string;
+		distance: number;
+	}>(sql`
     SELECT 
       m.id,
       vector_distance_cos(m.embedding, vector(${vectorStr})) as distance
@@ -111,10 +111,10 @@ export async function findRelatedMemories(
     LIMIT ${maxLinks}
   `);
 
-  return results.map((row) => ({
-    memoryId: row.id,
-    similarity: 1 - row.distance, // Convert distance to similarity
-  }));
+	return results.map((row) => ({
+		memoryId: row.id,
+		similarity: 1 - row.distance, // Convert distance to similarity
+	}));
 }
 
 /**
@@ -137,33 +137,33 @@ export async function findRelatedMemories(
  * ```
  */
 export async function createLink(
-  sourceId: string,
-  targetId: string,
-  linkType: LinkType,
-  db: SwarmDb,
-  strength = 1.0
+	sourceId: string,
+	targetId: string,
+	linkType: LinkType,
+	db: SwarmDb,
+	strength = 1.0,
 ): Promise<MemoryLink> {
-  const id = nanoid();
-  const createdAt = new Date();
+	const id = nanoid();
+	const createdAt = new Date();
 
-  // Clamp strength to [0, 1]
-  const clampedStrength = Math.max(0, Math.min(1, strength));
+	// Clamp strength to [0, 1]
+	const clampedStrength = Math.max(0, Math.min(1, strength));
 
-  await db.run(
-    sql`
+	await db.run(
+		sql`
     INSERT INTO memory_links (id, source_id, target_id, link_type, strength, created_at)
     VALUES (${id}, ${sourceId}, ${targetId}, ${linkType}, ${clampedStrength}, ${createdAt.toISOString()})
-  `
-  );
+  `,
+	);
 
-  return {
-    id,
-    sourceId,
-    targetId,
-    linkType,
-    strength: clampedStrength,
-    createdAt,
-  };
+	return {
+		id,
+		sourceId,
+		targetId,
+		linkType,
+		strength: clampedStrength,
+		createdAt,
+	};
 }
 
 /**
@@ -187,20 +187,20 @@ export async function createLink(
  * ```
  */
 export async function getLinks(
-  memoryId: string,
-  db: SwarmDb,
-  linkType?: LinkType
+	memoryId: string,
+	db: SwarmDb,
+	linkType?: LinkType,
 ): Promise<MemoryLink[]> {
-  const linkTypeFilter = linkType ? sql`AND link_type = ${linkType}` : sql``;
+	const linkTypeFilter = linkType ? sql`AND link_type = ${linkType}` : sql``;
 
-  const results = await db.all<{
-    id: string;
-    source_id: string;
-    target_id: string;
-    link_type: string;
-    strength: number;
-    created_at: string;
-  }>(sql`
+	const results = await db.all<{
+		id: string;
+		source_id: string;
+		target_id: string;
+		link_type: string;
+		strength: number;
+		created_at: string;
+	}>(sql`
     SELECT id, source_id, target_id, link_type, strength, created_at
     FROM memory_links
     WHERE (source_id = ${memoryId} OR target_id = ${memoryId})
@@ -208,14 +208,14 @@ export async function getLinks(
     ORDER BY strength DESC, created_at DESC
   `);
 
-  return results.map((row) => ({
-    id: row.id,
-    sourceId: row.source_id,
-    targetId: row.target_id,
-    linkType: row.link_type as LinkType,
-    strength: row.strength,
-    createdAt: new Date(row.created_at),
-  }));
+	return results.map((row) => ({
+		id: row.id,
+		sourceId: row.source_id,
+		targetId: row.target_id,
+		linkType: row.link_type as LinkType,
+		strength: row.strength,
+		createdAt: new Date(row.created_at),
+	}));
 }
 
 /**
@@ -240,32 +240,32 @@ export async function getLinks(
  * ```
  */
 export async function autoLinkMemory(
-  memoryId: string,
-  embedding: number[],
-  db: SwarmDb,
-  config?: Partial<LinkingConfig>
+	memoryId: string,
+	embedding: number[],
+	db: SwarmDb,
+	config?: Partial<LinkingConfig>,
 ): Promise<MemoryLink[]> {
-  const related = await findRelatedMemories(memoryId, db, embedding, config);
+	const related = await findRelatedMemories(memoryId, db, embedding, config);
 
-  const links: MemoryLink[] = [];
+	const links: MemoryLink[] = [];
 
-  for (const { memoryId: targetId, similarity } of related) {
-    try {
-      const link = await createLink(
-        memoryId,
-        targetId,
-        "related",
-        db,
-        similarity
-      );
-      links.push(link);
-    } catch {
-      // Skip if link already exists (UNIQUE constraint violation)
-      // This can happen if auto-linking is called multiple times
-    }
-  }
+	for (const { memoryId: targetId, similarity } of related) {
+		try {
+			const link = await createLink(
+				memoryId,
+				targetId,
+				"related",
+				db,
+				similarity,
+			);
+			links.push(link);
+		} catch {
+			// Skip if link already exists (UNIQUE constraint violation)
+			// This can happen if auto-linking is called multiple times
+		}
+	}
 
-  return links;
+	return links;
 }
 
 /**
@@ -288,13 +288,13 @@ export async function autoLinkMemory(
  * ```
  */
 export async function updateLinkStrength(
-  linkId: string,
-  delta: number,
-  db: SwarmDb
+	linkId: string,
+	delta: number,
+	db: SwarmDb,
 ): Promise<void> {
-  // Use SQL to clamp to [0, 1] during update
-  await db.run(
-    sql`
+	// Use SQL to clamp to [0, 1] during update
+	await db.run(
+		sql`
     UPDATE memory_links
     SET strength = CASE
       WHEN strength + ${delta} > 1.0 THEN 1.0
@@ -302,6 +302,6 @@ export async function updateLinkStrength(
       ELSE strength + ${delta}
     END
     WHERE id = ${linkId}
-  `
-  );
+  `,
+	);
 }

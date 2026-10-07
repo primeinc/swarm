@@ -5,7 +5,7 @@
  * Each fixture demonstrates good or bad coordinator behavior.
  */
 
-import type { CoordinatorSession } from "opencode-swarm-plugin/eval-capture";
+import type { CoordinatorSession } from "swarm/eval-capture";
 
 /**
  * PERFECT COORDINATOR
@@ -37,7 +37,7 @@ export const perfectCoordinator: CoordinatorSession = {
       timestamp: "2025-01-01T10:00:30.000Z",
       event_type: "DECISION",
       decision_type: "worker_spawned",
-      payload: { worker: "BlueLake", bead_id: "test-epic-perfect.1" },
+      payload: { worker: "BlueLake", cell_id: "test-epic-perfect.1" },
     },
     // 3. Second spawn
     {
@@ -46,7 +46,7 @@ export const perfectCoordinator: CoordinatorSession = {
       timestamp: "2025-01-01T10:01:00.000Z",
       event_type: "DECISION",
       decision_type: "worker_spawned",
-      payload: { worker: "GreenMountain", bead_id: "test-epic-perfect.2" },
+      payload: { worker: "GreenMountain", cell_id: "test-epic-perfect.2" },
     },
     // 4. Third spawn
     {
@@ -55,7 +55,7 @@ export const perfectCoordinator: CoordinatorSession = {
       timestamp: "2025-01-01T10:01:30.000Z",
       event_type: "DECISION",
       decision_type: "worker_spawned",
-      payload: { worker: "RedForest", bead_id: "test-epic-perfect.3" },
+      payload: { worker: "RedForest", cell_id: "test-epic-perfect.3" },
     },
     // 5. First worker completes
     {
@@ -64,7 +64,7 @@ export const perfectCoordinator: CoordinatorSession = {
       timestamp: "2025-01-01T10:10:00.000Z",
       event_type: "OUTCOME",
       outcome_type: "subtask_success",
-      payload: { bead_id: "test-epic-perfect.1", worker: "BlueLake" },
+      payload: { cell_id: "test-epic-perfect.1", worker: "BlueLake" },
     },
     // 6. First review
     {
@@ -74,7 +74,7 @@ export const perfectCoordinator: CoordinatorSession = {
       event_type: "DECISION",
       decision_type: "review_completed",
       payload: {
-        bead_id: "test-epic-perfect.1",
+        cell_id: "test-epic-perfect.1",
         approved: true,
         issues: [],
       },
@@ -86,7 +86,7 @@ export const perfectCoordinator: CoordinatorSession = {
       timestamp: "2025-01-01T10:15:00.000Z",
       event_type: "OUTCOME",
       outcome_type: "subtask_success",
-      payload: { bead_id: "test-epic-perfect.2", worker: "GreenMountain" },
+      payload: { cell_id: "test-epic-perfect.2", worker: "GreenMountain" },
     },
     // 8. Second review
     {
@@ -96,7 +96,7 @@ export const perfectCoordinator: CoordinatorSession = {
       event_type: "DECISION",
       decision_type: "review_completed",
       payload: {
-        bead_id: "test-epic-perfect.2",
+        cell_id: "test-epic-perfect.2",
         approved: true,
         issues: [],
       },
@@ -108,7 +108,7 @@ export const perfectCoordinator: CoordinatorSession = {
       timestamp: "2025-01-01T10:20:00.000Z",
       event_type: "OUTCOME",
       outcome_type: "subtask_success",
-      payload: { bead_id: "test-epic-perfect.3", worker: "RedForest" },
+      payload: { cell_id: "test-epic-perfect.3", worker: "RedForest" },
     },
     // 10. Third review
     {
@@ -118,7 +118,7 @@ export const perfectCoordinator: CoordinatorSession = {
       event_type: "DECISION",
       decision_type: "review_completed",
       payload: {
-        bead_id: "test-epic-perfect.3",
+        cell_id: "test-epic-perfect.3",
         approved: true,
         issues: [],
       },
@@ -192,7 +192,7 @@ export const badCoordinator: CoordinatorSession = {
       timestamp: "2025-01-01T10:10:00.000Z",
       event_type: "DECISION",
       decision_type: "worker_spawned",
-      payload: { worker: "BlueLake", bead_id: "test-epic-bad.1" },
+      payload: { worker: "BlueLake", cell_id: "test-epic-bad.1" },
     },
     // 6. Worker completes (but no review!)
     {
@@ -201,7 +201,7 @@ export const badCoordinator: CoordinatorSession = {
       timestamp: "2025-01-01T10:20:00.000Z",
       event_type: "OUTCOME",
       outcome_type: "subtask_success",
-      payload: { bead_id: "test-epic-bad.1", worker: "BlueLake" },
+      payload: { cell_id: "test-epic-bad.1", worker: "BlueLake" },
     },
     // 7. VIOLATION: No worker spawned for subtask 2
     {
@@ -210,7 +210,7 @@ export const badCoordinator: CoordinatorSession = {
       timestamp: "2025-01-01T10:30:00.000Z",
       event_type: "VIOLATION",
       violation_type: "no_worker_spawned",
-      payload: { bead_id: "test-epic-bad.2", reason: "coordinator did work directly" },
+      payload: { cell_id: "test-epic-bad.2", reason: "coordinator did work directly" },
     },
     // 8. VIOLATION: No worker spawned for subtask 3
     {
@@ -219,7 +219,7 @@ export const badCoordinator: CoordinatorSession = {
       timestamp: "2025-01-01T10:40:00.000Z",
       event_type: "VIOLATION",
       violation_type: "no_worker_spawned",
-      payload: { bead_id: "test-epic-bad.3", reason: "coordinator did work directly" },
+      payload: { cell_id: "test-epic-bad.3", reason: "coordinator did work directly" },
     },
   ],
 };
@@ -254,7 +254,7 @@ export const decentCoordinator: CoordinatorSession = {
       timestamp: "2025-01-01T10:00:45.000Z",
       event_type: "DECISION",
       decision_type: "worker_spawned",
-      payload: { worker: "BlueLake", bead_id: "test-epic-decent.1" },
+      payload: { worker: "BlueLake", cell_id: "test-epic-decent.1" },
     },
     // 3. Second spawn
     {
@@ -263,7 +263,7 @@ export const decentCoordinator: CoordinatorSession = {
       timestamp: "2025-01-01T10:01:00.000Z",
       event_type: "DECISION",
       decision_type: "worker_spawned",
-      payload: { worker: "GreenMountain", bead_id: "test-epic-decent.2" },
+      payload: { worker: "GreenMountain", cell_id: "test-epic-decent.2" },
     },
     // 4. First worker completes
     {
@@ -272,7 +272,7 @@ export const decentCoordinator: CoordinatorSession = {
       timestamp: "2025-01-01T10:10:00.000Z",
       event_type: "OUTCOME",
       outcome_type: "subtask_success",
-      payload: { bead_id: "test-epic-decent.1", worker: "BlueLake" },
+      payload: { cell_id: "test-epic-decent.1", worker: "BlueLake" },
     },
     // 5. First review
     {
@@ -282,7 +282,7 @@ export const decentCoordinator: CoordinatorSession = {
       event_type: "DECISION",
       decision_type: "review_completed",
       payload: {
-        bead_id: "test-epic-decent.1",
+        cell_id: "test-epic-decent.1",
         approved: true,
         issues: [],
       },
@@ -303,7 +303,7 @@ export const decentCoordinator: CoordinatorSession = {
       timestamp: "2025-01-01T10:20:00.000Z",
       event_type: "OUTCOME",
       outcome_type: "subtask_success",
-      payload: { bead_id: "test-epic-decent.2", worker: "GreenMountain" },
+      payload: { cell_id: "test-epic-decent.2", worker: "GreenMountain" },
     },
     // 8. No review for second worker (50% review rate)
     // 9. Epic complete

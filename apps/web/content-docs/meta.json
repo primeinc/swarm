@@ -1,11 +1,11 @@
 {
-  "title": "Documentation",
-  "pages": [
-    "index",
-    "getting-started",
-    "packages",
-    "concepts",
-    "decisions",
-    "archive"
-  ]
+	"title": "Documentation",
+	"pages": [
+		"index",
+		"getting-started",
+		"packages",
+		"concepts",
+		"decisions",
+		"archive"
+	]
 }

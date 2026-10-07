@@ -75,7 +75,7 @@ export const cassSearchBaseline = {
     {
       agent: "claude_code",
       content:
-        "I'm ready to help you explore the codebase and design implementation plans. I'm in **READ-ONLY mode** - I can explore files, understand architecture, and create detailed plans, but I cannot and will not modify any files.\n\nI have access to the beads issue tracker (`bd` commands) and can see your current working directory is `/Users/joel/.config/opencode`.\n\n**Current git status shows:**\n- Modified: `.beads/issues.jsonl`, `AGENTS.md`, `command/swarm.md`, `opencode.jsonc`\n- Untracked: `command/swarm-collect.md`, `command/swarm-status.md`, `plugin/`\n\n**What would you like me to explore and plan?**\n\nCommon scenarios I can help with:\n- Designing new command implementations\n- Planning plugin architecture\n- Exploring existing patterns for feature additions\n- Creating implementation strategies for beads issues\n\nLet me know what you need, and I'll dive into the codebase, understand the current architecture, and provide a detailed implementation plan.",
+        "I'm ready to help you explore the codebase and design implementation plans. I'm in **READ-ONLY mode** - I can explore files, understand architecture, and create detailed plans, but I cannot and will not modify any files.\n\nI have access to the cells issue tracker (`bd` commands) and can see your current working directory is `/Users/joel/.config/opencode`.\n\n**Current git status shows:**\n- Modified: `.cells/issues.jsonl`, `AGENTS.md`, `command/swarm.md`, `opencode.jsonc`\n- Untracked: `command/swarm-collect.md`, `command/swarm-status.md`, `plugin/`\n\n**What would you like me to explore and plan?**\n\nCommon scenarios I can help with:\n- Designing new command implementations\n- Planning plugin architecture\n- Exploring existing patterns for feature additions\n- Creating implementation strategies for cells issues\n\nLet me know what you need, and I'll dive into the codebase, understand the current architecture, and provide a detailed implementation plan.",
       created_at: 1765161814722,
       line_number: 1,
       match_type: "exact",
@@ -144,7 +144,7 @@ Date Range: 2025-07-14 to 2025-12-08`;
 export const cassViewBaseline = `File: /Users/joel/.config/swarm-tools/sessions/ses_19yz2iaMpHxY1ddvVq2voC.jsonl
 Line: 1 (context: 5)
 ----------------------------------------
->    1 | {"session_id":"ses_19yz2iaMpHxY1ddvVq2voC","epic_id":"cell-f2p61v-mjko4d89zdt","timestamp":"2025-12-24T23:51:52.896Z","event_type":"OUTCOME","outcome_type":"subtask_success","payload":{"bead_id":"cell-f2p61v-mjko4d89zdt","duration_ms":0,"files_touched":[],"verification_passed":false,"verification_skipped":true}}
+>    1 | {"session_id":"ses_19yz2iaMpHxY1ddvVq2voC","epic_id":"cell-f2p61v-mjko4d89zdt","timestamp":"2025-12-24T23:51:52.896Z","event_type":"OUTCOME","outcome_type":"subtask_success","payload":{"cell_id":"cell-f2p61v-mjko4d89zdt","duration_ms":0,"files_touched":[],"verification_passed":false,"verification_skipped":true}}
 ----------------------------------------`;
 
 /**

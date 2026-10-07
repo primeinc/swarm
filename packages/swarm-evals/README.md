@@ -1,4 +1,4 @@
-# @swarmtools/evals
+# swarm-evals
 
 ```
     🐝   EVAL SUITE   🐝
@@ -40,9 +40,9 @@ bun run typecheck
 
 This package is part of the swarm-tools monorepo:
 
-- `opencode-swarm-plugin` - Main plugin (peer dependency)
+- `swarm` - Main plugin (peer dependency)
 - `swarm-mail` - Event sourcing primitives (peer dependency)
-- `@swarmtools/evals` - This package
+- `swarm-evals` - This package
 
 ## Development
 

@@ -4,13 +4,14 @@
  * End-to-end tests for stray database consolidation workflow.
  */
 
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { existsSync, mkdirSync, rmSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { existsSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createLibSQLAdapter } from "../libsql.js";
 import { createLibSQLStreamsSchema } from "../streams/libsql-schema.js";
+import { DbClientFactory } from "./client-factory.js";
 import { consolidateDatabases } from "./consolidate-databases.js";
+import { DbFileOps } from "./file-ops.js";
 
 describe("Database Consolidation - Integration", () => {
 	let testDir: string;
@@ -22,14 +23,14 @@ describe("Database Consolidation - Integration", () => {
 		globalDbPath = join(testDir, "global.db");
 
 		// Create global DB
-		const globalDb = await createLibSQLAdapter({ url: `file:${globalDbPath}` });
-		await createLibSQLStreamsSchema(globalDb);
-		await globalDb.close();
+		const managed = await DbClientFactory.getOrCreate(`file:${globalDbPath}`);
+		await createLibSQLStreamsSchema(managed.adapter);
 	});
 
-	afterEach(() => {
+	afterEach(async () => {
+		await DbClientFactory.closeAll();
 		if (existsSync(testDir)) {
-			rmSync(testDir, { recursive: true, force: true });
+			await DbFileOps.remove(testDir, { recursive: true });
 		}
 	});
 
@@ -41,37 +42,41 @@ describe("Database Consolidation - Integration", () => {
 
 		mkdirSync(join(testDir, ".opencode"), { recursive: true });
 		mkdirSync(join(testDir, ".hive"), { recursive: true });
-		mkdirSync(join(testDir, "packages", "foo", ".opencode"), { recursive: true });
+		mkdirSync(join(testDir, "packages", "foo", ".opencode"), {
+			recursive: true,
+		});
 
 		// Populate root DB
-		const rootDbAdapter = await createLibSQLAdapter({ url: `file:${rootDb}` });
+		const managedRoot = await DbClientFactory.getOrCreate(`file:${rootDb}`);
+		const rootDbAdapter = managedRoot.adapter;
 		await createLibSQLStreamsSchema(rootDbAdapter);
 		await rootDbAdapter.exec(`
       INSERT INTO events (type, project_key, timestamp, data)
       VALUES ('root_event', '${testDir}', ${Date.now()}, '{"source": "root"}')
     `);
-		await rootDbAdapter.close();
 
 		// Populate hive DB
-		const hiveDbAdapter = await createLibSQLAdapter({ url: `file:${hiveDb}` });
+		const managedHive = await DbClientFactory.getOrCreate(`file:${hiveDb}`);
+		const hiveDbAdapter = managedHive.adapter;
 		await createLibSQLStreamsSchema(hiveDbAdapter);
 		await hiveDbAdapter.exec(`
       INSERT INTO events (type, project_key, timestamp, data)
       VALUES ('hive_event', '${testDir}', ${Date.now()}, '{"source": "hive"}')
     `);
-		await hiveDbAdapter.close();
 
 		// Populate package DB
-		const pkgDbAdapter = await createLibSQLAdapter({ url: `file:${pkgDb}` });
+		const managedPkg = await DbClientFactory.getOrCreate(`file:${pkgDb}`);
+		const pkgDbAdapter = managedPkg.adapter;
 		await createLibSQLStreamsSchema(pkgDbAdapter);
 		await pkgDbAdapter.exec(`
       INSERT INTO events (type, project_key, timestamp, data)
       VALUES ('pkg_event', '${testDir}', ${Date.now()}, '{"source": "pkg"}')
     `);
-		await pkgDbAdapter.close();
 
 		// Run consolidation
-		const report = await consolidateDatabases(testDir, globalDbPath, { yes: true });
+		const report = await consolidateDatabases(testDir, globalDbPath, {
+			yes: true,
+		});
 
 		// Verify report
 		expect(report.straysFound).toBe(3);
@@ -80,11 +85,14 @@ describe("Database Consolidation - Integration", () => {
 		expect(report.errors).toHaveLength(0);
 
 		// Verify all data in global DB
-		const { createClient } = await import("@libsql/client");
-		const globalClient = createClient({ url: `file:${globalDbPath}` });
-		const result = await globalClient.execute("SELECT COUNT(*) as count FROM events");
+		const managedGlobal = await DbClientFactory.getOrCreate(
+			`file:${globalDbPath}`,
+		);
+		const globalDb = managedGlobal.adapter;
+		const result = await globalDb.query<{ count: number }>(
+			"SELECT COUNT(*) as count FROM events",
+		);
 		expect(Number(result.rows[0].count)).toBe(3);
-		globalClient.close();
 
 		// Verify strays are gone
 		expect(existsSync(rootDb)).toBe(false);
@@ -102,7 +110,8 @@ describe("Database Consolidation - Integration", () => {
 		const rootDb = join(testDir, ".opencode", "swarm.db");
 		mkdirSync(join(testDir, ".opencode"), { recursive: true });
 
-		const rootDbAdapter = await createLibSQLAdapter({ url: `file:${rootDb}` });
+		const managedStray = await DbClientFactory.getOrCreate(`file:${rootDb}`);
+		const rootDbAdapter = managedStray.adapter;
 		await createLibSQLStreamsSchema(rootDbAdapter);
 
 		// Insert same agent that will exist in global
@@ -110,24 +119,27 @@ describe("Database Consolidation - Integration", () => {
       INSERT INTO agents (project_key, name, registered_at, last_active_at)
       VALUES ('${testDir}', 'duplicate-agent', ${Date.now()}, ${Date.now()})
     `);
-		await rootDbAdapter.close();
 
 		// Pre-populate global with same agent
-		const globalDbAdapter = await createLibSQLAdapter({ url: `file:${globalDbPath}` });
+		const managedGlobal = await DbClientFactory.getOrCreate(
+			`file:${globalDbPath}`,
+		);
+		const globalDbAdapter = managedGlobal.adapter;
+		await createLibSQLStreamsSchema(globalDbAdapter);
 		await globalDbAdapter.exec(`
       INSERT INTO agents (project_key, name, registered_at, last_active_at)
       VALUES ('${testDir}', 'duplicate-agent', ${Date.now()}, ${Date.now()})
     `);
-		await globalDbAdapter.close();
 
 		// Run consolidation
-		const report = await consolidateDatabases(testDir, globalDbPath, { yes: true });
+		const report = await consolidateDatabases(testDir, globalDbPath, {
+			yes: true,
+		});
 
 		// Verify no duplicate in global DB
-		const { createClient } = await import("@libsql/client");
-		const globalClient = createClient({ url: `file:${globalDbPath}` });
-		const result = await globalClient.execute("SELECT COUNT(*) as count FROM agents");
+		const result = await globalDbAdapter.query<{ count: number }>(
+			"SELECT COUNT(*) as count FROM agents",
+		);
 		expect(Number(result.rows[0].count)).toBe(1); // Still only 1
-		globalClient.close();
 	});
 });

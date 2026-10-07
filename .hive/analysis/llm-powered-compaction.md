@@ -302,7 +302,7 @@ You are resuming coordination of an active swarm that was interrupted by context
 
 3. **Spawn pending subtask when bd-abc123.4 completes:**
    ```
-   swarm_spawn_subtask(bead_id="bd-abc123.5", epic_id="bd-abc123", subtask_title="OAuth provider integration", files=["src/auth/providers/*.ts"])
+   swarm_spawn_subtask(cell_id="bd-abc123.5", epic_id="bd-abc123", subtask_title="OAuth provider integration", files=["src/auth/providers/*.ts"])
    ```
 
 4. **Close epic when all subtasks done:**

@@ -16,7 +16,7 @@ console.log("🐝 Swarm Debug Demo");
 console.log("=".repeat(50));
 console.log(`DEBUG env: ${process.env.DEBUG || "(not set)"}\n`);
 
-log.events("Event: Worker spawned for task bd-123.1");
+log.events("Event: Worker spawned for task cell-123.1");
 log.reservations("Reservation: src/auth/** claimed by BrightRiver");
 log.messages("Message: BLOCKED - need database schema");
 log.checkpoints("Checkpoint: Auth implementation 75% complete");

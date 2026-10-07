@@ -123,7 +123,7 @@ function getEventSummary(event: AgentEvent): string {
     
     // Task events
     case "task_started":
-      return `Started ${event.bead_id}`;
+      return `Started ${event.cell_id}`;
     case "task_progress":
       return event.message || `Progress: ${event.progress_percent}%`;
     case "task_completed":
@@ -163,9 +163,9 @@ function getEventSummary(event: AgentEvent): string {
     
     // Checkpoint/Compaction events
     case "swarm_checkpointed":
-      return `Checkpoint created for ${event.bead_id}`;
+      return `Checkpoint created for ${event.cell_id}`;
     case "swarm_recovered":
-      return `Recovered ${event.bead_id}`;
+      return `Recovered ${event.cell_id}`;
     case "checkpoint_created":
       return `Checkpoint: ${event.checkpoint_id} (${event.progress_percent}%)`;
     case "context_compacted":
@@ -231,9 +231,9 @@ function getEventSummary(event: AgentEvent): string {
         ? `Worker completed: ${event.worker_agent} (${event.duration_ms}ms)`
         : `Worker failed: ${event.worker_agent} - ${event.error_message || "unknown error"}`;
     case "review_started":
-      return `Review started: ${event.bead_id} (attempt ${event.attempt})`;
+      return `Review started: ${event.cell_id} (attempt ${event.attempt})`;
     case "review_completed":
-      return `Review ${event.status}: ${event.bead_id} (attempt ${event.attempt})`;
+      return `Review ${event.status}: ${event.cell_id} (attempt ${event.attempt})`;
     case "swarm_completed":
       return event.success
         ? `Swarm completed: ${event.epic_title} (${event.subtasks_completed} completed, ${event.total_duration_ms}ms)`

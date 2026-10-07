@@ -14,7 +14,29 @@ export {
 	type SearchResult,
 	type StoreOptions,
 } from "./adapter.js";
-
+// Auto-tagging (LLM-based tag generation)
+export {
+	type AutoTagConfig,
+	type AutoTagResult,
+	generateTags,
+} from "./auto-tagger.js";
+// Legacy migration tool
+export {
+	getDefaultLegacyPath,
+	getMigrationStatus,
+	legacyDatabaseExists,
+	type MigrationOptions,
+	type MigrationResult,
+	migrateLegacyMemories,
+} from "./migrate-legacy.js";
+// Migrations
+export {
+	memoryMigration,
+	memoryMigrations,
+	type OllamaEmbedder,
+	type RepairStats,
+	repairStaleEmbeddings,
+} from "./migrations.js";
 // Low-level services (advanced usage)
 export {
 	getDefaultConfig,
@@ -22,44 +44,17 @@ export {
 	Ollama,
 	OllamaError,
 } from "./ollama.js";
-
 export { createMemoryStore, EMBEDDING_DIM } from "./store.js";
-
-// Auto-tagging (LLM-based tag generation)
-export {
-	generateTags,
-	type AutoTagConfig,
-	type AutoTagResult,
-} from "./auto-tagger.js";
-
-// Migrations
-export { 
-	memoryMigration, 
-	memoryMigrations,
-	repairStaleEmbeddings,
-	type RepairStats,
-	type OllamaEmbedder,
-} from "./migrations.js";
-
-// Legacy migration tool
-export {
-	getDefaultLegacyPath,
-	getMigrationStatus,
-	legacyDatabaseExists,
-	migrateLegacyMemories,
-	type MigrationOptions,
-	type MigrationResult,
-} from "./migrate-legacy.js";
 
 // Git sync (JSONL export/import)
 export {
-	exportMemories,
-	importMemories,
-	syncMemories,
-	parseMemoryJSONL,
-	serializeMemoryToJSONL,
 	type ExportOptions as MemoryExportOptions,
+	exportMemories,
 	type ImportOptions as MemoryImportOptions,
+	importMemories,
 	type MemoryExport,
 	type MemoryImportResult,
+	parseMemoryJSONL,
+	serializeMemoryToJSONL,
+	syncMemories,
 } from "./sync.js";

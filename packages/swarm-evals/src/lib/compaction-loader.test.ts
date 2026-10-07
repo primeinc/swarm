@@ -7,7 +7,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import type { CoordinatorEvent } from "opencode-swarm-plugin/eval-capture";
+import type { CoordinatorEvent } from "swarm/eval-capture";
 import {
   loadCompactionEvents,
   loadCompactionSessions,
@@ -104,7 +104,7 @@ beforeAll(() => {
       timestamp: "2025-01-03T10:00:00.000Z",
       event_type: "DECISION",
       decision_type: "worker_spawned",
-      payload: { worker: "BlueLake", bead_id: "epic-3.1" },
+      payload: { worker: "BlueLake", cell_id: "epic-3.1" },
     },
   ]);
 });

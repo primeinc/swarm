@@ -78,7 +78,7 @@ await swarmmail_reserve({
 
 // 3. Release (automatic via swarm_complete)
 await swarm_complete({
-  bead_id: "bd-123.2",
+  cell_id: "bd-123.2",
   files_touched: ["src/auth/service.ts"]
 });
 ```
@@ -87,9 +87,9 @@ await swarm_complete({
 
 ---
 
-### Thread by Bead ID
+### Thread by cell ID
 
-Use bead IDs as thread IDs for all coordination messages.
+Use cell IDs as thread IDs for all coordination messages.
 
 ```typescript
 // All messages for epic bd-123 use thread_id: "bd-123"
@@ -219,8 +219,8 @@ swarmmail_send({
   thread_id: "bd-123"
 });
 
-// Also update bead status
-beads_update({ id: "bd-123.2", status: "blocked" });
+// Also update cell status
+cells_update({ id: "bd-123.2", status: "blocked" });
 ```
 
 **Rule:** Don't spin for 30 minutes before reporting. Report immediately.
@@ -253,7 +253,7 @@ swarmmail_send({
 Agent works without communication. Conflicts discovered too late.
 
 ```
-❌ Agent spawns → works silently for 45 minutes → closes bead
+❌ Agent spawns → works silently for 45 minutes → closes cell
 ✓ Agent spawns → init → reserve → progress update → complete
 ```
 
@@ -274,7 +274,7 @@ const plan = await swarm_plan_prompt({ task });
 // ✓ Delegate to subagent (clean context)
 const result = await Task({
   subagent_type: "swarm-planner",
-  prompt: "Generate BeadTree for: " + task
+  prompt: "Generate cellTree for: " + task
 });
 // Only receive final JSON, not reasoning
 ```
@@ -405,10 +405,10 @@ test("calculateFee returns 15 for premium with 100", () => {
 
 ```typescript
 // 1. What's ready?
-beads_ready()
+cells_ready()
 
 // 2. What's in progress?
-beads_query({ status: "in_progress" })
+cells_query({ status: "in_progress" })
 
 // 3. Check inbox
 swarmmail_inbox()
@@ -420,10 +420,10 @@ swarmmail_inbox()
 
 ```typescript
 // 1. Close completed work
-beads_close({ id: "bd-123", reason: "Done: implemented auth" })
+cells_close({ id: "bd-123", reason: "Done: implemented auth" })
 
 // 2. Sync to git
-beads_sync()
+cells_sync()
 
 // 3. Push (YOU do this, don't defer)
 // git push
@@ -432,7 +432,7 @@ beads_sync()
 // git status → "up to date with origin"
 
 // 5. What's next?
-beads_ready()
+cells_ready()
 ```
 
 **Rule:** The plane is not landed until `git push` succeeds.

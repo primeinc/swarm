@@ -47,7 +47,7 @@ TOP 5 STORAGE CONSUMERS (by bytes):
 2. memories                            43,429,888 bytes (41.4 MB) -  2.9%
 3. memories_fts_data                    3,137,536 bytes (3.0 MB)  -  0.2%
 4. events                               1,638,400 bytes (1.6 MB)  -  0.1%
-5. beads                                  856,064 bytes (836 KB)  -  0.06%
+5. cells                                  856,064 bytes (836 KB)  -  0.06%
 ```
 
 **CRITICAL:** The vector index consumes 98.2% of database storage. This is a shadow table for libsql vector embeddings - likely for semantic memory search.
@@ -56,7 +56,7 @@ TOP 5 STORAGE CONSUMERS (by bytes):
 
 | Table | Rows | Avg Row Size | Purpose |
 |-------|------|--------------|---------|
-| `beads` | 1,699 | ~504 bytes | Work item tracking |
+| `cells` | 1,699 | ~504 bytes | Work item tracking |
 | `events` | 2,337 | ~701 bytes | Event sourcing log |
 | `messages` | 187 | ~788 bytes | Agent mail |
 | `decision_traces` | 182 | ~810 bytes | Coordinator decisions |
@@ -143,7 +143,7 @@ TOP 5 STORAGE HOGS (by total bytes):
 
 ## Operational Metrics
 
-### Bead (Work Item) Distribution
+### cell (Work Item) Distribution
 
 | Status | Count | % of Total |
 |--------|-------|------------|
@@ -192,7 +192,7 @@ TOP 5 STORAGE HOGS (by total bytes):
 
 ### Index Coverage
 
-**Good:** 30+ indexes on key columns (beads.status, events.type, agents.project, etc.)
+**Good:** 30+ indexes on key columns (cells.status, events.type, agents.project, etc.)
 
 **Missing:** No composite index on `events(project_key, timestamp)` - common query pattern for project-scoped time series.
 

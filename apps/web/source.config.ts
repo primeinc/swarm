@@ -1,6 +1,6 @@
-import { remarkMdxMermaid } from 'fumadocs-core/mdx-plugins';
-import { remarkAutoTypeTable, createGenerator } from 'fumadocs-typescript';
-import { defineConfig, defineDocs } from 'fumadocs-mdx/config';
+import { remarkMdxMermaid } from "fumadocs-core/mdx-plugins";
+import { defineConfig, defineDocs } from "fumadocs-mdx/config";
+import { createGenerator, remarkAutoTypeTable } from "fumadocs-typescript";
 
 /**
  * TypeScript generator for auto-type-table
@@ -9,11 +9,11 @@ import { defineConfig, defineDocs } from 'fumadocs-mdx/config';
 const generator = createGenerator();
 
 export const docs = defineDocs({
-  dir: 'content-docs',
+	dir: "content-docs",
 });
 
 export default defineConfig({
-  mdxOptions: {
-    remarkPlugins: [remarkMdxMermaid, [remarkAutoTypeTable, { generator }]],
-  },
+	mdxOptions: {
+		remarkPlugins: [remarkMdxMermaid, [remarkAutoTypeTable, { generator }]],
+	},
 });
